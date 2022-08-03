@@ -49,7 +49,7 @@
     "build": "npm run clean && tsc -p tsconfig.json",
     "ts-check": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build",
-    "lint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache 'src/**/*.{ts,js,jsx,tsx}'",
+    "lint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache 'src/**/*!(.d).ts' --ignore-pattern 'src/**/*.d.ts'",
     "test": "jest"
   },
   "jest": {
