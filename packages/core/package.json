@@ -35,7 +35,7 @@
     "index.js",
     "index.d.ts"
   ],
-  "homepage": "https://github.com/rangoo94/sockety#readme",
+  "homepage": "https://github.com/rangoo94/sockety/tree/master/packages/core#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rangoo94/sockety.git",
