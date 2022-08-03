@@ -1,0 +1,38 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "extends": [
+    "plugin:react/recommended",
+    "airbnb"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "react",
+    "@typescript-eslint"
+  ],
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  },
+  "rules": {
+    "import/extensions": "off",
+    "lines-between-class-members": "off",
+    "no-return-await": "off",
+    "operator-linebreak": "off",
+    "import/prefer-default-export": "off",
+    "no-else-return": "off",
+    "array-bracket-spacing": [ "error", "always" ],
+    "max-len": [ "warn", 120 ]
+  }
+}

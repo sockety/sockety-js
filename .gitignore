@@ -1,0 +1,22 @@
+# IDE
+.vscode
+.idea
+
+# System files
+.DS_Store
+
+# Generated files
+node_modules
+npm-debug.log*
+coverage
+packages/**/*.js
+packages/**/*.d.ts
+packages/**/*.map
+
+# Temporary data
+*.log
+.node_repl_history
+
+# Cache
+.eslintcache
+.nyc_output

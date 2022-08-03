@@ -1,0 +1,92 @@
+{
+  "name": "sockety",
+  "description": "Fast and secure TCP communication with multiplexing, focused on sending commands, streams and files",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "author": {
+    "name": "Dawid Rusnak",
+    "email": "dawid@drcode.pl",
+    "url": "https://www.drcode.pl"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "socket",
+    "tcp",
+    "tls",
+    "net",
+    "stream",
+    "communication",
+    "protocol",
+    "realtime",
+    "real-time",
+    "events",
+    "client",
+    "server",
+    "ipc",
+    "api",
+    "transfer",
+    "rpc"
+  ],
+  "files": [
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "index.js",
+    "index.d.ts"
+  ],
+  "homepage": "https://github.com/rangoo94/sockety#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rangoo94/sockety.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rangoo94/sockety/issues"
+  },
+  "scripts": {
+    "clean": "npm run clean --ws",
+    "build": "npm run build --ws",
+    "ts-check": "npm run ts-check --ws",
+    "lint": "npm run lint --ws",
+    "prepublishOnly": "npm run build",
+    "test": "jest"
+  },
+  "jest": {
+    "rootDir": "./packages",
+    "collectCoverageFrom": [
+      "<rootDir>/packages/*/src/**/?(*.)ts",
+      "!**/?(*.)d.ts",
+      "!**/fixtures/**/?(*.)ts"
+    ],
+    "testMatch": [],
+    "testPathIgnorePatterns": [
+      "benchmark/**/*"
+    ],
+    "projects": [
+      "<rootDir>/*"
+    ]
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/jest": "^28.1.4",
+    "@types/node": "^18.0.6",
+    "@types/tmp": "^0.2.3",
+    "@typescript-eslint/eslint-plugin": "^5.27.1",
+    "@typescript-eslint/parser": "^5.27.1",
+    "eslint": "^8.17.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-import-resolver-typescript": "^2.7.1",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.30.0",
+    "eslint-plugin-react-hooks": "^4.5.0",
+    "jest": "^28.1.2",
+    "rimraf": "^3.0.2",
+    "tmp": "^0.2.1",
+    "ts-jest": "^28.0.5",
+    "typescript": "^4.7.3"
+  }
+}
