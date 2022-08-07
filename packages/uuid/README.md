@@ -14,7 +14,7 @@ You may install this package from [NPM repository](https://www.npmjs.com/package
 import { generateUuid, isValidUuidString, isValidUuidBuffer, readUuidToString, readUuid } from '@sockety/uuid';
 
 // Generate new UUID object
-const uuidInstance = generate();
+const uuidInstance = generateUuid();
 
 // Build string representation
 const uuidString = uuidInstance.toString();
