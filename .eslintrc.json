@@ -34,6 +34,10 @@
     "no-bitwise": "off",
     "no-param-reassign": "off",
     "prefer-template": "off",
+    "no-unused-vars": "off",
+    "class-methods-use-this": "off",
+    "no-new-func": "off",
+    "no-restricted-syntax": "off",
     "array-bracket-spacing": [ "error", "always" ],
     "max-len": [ "warn", 120 ]
   }
