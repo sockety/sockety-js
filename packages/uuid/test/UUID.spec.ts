@@ -28,6 +28,10 @@ describe('uuid', () => {
       expect(() => new UUID(buffer.subarray(3), 3)).toThrowError();
     });
 
+    it('should correctly create new buffer', () => {
+      expect(new UUID(buffer, 3).toBuffer()).toEqual(buffer.subarray(3));
+    });
+
     it('should correctly write to buffer', () => {
       const result = Buffer.alloc(16);
       new UUID(buffer, 3).write(result);

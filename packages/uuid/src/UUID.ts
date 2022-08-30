@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { hexBytes } from './internal/hexBytes';
 
 export class UUID {
@@ -58,5 +59,14 @@ export class UUID {
     for (let i = 0; i < 16; i++) {
       buffer[offset + i] = this.#value[i];
     }
+  }
+
+  /**
+   * Create new buffer that represents this UUID.
+   */
+  public toBuffer(): Buffer {
+    const buffer = Buffer.allocUnsafe(16);
+    this.write(buffer);
+    return buffer;
   }
 }
