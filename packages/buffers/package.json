@@ -1,0 +1,78 @@
+{
+  "name": "@sockety/buffers",
+  "description": "Create ultra fast functions (faster than native) for reading and writing continuous buffers",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Dawid Rusnak",
+    "email": "dawid@drcode.pl",
+    "url": "https://www.drcode.pl"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "fast",
+    "buffer",
+    "array",
+    "read",
+    "reader",
+    "writer",
+    "parser",
+    "scanner",
+    "builder",
+    "raw",
+    "chunk",
+    "chunks",
+    "slice",
+    "byte",
+    "bytes",
+    "binary",
+    "continuous"
+  ],
+  "files": [
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "index.js",
+    "index.d.ts"
+  ],
+  "homepage": "https://github.com/rangoo94/sockety/tree/master/packages/buffers#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rangoo94/sockety.git",
+    "directory": "packages/buffers"
+  },
+  "bugs": {
+    "url": "https://github.com/rangoo94/sockety/issues"
+  },
+  "scripts": {
+    "clean": "rimraf {src,test}/**/*.{js,d.ts,map} index.{js,d.ts,js.map}",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "ts-check": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache 'src/**/*.ts' --ignore-pattern 'src/**/*.d.ts'",
+    "test": "jest"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "**/?(*.)ts",
+      "!**/?(*.)d.ts",
+      "!**/fixtures/**/?(*.)ts"
+    ],
+    "collectCoverage": true,
+    "coverageProvider": "v8",
+    "coverageReporters": [],
+    "moduleFileExtensions": [ "ts", "js", "mjs", "cjs", "json", "node" ],
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/test/**/?(*.)spec.ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
+  },
+  "dependencies": {
+    "@sockety/uuid": "*",
+    "type-fest": "^2.18.0"
+  }
+}
