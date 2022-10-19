@@ -376,6 +376,24 @@ export class BufferReader<T extends Record<string, any> = {}> {
   }
 
   /**
+   * Run custom code snippet.
+   */
+  public compute<K extends string, U>(
+    name: K,
+    fn: (scope: BufferSnippetScope, prefix: string) => string
+  ): BufferReader<T & Record<K, U>> {
+    this.#registerOperation(name, (operation, prefix) => operation
+      .initialValue('null')
+      .resetValue(false)
+      .entry(($) => `
+        const execute = () => {${fn($, prefix)}}
+        ${$.set('execute()')}
+        ${$.continue()}
+      `));
+    return this;
+  }
+
+  /**
    * Restart the chain immediately, before the chain ends.
    */
   public earlyEnd(): BufferReader<T> {
