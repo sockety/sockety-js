@@ -35,8 +35,6 @@ export class BufferReader<T extends Record<string, any> = {}> {
   #validateName(name: string): void {
     if (!isValidVariableName(name)) {
       throw new Error(`Name "${name}" is invalid or reserved variable name`);
-    } else if (this.#names.includes(name)) {
-      throw new Error(`Name "${name}" is already used`);
     }
   }
 
