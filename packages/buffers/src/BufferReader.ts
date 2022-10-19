@@ -345,6 +345,24 @@ export class BufferReader<T extends Record<string, any> = {}> {
   }
 
   /**
+   * Read some bitwise flag (value) from different parameter (sourceKey).
+   */
+  public mask<K extends string, U = number>(
+    name: K,
+    sourceKey: ConditionalKeys<T, number>,
+    mask: number,
+  ): BufferReader<T & Record<K, U>> {
+    this.#registerOperation(name, (x) => x
+      .initialValue('0')
+      .resetValue(false)
+      .entry(($) => `
+        ${$.set(`${$.read(sourceKey as string)} & ${mask}`)}
+        ${$.continue()}
+      `));
+    return this as any;
+  }
+
+  /**
    * Run custom code snippet.
    */
   public custom(fn: (scope: BufferSnippetScope, prefix: string) => string): BufferReader<T> {
