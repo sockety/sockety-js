@@ -36,13 +36,13 @@
     "index.js",
     "index.d.ts"
   ],
-  "homepage": "https://github.com/rangoo94/sockety#readme",
+  "homepage": "https://github.com/sockety/sockety-js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rangoo94/sockety.git"
+    "url": "git+https://github.com/sockety/sockety-js.git"
   },
   "bugs": {
-    "url": "https://github.com/rangoo94/sockety/issues"
+    "url": "https://github.com/sockety/sockety-js/issues"
   },
   "scripts": {
     "clean": "npm run clean --ws",

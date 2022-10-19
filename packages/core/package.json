@@ -35,14 +35,14 @@
     "index.js",
     "index.d.ts"
   ],
-  "homepage": "https://github.com/rangoo94/sockety/tree/master/packages/core#readme",
+  "homepage": "https://github.com/sockety/sockety-js/tree/master/packages/core#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rangoo94/sockety.git",
+    "url": "git+https://github.com/sockety/sockety-js.git",
     "directory": "packages/core"
   },
   "bugs": {
-    "url": "https://github.com/rangoo94/sockety/issues"
+    "url": "https://github.com/sockety/sockety-js/issues"
   },
   "scripts": {
     "clean": "rimraf {src,test}/**/*.{js,d.ts,map} index.{js,d.ts,js.map}",
