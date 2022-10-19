@@ -329,7 +329,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
   /**
    * Read some bitwise flag (value) from different parameter (sourceKey).
    */
-  public flag<K extends string, U>(
+  public flag<K extends string>(
     name: K,
     sourceKey: ConditionalKeys<T, number>,
     value: number,
