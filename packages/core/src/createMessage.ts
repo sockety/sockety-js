@@ -327,6 +327,7 @@ export function createMessage<T extends boolean>({
             const sizeBits = size > 0xffffff ? FileSizeBits.Uint48 : size > 0xffff ? FileSizeBits.Uint24 : size > 0xff ? FileSizeBits.Uint16 : FileSizeBits.Uint8;
 
             // TODO: Ensure length?
+            writer.ensureChannel(channelId);
 
             // Write File packet header
             writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
@@ -355,6 +356,7 @@ export function createMessage<T extends boolean>({
             writer.write(data);
           });
           file.stream.on('end', () => {
+            writer.ensureChannel(channelId);
             // Write FileEnd packet
             writer.writeUint8(PacketTypeBits.FileEnd | indexBits);
             if (indexBits === FileIndexBits.Uint24) {
