@@ -17,6 +17,8 @@ class UUIDMapItem<V> {
 
 // TODO: GC
 // TODO: In real case, allow timeout for waiting and GC
+// TODO: Buckets / binary tree
+// TODO: Consider moving to @sockety/uuid package
 export class UUIDMap<V = any> {
   #first: UUIDMapItem<V> | null = null;
 
