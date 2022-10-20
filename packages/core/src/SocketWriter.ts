@@ -24,6 +24,7 @@ export class SocketWriter {
   #currentChannelId = 0;
 
   public constructor(writable: Writable, maxChannels: number = 4095) {
+    maxChannels = 100;
     if (maxChannels < 1 || maxChannels > 4095) {
       throw new Error('Number of max concurrent channels must be between 1 and 4095');
     }
@@ -186,7 +187,8 @@ export class SocketWriter {
       this.#reservedChannels[channelId] = false;
       return;
     }
-    this.#waitingForIdle.shift()!(channelId, () => this.#releaseChannelId(channelId));
+    const nextOne = this.#waitingForIdle.shift()!;
+    process.nextTick(() => nextOne(channelId, () => this.#releaseChannelId(channelId)));
   }
 
   public reserveChannel(callback: (channelId: number, release: () => void) => void): void {
