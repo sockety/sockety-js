@@ -1,26 +1,23 @@
 import { UUID } from '@sockety/uuid';
+import { UUID_VALUE } from '@sockety/uuid/src/UUID';
 
 class UUIDMapItem<V> {
-  public next: UUIDMapItem<V> | null;
+  public next: UUIDMapItem<V> | undefined;
   public uuid: UUID;
   public value: V;
 
-  public constructor(uuid: UUID, value: V, next: UUIDMapItem<V> | null) {
+  public constructor(uuid: UUID, value: V, next: UUIDMapItem<V> | undefined) {
     this.uuid = uuid;
     this.value = value;
     this.next = next;
-    // if (next) {
-    //   this.previous = next;
-    // }
   }
 }
 
 // TODO: GC
 // TODO: In real case, allow timeout for waiting and GC
-// TODO: Buckets / binary tree
 // TODO: Consider moving to @sockety/uuid package
 export class UUIDMap<V = any> {
-  #first: UUIDMapItem<V> | null = null;
+  #buckets: (UUIDMapItem<V> | undefined)[] = new Array(255);
 
   // #find(uuid: UUID): UUIDMapItem<V> | undefined {
   //   let item = this.#first;
@@ -34,8 +31,8 @@ export class UUIDMap<V = any> {
 
   #findPrevious(uuid: UUID): UUIDMapItem<V> | undefined {
     let prev: UUIDMapItem<V> | undefined = undefined;
-    let item = this.#first;
-    while (item !== null) {
+    let item = this.#buckets[uuid[UUID_VALUE][0]];
+    while (item !== undefined) {
       if (uuid.equals(item.uuid)) {
         return prev;
       }
@@ -45,21 +42,25 @@ export class UUIDMap<V = any> {
   }
 
   public set(uuid: UUID, value: V): void {
+    const bucket = uuid[UUID_VALUE][0];
     // Return object/callback for fast deletion?
     // TODO: Don't assume that it's set only once
-    this.#first = new UUIDMapItem<V>(uuid, value, this.#first);
+    this.#buckets[bucket] = new UUIDMapItem<V>(uuid, value, this.#buckets[bucket]);
   }
 
   public has(uuid: UUID): boolean {
-    return this.#first !== null && (this.#first.uuid.equals(uuid) || !!this.#findPrevious(uuid));
+    const first = this.#buckets[uuid[UUID_VALUE][0]];
+    return first !== undefined && (first.uuid.equals(uuid) || !!this.#findPrevious(uuid));
   }
 
   public get(uuid: UUID): V | undefined {
-    if (this.#first === null) {
+    const bucket = uuid[UUID_VALUE][0];
+    const first = this.#buckets[bucket];
+    if (first === undefined) {
       return;
-    } else if (this.#first.uuid.equals(uuid)) {
-      const value = this.#first.value;
-      this.#first = this.#first.next;
+    } else if (first.uuid.equals(uuid)) {
+      const value = first.value;
+      this.#buckets[bucket] = first.next;
       return value;
     }
     const prev = this.#findPrevious(uuid);
