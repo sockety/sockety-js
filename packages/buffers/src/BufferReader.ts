@@ -281,12 +281,12 @@ export class BufferReader<T extends Record<string, any> = {}> {
    *
    * May be `continuous`, so it will emit every chunk found, instead of waiting for full result.
    */
-  public arrayDynamic<K extends string, U>(
+  public arrayDynamic<K extends string, U, V extends boolean>(
     name: K,
     lengthKey: ConditionalKeys<T, bigint | number>,
     fn: (factory: BufferReader) => BufferReader<U>,
-    continuous = false,
-  ): BufferReader<T & Record<K, U[]>> {
+    continuous: V,
+  ): V extends true ? BufferReader<T & Record<K, U>> : BufferReader<T & Record<K, U[]>> {
     const implementation = continuous ? arrayDynamicContinuousDeclaration : arrayDynamicDeclaration;
     const innerReader = fn(new BufferReader());
     this.#registerOperation(name, implementation.read(lengthKey as any, innerReader));
