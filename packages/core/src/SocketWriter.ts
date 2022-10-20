@@ -20,6 +20,7 @@ export class SocketWriter {
   readonly #maxChannels: number;
   readonly #reservedChannels: Record<number, boolean> = { 0: false };
   readonly #streamingChannels: Record<number, boolean> = { 0: false };
+  readonly #waitingForIdle: ((channelId: number, release: () => void) => void)[] = [];
   #currentChannelId = 0;
 
   public constructor(writable: Writable, maxChannels: number = 4095) {
@@ -181,7 +182,11 @@ export class SocketWriter {
   }
 
   #releaseChannelId(channelId: number): void {
-    this.#reservedChannels[channelId] = false;
+    if (this.#waitingForIdle.length === 0) {
+      this.#reservedChannels[channelId] = false;
+      return;
+    }
+    this.#waitingForIdle.shift()!(channelId, () => this.#releaseChannelId(channelId));
   }
 
   public reserveChannel(callback: (channelId: number, release: () => void) => void): void {
@@ -199,24 +204,8 @@ export class SocketWriter {
       }
     }
 
-    // FIXME: Instead, wait for the first idle channel.
-    // Find channel that is not streaming anything (as it may take forever),
-    // otherwise use 0.
-    const streamingChannels = this.#streamingChannels;
-    let nextChannelId = 0;
-    while (streamingChannels[nextChannelId]) {
-      nextChannelId++;
-    }
-    nextChannelId = nextChannelId % maxChannels;
-
-    this.#reservedChannels[nextChannelId] = true;
-    callback(nextChannelId, () => this.#releaseChannelId(nextChannelId));
-  }
-
-  public consume(
-    next: (end: typeof PRODUCER_END) => Buffer | (typeof PRODUCER_END) | null,
-    callback: (error: Error | null | undefined) => void,
-  ): void {
-
+    // Wait for idle channel
+    // TODO: Add option (AbortController?) to stop waiting for idle channel?
+    this.#waitingForIdle.push(callback);
   }
 }
