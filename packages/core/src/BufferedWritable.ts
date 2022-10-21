@@ -146,9 +146,9 @@ export class BufferedWritable {
   }
 
   #flush(): void {
-    this.#scheduled = false;
     this.#commit();
     this.#uncork();
+    this.#scheduled = false;
   }
 
   #commit(): void {
