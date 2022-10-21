@@ -366,7 +366,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
    * Run custom code snippet.
    */
   public custom(fn: (scope: BufferSnippetScope, prefix: string) => string): BufferReader<T> {
-    const name = `ee_${`${Math.random()}`.replace(/\./, '_')}`;
+    const name = `ee_${`${Math.random()}`.replace(/[.-]/, '_')}`;
     this.#registerOperation(name, (operation, prefix) => operation
       .initialValue('null')
       .resetValue(false)
@@ -585,10 +585,10 @@ export class BufferReader<T extends Record<string, any> = {}> {
     // Create reader factory
     fn += `\n  function ${prefix}createReader(callbacks = {}) {\n`;
     fn += `    const context = new ${prefix}Context(callbacks);\n`;
-    fn += `    return {\n`;
+    fn += `    const x = {\n`;
     fn += `      readOne: (buffer, offset, end) => ${prefix}readOne(context, buffer, offset, end),\n`;
     fn += `      readMany: (buffer, offset, end) => ${prefix}readMany(context, buffer, offset, end),\n`;
-    fn += `    }\n`;
+    fn += `    }; x.readOne.context = context; return x\n`;
     fn += `  }\n`;
     return fn;
   }
