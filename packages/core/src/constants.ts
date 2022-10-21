@@ -15,6 +15,7 @@ export enum PacketTypeBits {
   GoAway = 11 << 4,
   File = 12 << 4,
   FileEnd = 13 << 4,
+  Data = 14 << 4,
 }
 
 // File packet size bucket:
@@ -45,7 +46,7 @@ export enum FileNameSizeBits {
 
 // Packet size bucket:
 // Takes next 2 bits of packet header - 0b0000XX00
-// It's ignored for different packet types than Message, Continuation, Stream and Response.
+// It's ignored for different packet types than Message, Continuation, Stream, Data and Response.
 export enum PacketSizeBits {
   Uint8 = 0 << 2,
   Uint16 = 1 << 2,

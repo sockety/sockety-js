@@ -68,9 +68,6 @@ const createMessageConsumer = new BufferReader()
     .utf8Dynamic('name', 'nameSize') // TODO: Validate file name?
   , true)
 
-  // TODO: Consider ignoring when there is no data
-  .rawDynamic('data', 'dataSize', true)
-
   .end();
 
 // TODO: Add option (callback?) to allow different file size than specified
@@ -80,6 +77,7 @@ export class SocketChannel {
   #consumingResponse = false;
   #consumingStream = false;
   #consumingFiles = false;
+  #consumingData = false;
   #expectsResponse = false;
 
   // TODO: Set optional?
@@ -92,6 +90,7 @@ export class SocketChannel {
   #hasStream!: boolean;
   #fileIndex!: number;
   #filesToProcess = 0;
+  #dataLeft = 0;
 
   #setId = (id: UUID) => {
     // console.log(`  [ID] ${id}`);
@@ -106,6 +105,11 @@ export class SocketChannel {
   #setDataSize = (dataSize: number) => {
     // console.log(`  [DATA SIZE] ${dataSize}B`);
     this.#dataSize = dataSize;
+    this.#dataLeft = dataSize;
+
+    if (dataSize > 0) {
+      this.#consumingData = true;
+    }
   };
 
   #setFilesCount = (filesCount: number) => {
@@ -139,10 +143,6 @@ export class SocketChannel {
     this.#message[CONSUME_FILES_HEADER](name, size);
   };
 
-  #appendData = (data: Buffer) => {
-    this.#message[CONSUME_DATA](data);
-  };
-
   #finalize = () => {
     this.#consumingMessage = false;
   };
@@ -154,12 +154,11 @@ export class SocketChannel {
     filesCount: this.#setFilesCount,
     filesSize: this.#setFilesSize,
     filesHeader: this.#addFileHeader,
-    data: this.#appendData,
     _end: this.#finalize,
   });
 
   public startMessage(hasStream: boolean): void {
-    if (this.#consumingMessage || this.#consumingResponse || this.#consumingStream || this.#consumingFiles) {
+    if (this.#consumingMessage || this.#consumingResponse || this.#consumingStream || this.#consumingFiles || this.#consumingData) {
       throw new Error('There is already packet in process.');
     }
 
@@ -171,7 +170,7 @@ export class SocketChannel {
   }
 
   public startResponse(hasStream: boolean): void {
-    if (this.#consumingMessage || this.#consumingResponse) {
+    if (this.#consumingMessage || this.#consumingResponse || this.#consumingStream || this.#consumingFiles || this.#consumingData) {
       throw new Error('There is already packet in process.');
     }
 
@@ -183,7 +182,7 @@ export class SocketChannel {
 
   public setExpectsResponse(expectsResponse: boolean): void {
     if (!this.#consumingMessage && !this.#consumingResponse) {
-      throw new Error('There is already packet in process.');
+      throw new Error('There is no message in process.');
     }
 
     this.#expectsResponse = expectsResponse;
@@ -200,12 +199,12 @@ export class SocketChannel {
     const index = this.#consumeMessage.readOne(buffer);
 
     if (index !== buffer.length) {
-      throw new Error('The packet size was malformed.');
+      throw new Error('The message packet size was malformed.');
     }
 
     const message = this.#message;
 
-    if (!this.#consumingMessage && !this.#consumingStream && !this.#consumingFiles) {
+    if (!this.#consumingMessage && !this.#consumingStream && !this.#consumingFiles && !this.#consumingData) {
       // @ts-ignore: clean memory
       this.#message = undefined;
     }
@@ -226,8 +225,7 @@ export class SocketChannel {
 
   public consumeContinue(buffer: Buffer): IncomingMessage | null {
     if (this.#consumingMessage) {
-      // console.log(`[MESSAGE CONTINUE] ${formatBuffer(buffer)}`);
-      return null;
+      return this.consumeMessage(buffer);
     }
 
     if (this.#consumingResponse) {
@@ -236,6 +234,27 @@ export class SocketChannel {
     }
 
     throw new Error('There is no packet in process.');
+  }
+
+  public consumeData(buffer: Buffer): void {
+    if (!this.#consumingData) {
+      throw new Error('There is no data expected.');
+    }
+
+    this.#dataLeft -= buffer.length;
+    if (this.#dataLeft < 0) {
+      throw new Error('The data packet size is malformed.');
+    }
+
+    this.#message[CONSUME_DATA](buffer);
+
+    if (this.#dataLeft === 0) {
+      this.#consumingData = false;
+      if (!this.#consumingMessage && !this.#consumingStream && !this.#consumingFiles && !this.#consumingData) {
+        // @ts-ignore: clean memory
+        this.#message = undefined;
+      }
+    }
   }
 
   public consumeStream(buffer: Buffer): void {
@@ -289,7 +308,7 @@ export class SocketChannel {
     this.#filesToProcess--;
     if (this.#filesToProcess === 0) {
       this.#consumingFiles = false;
-      if (!this.#consumingStream && !this.#consumingMessage && !this.#consumingResponse) {
+      if (!this.#consumingStream && !this.#consumingMessage && !this.#consumingResponse && !this.#consumingData) {
         // @ts-ignore: clean memory
         this.#message = undefined;
       }

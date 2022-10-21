@@ -39,6 +39,7 @@ export class SocketReader extends EventEmitter {
   #responseExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
   #responseContent = (buffer: Buffer) => this.#currentChannel.consumeResponse(buffer);
   #continueContent = (buffer: Buffer) => this.#currentChannel.consumeContinue(buffer);
+  #appendData = (buffer: Buffer) => this.#currentChannel.consumeData(buffer);
   #finishStream = () => this.#currentChannel.finishStream();
   #abort = () => this.#currentChannel.abort();
 
@@ -162,6 +163,27 @@ export class SocketReader extends EventEmitter {
         .earlyEnd())
       .fail('Invalid packet size bits'))
 
+    // Pass Data Stream
+    .when('type', PacketTypeBits.Data, $ => $
+      .mask<'_size', PacketSizeBits>('_size', 'header', 0b00001100).setInternal('_size')
+      .when('_size', PacketSizeBits.Uint8, $ => $
+        .uint8('size').setInternal('size')
+        .rawDynamic('data', 'size', true)
+        .earlyEnd())
+      .when('_size', PacketSizeBits.Uint16, $ => $
+        .uint16le('size').setInternal('size')
+        .rawDynamic('data', 'size', true)
+        .earlyEnd())
+      .when('_size', PacketSizeBits.Uint24, $ => $
+        .uint24le('size').setInternal('size')
+        .rawDynamic('data', 'size', true)
+        .earlyEnd())
+      .when('_size', PacketSizeBits.Uint32, $ => $
+        .uint32le('size').setInternal('size')
+        .rawDynamic('data', 'size', true)
+        .earlyEnd())
+      .fail('Invalid packet size bits'))
+
     // Inform Stream End
     .when('type', PacketTypeBits.StreamEnd, $ => $
       .constant('streamEnd', true)
@@ -231,6 +253,7 @@ export class SocketReader extends EventEmitter {
       responseExpectsResponse: this.#responseExpectsResponse,
       responseContent: this.#responseContent,
       continueContent: this.#continueContent,
+      data: this.#appendData,
       stream: this.#passStream,
       streamEnd: this.#finishStream,
       ack: this.#ack,

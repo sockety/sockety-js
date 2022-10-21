@@ -165,6 +165,11 @@ export class SocketWriter {
     this.addListener(callback);
   }
 
+  writeDataSignature(length: number, callback?: (error: Error | null | undefined) => void): void {
+    this.#writePacketSignature(PacketTypeBits.Data, length);
+    this.addListener(callback);
+  }
+
   // public writeContinue(channelId: number, buffer: Buffer, callback: (error: Error | null | undefined) => void): void {
   //   this.#write(channelId, this.#buildContinueSignature(buffer.length), noop);
   //   this.#write(channelId, buffer, callback);

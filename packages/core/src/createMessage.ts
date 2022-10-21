@@ -166,12 +166,12 @@ export function createMessage<T extends boolean>({
 
   // Compute message size
   // Flags (1B) + UUID (16B) + Action size and name (dynamic) + Payload size (0-6B) + Files count size (0-3B) + Total file size (0-6B)
-  const messageLength = 1 + 16 + actionBufferLength + payloadSizeLength + payloadLength + filesCountLength + totalFilesSizeLength + filesHeaderSize;
-  // Channel (0-2B) + Header (1B) + Message length
+  const messageLength = 1 + 16 + actionBufferLength + payloadSizeLength + filesCountLength + totalFilesSizeLength + filesHeaderSize;
+  // Channel (0-2B) + Header (1B) + Message length + Payload header (0-1B) + Payload length
   const packetLength = 2 + 1 + messageLength;
 
   // Build message producer
-  return createMessageProducer((writer, expectsResponse, callback) => {
+  return createMessageProducer((writer, expectsResponse, _callback) => {
     // console.log('ABL', actionBufferLength, actionBuffer);
     // console.log('PSL', payloadSizeLength, payloadSizeBuffer);
     // console.log('PL', payloadLength, data);
@@ -183,17 +183,30 @@ export function createMessage<T extends boolean>({
     // TODO: Think about "Abort" on "Revoke"
     writer.reserveChannel((channelId, _release) => writer.drained(() => {
       // State
+      let message: any;
+      let callbackCalled = false;
       let filesComplete = filesCount === 0;
+      let filesSent = filesCount === 0;
       let streamComplete = !hasStream || !expectsResponse;
       const release = () => {
         if (filesComplete && streamComplete) {
           _release();
         }
       };
+      const callback = (error: Error | null | undefined, message?: any) => {
+        if (callbackCalled) {
+          return;
+        }
+        if (error || (filesComplete && filesSent)) {
+          callbackCalled = true;
+          _callback(error, message);
+        }
+      };
 
       // Compute
       const id = generateUuid();
-      const inlinedLength = packetLength + (writer.shouldInlineBuffer(payloadLength) ? 0 : -payloadLength);
+      const inlinedPayloadLength = (payloadLength > 0 ? 1 : 0) + (writer.shouldInlineBuffer(payloadLength) ? payloadLength : 0);
+      const inlinedLength = packetLength + inlinedPayloadLength;
 
       // Notify about expected message size for pool optimization
       writer.notifyLength(inlinedLength);
@@ -222,8 +235,9 @@ export function createMessage<T extends boolean>({
 
       // Write payload
       // TODO: Drain?
-      // TODO: Split with "CONTINUE"?
+      // TODO: Support splitting for >4GB
       if (payloadLength !== 0) {
+        writer.writeDataSignature(payloadLength);
         writer.write(data!);
       }
 
@@ -239,7 +253,7 @@ export function createMessage<T extends boolean>({
                 streamComplete = true;
                 release();
               });
-              const message = new OutgoingMessage<true>(id, stream);
+              message = new OutgoingMessage<true>(id, stream);
               callback(null, message as any);
             }
           });
@@ -252,7 +266,7 @@ export function createMessage<T extends boolean>({
           if (error) {
             callback(error);
           } else if (expectsResponse) {
-            const message = new OutgoingMessage<false>(id, null);
+            message = new OutgoingMessage<false>(id, null);
             callback(null, message as any);
           } else {
             callback(null);
@@ -301,6 +315,7 @@ export function createMessage<T extends boolean>({
           }
 
           // Write file
+          // TODO: Support splitting for >4GB
           writer.write(file.buffer);
 
           // Write FileEnd packet
@@ -317,6 +332,10 @@ export function createMessage<T extends boolean>({
           if (filesLeft === 0) {
             filesComplete = true;
             release();
+            writer.addListener((error) => {
+              filesSent = true;
+              callback(error, message);
+            });
           }
         } else {
           const indexBits = index > 0xffff ? FileIndexBits.Uint24 : index > 0xff ? FileIndexBits.Uint16 : FileIndexBits.Uint8;
@@ -353,6 +372,7 @@ export function createMessage<T extends boolean>({
             }
 
             // Write file
+            // TODO: Support splitting for >4GB
             writer.write(data);
           });
           file.stream.on('end', () => {
@@ -371,6 +391,10 @@ export function createMessage<T extends boolean>({
             if (filesLeft === 0) {
               filesComplete = true;
               release();
+              writer.addListener((error) => {
+                filesSent = true;
+                callback(error, message);
+              });
             }
           });
         }
