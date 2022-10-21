@@ -89,7 +89,6 @@ export class SocketChannel {
   #dataSize!: number;
   #filesCount!: number;
   #filesSize!: number;
-  #data!: Buffer;
   #hasStream!: boolean;
   #fileIndex!: number;
   #filesToProcess = 0;
@@ -201,7 +200,6 @@ export class SocketChannel {
     const index = this.#consumeMessage.readOne(buffer);
 
     if (index !== buffer.length) {
-      console.log(buffer.subarray(0, index), buffer.subarray(index));
       throw new Error('The packet size was malformed.');
     }
 
