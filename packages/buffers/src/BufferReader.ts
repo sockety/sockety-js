@@ -366,7 +366,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
    * Run custom code snippet.
    */
   public custom(fn: (scope: BufferSnippetScope, prefix: string) => string): BufferReader<T> {
-    const name = `ee_${`${Math.random()}`.replace(/[.-]/, '_')}`;
+    const name = `ee_${`${Math.random()}`.replace(/[.-]/g, '_')}`;
     this.#registerOperation(name, (operation, prefix) => operation
       .initialValue('null')
       .resetValue(false)
