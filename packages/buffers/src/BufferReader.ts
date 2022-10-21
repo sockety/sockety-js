@@ -602,6 +602,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
     readOne: (buffer: Uint8Array, offset?: number, end?: number) => number;
     readMany: (buffer: Uint8Array, offset?: number, end?: number) => void;
   } {
-    return new Function('require', `${this.build()}\nreturn createReader;`)(require);
+    const code = this.build();
+    return new Function('require', `return (callbacks) => { ${code}\nreturn createReader(callbacks); }`)(require);
   }
 }
