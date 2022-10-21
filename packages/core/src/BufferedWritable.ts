@@ -193,7 +193,6 @@ export class BufferedWritable {
 
     // Regenerate pool
     this.#pool = Buffer.allocUnsafe(poolSize);
-    // TODO: Mark as untouched?
     this.#poolCurrentSize = poolSize;
     this.#poolStart = 0;
     this.#poolOffset = 0;
@@ -211,7 +210,6 @@ export class BufferedWritable {
     const length = data.length;
     if (!this.shouldInlineBuffer(length)) {
       this.#commit();
-      this.#empty = false;
       return this.#write(data, callback);
     }
     this.arrangeSize(length);
