@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
-import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from './constants';
+import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from '../constants';
 import type { Message } from './Message';
 import { StreamChannel } from './StreamChannel';
 

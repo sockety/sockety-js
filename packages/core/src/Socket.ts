@@ -5,7 +5,7 @@ import { isTlsSocket } from './utils/isTlsSocket';
 import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
 import { SocketWriter } from './SocketWriter';
-import { StreamParser } from './StreamParser';
+import { StreamParser } from './read-stream/StreamParser';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 

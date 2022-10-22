@@ -2,21 +2,21 @@ import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
 import {
-  CONSUME_DATA,
-  CONSUME_FILE,
-  CONSUME_FILES_HEADER,
-  CONSUME_STREAM,
-  END_STREAM,
-  Message,
-} from './Message';
-import {
   FileNameSizeBits,
   FileSizeBits,
   MessageActionSizeBits,
   MessageDataSizeBits,
   MessageFilesCountBits,
   MessageFilesSizeBits,
-} from './constants';
+} from '../constants';
+import {
+  Message,
+  CONSUME_DATA,
+  CONSUME_FILE,
+  CONSUME_FILES_HEADER,
+  CONSUME_STREAM,
+  END_STREAM,
+} from './Message';
 
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
