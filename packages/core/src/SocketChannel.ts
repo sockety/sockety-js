@@ -7,7 +7,7 @@ import {
   CONSUME_FILES_HEADER,
   CONSUME_STREAM,
   END_STREAM,
-  IncomingMessage
+  IncomingMessage,
 } from './IncomingMessage';
 import {
   FileNameSizeBits,
@@ -143,7 +143,7 @@ export class SocketChannel {
     this.#message[CONSUME_FILES_HEADER](name, size);
   };
 
-  #finalize = () => {
+  #endMessageHeader = () => {
     this.#consumingMessage = false;
   };
 
@@ -154,11 +154,25 @@ export class SocketChannel {
     filesCount: this.#setFilesCount,
     filesSize: this.#setFilesSize,
     filesHeader: this.#addFileHeader,
-    _end: this.#finalize,
+    _end: this.#endMessageHeader,
   });
 
+  #isConsuming(): boolean {
+    return (
+      this.#consumingMessage || this.#consumingResponse ||
+      this.#consumingStream || this.#consumingFiles || this.#consumingData
+    );
+  }
+
+  #endMessageIfReady(): void {
+    if (!this.#isConsuming()) {
+      // @ts-ignore: clean memory
+      this.#message = undefined;
+    }
+  }
+
   public startMessage(hasStream: boolean): void {
-    if (this.#consumingMessage || this.#consumingResponse || this.#consumingStream || this.#consumingFiles || this.#consumingData) {
+    if (this.#isConsuming()) {
       throw new Error('There is already packet in process.');
     }
 
@@ -170,7 +184,7 @@ export class SocketChannel {
   }
 
   public startResponse(hasStream: boolean): void {
-    if (this.#consumingMessage || this.#consumingResponse || this.#consumingStream || this.#consumingFiles || this.#consumingData) {
+    if (this.#isConsuming()) {
       throw new Error('There is already packet in process.');
     }
 
@@ -204,10 +218,7 @@ export class SocketChannel {
 
     const message = this.#message;
 
-    if (!this.#consumingMessage && !this.#consumingStream && !this.#consumingFiles && !this.#consumingData) {
-      // @ts-ignore: clean memory
-      this.#message = undefined;
-    }
+    this.#endMessageIfReady();
 
     return !hadMessage && message || null;
   }
@@ -226,13 +237,9 @@ export class SocketChannel {
   public consumeContinue(buffer: Buffer): IncomingMessage | null {
     if (this.#consumingMessage) {
       return this.consumeMessage(buffer);
+    } else if (this.#consumingResponse) {
+      return this.consumeResponse(buffer);
     }
-
-    if (this.#consumingResponse) {
-      // console.log(`[RESPONSE CONTINUE] ${formatBuffer(buffer)}`);
-      return null;
-    }
-
     throw new Error('There is no packet in process.');
   }
 
@@ -250,10 +257,7 @@ export class SocketChannel {
 
     if (this.#dataLeft === 0) {
       this.#consumingData = false;
-      if (!this.#consumingMessage && !this.#consumingStream && !this.#consumingFiles && !this.#consumingData) {
-        // @ts-ignore: clean memory
-        this.#message = undefined;
-      }
+      this.#endMessageIfReady();
     }
   }
 
@@ -268,10 +272,7 @@ export class SocketChannel {
     this.#consumingStream = false;
     if (this.#message) {
       this.#message[END_STREAM]();
-      if (!this.#consumingStream && !this.#consumingMessage && !this.#consumingResponse && !this.#consumingFiles) {
-        // @ts-ignore: clean memory
-        this.#message = undefined;
-      }
+      this.#endMessageIfReady();
     }
   }
 
@@ -304,14 +305,13 @@ export class SocketChannel {
       throw new Error('There is no message processed.');
     }
 
+    // TODO: Mark file as ended
+
     // TODO: Don't assume that there is exactly one FILE END per FILE?
     this.#filesToProcess--;
     if (this.#filesToProcess === 0) {
       this.#consumingFiles = false;
-      if (!this.#consumingStream && !this.#consumingMessage && !this.#consumingResponse && !this.#consumingData) {
-        // @ts-ignore: clean memory
-        this.#message = undefined;
-      }
+      this.#endMessageIfReady();
     }
 
     // console.log(`[FILE ${index}]`, 'END');
