@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { SocketWriter } from './SocketWriter';
 
-export class OutgoingMessageStream extends Writable {
+export class RequestStream extends Writable {
   #channelId: number;
   #release: () => void;
   #writer: SocketWriter;

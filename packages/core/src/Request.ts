@@ -1,13 +1,13 @@
 import { UUID } from '@sockety/uuid';
-import { OutgoingMessageStream } from './OutgoingMessageStream';
+import { RequestStream } from './RequestStream';
 
 type Callback = (error: Error | null | undefined) => void;
 
-export class OutgoingMessage<Stream = true | false> {
+export class Request<Stream = true | false> {
   public readonly id: UUID;
-  public readonly stream: Stream extends true ? OutgoingMessageStream : null;
+  public readonly stream: Stream extends true ? RequestStream : null;
 
-  public constructor(id: UUID, stream: Stream extends true ? OutgoingMessageStream : null) {
+  public constructor(id: UUID, stream: Stream extends true ? RequestStream : null) {
     this.id = id;
     this.stream = stream;
   }

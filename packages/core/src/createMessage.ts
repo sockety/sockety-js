@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 import { generateUuid } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from './ContentProducer';
-import { OutgoingMessage } from './OutgoingMessage';
+import { Request } from './Request';
 import {
   FileIndexBits,
   FileNameSizeBits,
@@ -13,7 +13,7 @@ import {
   MessageFilesSizeBits,
   PacketTypeBits
 } from './constants';
-import { OutgoingMessageStream } from './OutgoingMessageStream';
+import { RequestStream } from './RequestStream';
 
 // TODO: Extract type
 type FileSent = { name: string, buffer: Buffer } | { name: string, size: number, stream: Readable };
@@ -82,7 +82,7 @@ export function createMessage<T extends boolean>({
   action,
   data,
   files,
-}: CreateMessageOptions, hasStream: T): ContentProducer<OutgoingMessage<T>> {
+}: CreateMessageOptions, hasStream: T): ContentProducer<Request<T>> {
   // Compute action information
   const actionLength = Buffer.byteLength(action);
   const actionLengthSize = actionLength > 0xff ? 2 : 1;
@@ -135,7 +135,7 @@ export function createMessage<T extends boolean>({
     filesSpecBuffer.writeUint16LE(totalFilesSize, filesCountLength);
   }
 
-  // TODO: Return OutgoingMessage immediately
+  // TODO: Return Request immediately
   // TODO: Consider doing it lazily?
   // @ts-ignore: avoid checks for better performance
   const filesHeaderSize = files?.reduce((acc, file) => acc + getFileHeaderSize(file), 0) || 0;
@@ -249,11 +249,11 @@ export function createMessage<T extends boolean>({
               callback(error);
               release();
             } else {
-              const stream = new OutgoingMessageStream(channelId, writer, () => {
+              const stream = new RequestStream(channelId, writer, () => {
                 streamComplete = true;
                 release();
               });
-              message = new OutgoingMessage<true>(id, stream);
+              message = new Request<true>(id, stream);
               callback(null, message as any);
             }
           });
@@ -266,7 +266,7 @@ export function createMessage<T extends boolean>({
           if (error) {
             callback(error);
           } else if (expectsResponse) {
-            message = new OutgoingMessage<false>(id, null);
+            message = new Request<false>(id, null);
             callback(null, message as any);
           } else {
             callback(null);

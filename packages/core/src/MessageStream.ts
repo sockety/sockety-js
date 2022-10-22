@@ -6,7 +6,7 @@ export const PUSH = Symbol();
 export const END = Symbol();
 
 // TODO: Handle backpressure
-export class IncomingMessageStream extends Readable {
+export class MessageStream extends Readable {
   #buffer: Buffer[] = [];
   #waiting = false;
   #ended = false;

@@ -1,9 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { UUID } from '@sockety/uuid';
-import { END, IncomingMessageStream, PUSH } from './IncomingMessageStream';
-import { CONSUME, IncomingMessageFileStream, END as FILE_STREAM_END } from './IncomingMessageFileStream';
-
-const NONE = Buffer.allocUnsafe(0);
+import { END, MessageStream, PUSH } from './MessageStream';
+import { CONSUME, MessageFileStream, END as FILE_STREAM_END } from './MessageFileStream';
 
 export const END_STREAM = Symbol();
 export const CONSUME_STREAM = Symbol();
@@ -12,15 +10,15 @@ export const CONSUME_FILE = Symbol();
 export const END_FILE = Symbol();
 export const CONSUME_FILES_HEADER = Symbol();
 
-export class IncomingMessage {
+export class Message {
   readonly #id: UUID;
   readonly #action: string;
   readonly #dataSize: number;
   readonly #filesCount: number;
   readonly #totalFilesSize: number;
   readonly #expectsResponse: boolean;
-  readonly stream: IncomingMessageStream | null;
-  readonly #files: IncomingMessageFileStream[] = [];
+  readonly stream: MessageStream | null;
+  readonly #files: MessageFileStream[] = [];
 
   public constructor(
     id: UUID,
@@ -37,7 +35,7 @@ export class IncomingMessage {
     this.#filesCount = filesCount;
     this.#totalFilesSize = totalFilesSize;
     this.#expectsResponse = expectsResponse;
-    this.stream = hasStream ? new IncomingMessageStream() : null;
+    this.stream = hasStream ? new MessageStream() : null;
   }
 
   public get id(): UUID {
@@ -85,7 +83,7 @@ export class IncomingMessage {
   // TODO: Paths in file names are required, for tasks like copying folder
   public [CONSUME_FILES_HEADER](name: string, size: number): void {
     // console.log('FILES HEADER', name, size);
-    this.#files.push(new IncomingMessageFileStream(name, size));
+    this.#files.push(new MessageFileStream(name, size));
   }
 
   // TODO: Consider boolean for backpressure?
@@ -110,7 +108,7 @@ export class IncomingMessage {
   }
 
   // TODO: Delete
-  public get files(): IncomingMessageFileStream[] {
+  public get files(): MessageFileStream[] {
     return this.#files;
   }
 

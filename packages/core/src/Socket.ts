@@ -3,7 +3,7 @@ import type * as net from 'node:net';
 import type * as tls from 'node:tls';
 import { isTlsSocket } from './utils/isTlsSocket';
 import { ContentProducer } from './ContentProducer';
-import { OutgoingMessage } from './OutgoingMessage';
+import { Request } from './Request';
 import { SocketWriter } from './SocketWriter';
 import { StreamParser } from './StreamParser';
 
@@ -46,7 +46,7 @@ export class Socket extends EventEmitter {
     }));
   }
 
-  public send<T extends OutgoingMessage<any>>(producer: ContentProducer<T>): Promise<T> {
+  public send<T extends Request<any>>(producer: ContentProducer<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => producer(this.#writer, true, (error, message) => {
       if (error == null) {
         resolve(message!);

@@ -3,7 +3,7 @@ import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
 import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from './constants';
-import type { IncomingMessage } from './IncomingMessage';
+import type { Message } from './Message';
 import { StreamChannel } from './StreamChannel';
 
 const createPacketConsumer = new BufferReader()
@@ -280,13 +280,13 @@ export class StreamParser extends Writable {
 }
 
 export interface StreamParser {
-  addListener(event: 'message', listener: (message: IncomingMessage) => void): this;
-  on(event: 'message', listener: (message: IncomingMessage) => void): this;
-  once(event: 'message', listener: (message: IncomingMessage) => void): this;
-  prependListener(event: 'message', listener: (message: IncomingMessage) => void): this;
-  prependOnceListener(event: 'message', listener: (message: IncomingMessage) => void): this;
-  removeListener(event: 'message', listener: (message: IncomingMessage) => void): this;
-  emit(event: 'message', message: IncomingMessage): boolean;
+  addListener(event: 'message', listener: (message: Message) => void): this;
+  on(event: 'message', listener: (message: Message) => void): this;
+  once(event: 'message', listener: (message: Message) => void): this;
+  prependListener(event: 'message', listener: (message: Message) => void): this;
+  prependOnceListener(event: 'message', listener: (message: Message) => void): this;
+  removeListener(event: 'message', listener: (message: Message) => void): this;
+  emit(event: 'message', message: Message): boolean;
 
   addListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
   on(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;

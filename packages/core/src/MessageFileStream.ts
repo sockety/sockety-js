@@ -5,7 +5,7 @@ export const CONSUME = Symbol();
 export const CLOSE = Symbol();
 export const END = Symbol();
 
-export class IncomingMessageFileStream extends Readable {
+export class MessageFileStream extends Readable {
   public readonly name: string;
   public readonly size: number;
   #loaded = false;

@@ -7,8 +7,8 @@ import {
   CONSUME_FILES_HEADER,
   CONSUME_STREAM,
   END_STREAM,
-  IncomingMessage,
-} from './IncomingMessage';
+  Message,
+} from './Message';
 import {
   FileNameSizeBits,
   FileSizeBits,
@@ -77,7 +77,7 @@ export class StreamChannel {
   #expectsResponse = false;
 
   // TODO: Set optional?
-  #message!: IncomingMessage;
+  #message!: Message;
   #id!: UUID;
   #action!: string;
   #dataSize!: number;
@@ -116,7 +116,7 @@ export class StreamChannel {
 
   #setFilesSize = (filesSize: number) => {
     this.#filesSize = filesSize;
-    this.#message = new IncomingMessage(
+    this.#message = new Message(
       this.#id,
       this.#action,
       this.#dataSize,
@@ -185,7 +185,7 @@ export class StreamChannel {
     this.#expectsResponse = expectsResponse;
   }
 
-  public consumeMessage(buffer: Buffer): IncomingMessage | null {
+  public consumeMessage(buffer: Buffer): Message | null {
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
@@ -198,7 +198,7 @@ export class StreamChannel {
     return result;
   }
 
-  public consumeResponse(buffer: Buffer): IncomingMessage | null {
+  public consumeResponse(buffer: Buffer): Message | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
@@ -207,7 +207,7 @@ export class StreamChannel {
     return null;
   }
 
-  public consumeContinue(buffer: Buffer): IncomingMessage | null {
+  public consumeContinue(buffer: Buffer): Message | null {
     if (this.#consumingMessage) {
       return this.consumeMessage(buffer);
     } else if (this.#consumingResponse) {

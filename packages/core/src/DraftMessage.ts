@@ -3,7 +3,7 @@ import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 import { Buffer } from 'node:buffer';
 import { createContentProducer, ContentProducer } from './ContentProducer';
-import { OutgoingMessage } from './OutgoingMessage';
+import { Request } from './Request';
 import {
   MessageActionSizeBits,
   MessageDataSizeBits,
@@ -11,7 +11,7 @@ import {
   MessageFilesSizeBits,
 } from './constants';
 import { generateUuid } from '@sockety/uuid';
-import { OutgoingMessageStream } from './OutgoingMessageStream';
+import { RequestStream } from './RequestStream';
 
 export type File = any;
 export type MessagePackSerializable = any;
@@ -85,10 +85,10 @@ export class DraftMessage<T extends DraftMessageData = DraftMessageDataDefaults>
   }
 
   public prepare(): keyof DraftTemplateData<T> extends never
-    ? (params?: {}) => ContentProducer<OutgoingMessage>
+    ? (params?: {}) => ContentProducer<Request>
     : T['hasStream'] extends true
-      ? (params: DraftTemplateData<T>) => ContentProducer<OutgoingMessage>
-      : (params: DraftTemplateData<T>) => ContentProducer<OutgoingMessage<true>> {
+      ? (params: DraftTemplateData<T>) => ContentProducer<Request>
+      : (params: DraftTemplateData<T>) => ContentProducer<Request<true>> {
     const operations = [];
     const hasStream = this.#hasStream;
     const action = Buffer.from([ 4, 112, 105, 110, 103 ]);
@@ -114,8 +114,8 @@ export class DraftMessage<T extends DraftMessageData = DraftMessageDataDefaults>
                   callback(error);
                   release();
                 } else {
-                  const stream = new OutgoingMessageStream(channelId, writer, release);
-                  const message = new OutgoingMessage<true>(id, stream);
+                  const stream = new RequestStream(channelId, writer, release);
+                  const message = new Request<true>(id, stream);
                   callback(null, message);
                 }
               })
@@ -129,7 +129,7 @@ export class DraftMessage<T extends DraftMessageData = DraftMessageDataDefaults>
               if (error) {
                 callback(error);
               } else if (expectsResponse) {
-                const message = new OutgoingMessage<false>(id, null);
+                const message = new Request<false>(id, null);
                 callback(null, message);
               } else {
                 callback(null);
