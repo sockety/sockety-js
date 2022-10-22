@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { Writable } from 'node:stream';
 import { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import { UUID } from '@sockety/uuid';
@@ -196,77 +197,67 @@ const createPacketConsumer = new BufferReader()
 
   .end();
 
-// TODO: Do the whole flow as streams
-export class SocketReader extends EventEmitter {
+export class StreamParser extends Writable {
   // Current state
   #channels: Record<number, SocketChannel> = {};
   #currentChannel = this.#getChannel(0);
 
   #switchChannel = (channelId: number) => {
-    // console.log(`[CHANNEL] ${channelId}`);
     this.#currentChannel = this.#getChannel(channelId);
   };
 
-  #ack = (uuid: UUID) => {
-    this.emit('ack', uuid);
-  };
-
-  #revoke = (uuid: UUID) => {
-    this.emit('revoke', uuid);
-  };
+  #ack = (uuid: UUID) => this.emit('ack', uuid);
+  #revoke = (uuid: UUID) => this.emit('revoke', uuid);
+  #heartbeat = () => this.emit('heartbeat');
+  #goAway = () => this.emit('goAway');
 
   #passStream = (buffer: Buffer) => this.#currentChannel.consumeStream(buffer);
+
   #messageHasStream = (hasStream: boolean) => this.#currentChannel.startMessage(hasStream);
   #messageExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
   #messageContent = (buffer: Buffer) => {
     const message = this.#currentChannel.consumeMessage(buffer);
     if (message) {
-      // console.log('RECEIVED!');
-      // TODO: Use some faster way
       this.emit('message', message);
     }
   };
+
   #responseHasStream = (hasStream: boolean) => this.#currentChannel.startResponse(hasStream);
   #responseExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
   #responseContent = (buffer: Buffer) => this.#currentChannel.consumeResponse(buffer);
+
   #continueContent = (buffer: Buffer) => this.#currentChannel.consumeContinue(buffer);
+
   #appendData = (buffer: Buffer) => this.#currentChannel.consumeData(buffer);
-  #finishStream = () => this.#currentChannel.finishStream();
-  #abort = () => this.#currentChannel.abort();
 
   #setFileIndex = (index: number) => this.#currentChannel.setFileIndex(index);
   #appendFileContent = (content: Buffer) => this.#currentChannel.appendFileContent(content);
   #endFile = (index: number) => this.#currentChannel.endFile(index);
 
-  #heartbeat = () => {
-    // console.log('[HEARTBEAT]');
-  };
-
-  #goAway = () => {
-    // console.log('[GO AWAY]');
-  };
+  #finishStream = () => this.#currentChannel.finishStream();
+  #abort = () => this.#currentChannel.abort();
 
   #consume = createPacketConsumer({
-      channel: this.#switchChannel,
-      messageHasStream: this.#messageHasStream,
-      messageExpectsResponse: this.#messageExpectsResponse,
-      messageContent: this.#messageContent,
-      responseHasStream: this.#responseHasStream,
-      responseExpectsResponse: this.#responseExpectsResponse,
-      responseContent: this.#responseContent,
-      continueContent: this.#continueContent,
-      data: this.#appendData,
-      stream: this.#passStream,
-      streamEnd: this.#finishStream,
-      ack: this.#ack,
-      revoke: this.#revoke,
-      abort: this.#abort,
-      heartbeat: this.#heartbeat,
-      goAway: this.#goAway,
-      fileIndex: this.#setFileIndex,
-      fileContent: this.#appendFileContent,
-      fileEnd: this.#endFile,
-    }).readMany;
+    channel: this.#switchChannel,
+    messageHasStream: this.#messageHasStream,
+    messageExpectsResponse: this.#messageExpectsResponse,
+    messageContent: this.#messageContent,
+    responseHasStream: this.#responseHasStream,
+    responseExpectsResponse: this.#responseExpectsResponse,
+    responseContent: this.#responseContent,
+    continueContent: this.#continueContent,
+    data: this.#appendData,
+    stream: this.#passStream,
+    streamEnd: this.#finishStream,
+    ack: this.#ack,
+    revoke: this.#revoke,
+    abort: this.#abort,
+    heartbeat: this.#heartbeat,
+    goAway: this.#goAway,
+    fileIndex: this.#setFileIndex,
+    fileContent: this.#appendFileContent,
+    fileEnd: this.#endFile,
+  }).readMany;
 
   #getChannel(id: number): SocketChannel {
     if (this.#channels[id] === undefined) {
@@ -275,7 +266,12 @@ export class SocketReader extends EventEmitter {
     return this.#channels[id];
   }
 
-  public consume(buffer: Buffer): void {
-    this.#consume(buffer);
+  public _write(buffer: Buffer, encoding: any, callback: (error?: Error | null) => void): void {
+    try {
+      this.#consume(buffer);
+      callback(null);
+    } catch (error: any) {
+      callback(error);
+    }
   }
 }

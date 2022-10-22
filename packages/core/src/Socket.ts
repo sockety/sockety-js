@@ -1,25 +1,20 @@
-import type { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import type * as net from 'node:net';
 import type * as tls from 'node:tls';
-import { generateUuid } from '@sockety/uuid';
 import { isTlsSocket } from './utils/isTlsSocket';
 import { ContentProducer } from './ContentProducer';
 import { OutgoingMessage } from './OutgoingMessage';
 import { SocketWriter } from './SocketWriter';
-import { SocketReader } from './SocketReader';
+import { StreamParser } from './StreamParser';
 
 type RawSocket = tls.TLSSocket | net.Socket;
-
-const noop = () => {};
 
 // TODO: Add event types
 // TODO: Extract reading and messages out of socket?
 export class Socket extends EventEmitter {
-  readonly #id = generateUuid();
+  readonly #writer: SocketWriter;
+  readonly #parser: StreamParser;
   #socket: RawSocket | null;
-  #writer: SocketWriter;
-  #reader: SocketReader;
   #closing = false;
 
   public constructor(socket: RawSocket) {
@@ -29,16 +24,16 @@ export class Socket extends EventEmitter {
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
     this.#writer = new SocketWriter(this.#socket, 4095);
-    this.#reader = new SocketReader();
+    this.#parser = new StreamParser();
 
     // Pass events down
-    this.#reader.on('message', (message) => this.emit('message', message));
-    this.#reader.on('ack', (uuid) => this.emit('ack', uuid));
-    this.#reader.on('revoke', (uuid) => this.emit('revoke', uuid));
+    socket.pipe(this.#parser);
+    this.#parser.on('message', (message) => this.emit('message', message));
+    this.#parser.on('ack', (uuid) => this.emit('ack', uuid));
+    this.#parser.on('revoke', (uuid) => this.emit('revoke', uuid));
     this.#socket.once('close', () => this.close(true));
     this.#socket.on('error', (error) => this.emit('error', error));
     this.#socket.once(isTlsSocket(this.#socket) ? 'secureConnect' : 'connect', () => this.emit('connect'));
-    this.#socket.on('data', (packet: Buffer) => this.#reader.consume(packet));
   }
 
   public send(producer: ContentProducer): Promise<void> {
