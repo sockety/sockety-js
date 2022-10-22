@@ -4,7 +4,7 @@ import { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import { UUID } from '@sockety/uuid';
 import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from './constants';
-import { SocketChannel } from './SocketChannel';
+import { StreamChannel } from './StreamChannel';
 import { IncomingMessage } from './IncomingMessage';
 
 const createPacketConsumer = new BufferReader()
@@ -200,7 +200,7 @@ const createPacketConsumer = new BufferReader()
 
 export class StreamParser extends Writable {
   // Current state
-  #channels: Record<number, SocketChannel> = {};
+  #channels: Record<number, StreamChannel> = {};
   #currentChannel = this.#getChannel(0);
 
   #switchChannel = (channelId: number) => {
@@ -263,9 +263,9 @@ export class StreamParser extends Writable {
     fileEnd: this.#endFile,
   }).readMany;
 
-  #getChannel(id: number): SocketChannel {
+  #getChannel(id: number): StreamChannel {
     if (this.#channels[id] === undefined) {
-      this.#channels[id] = new SocketChannel();
+      this.#channels[id] = new StreamChannel();
     }
     return this.#channels[id];
   }

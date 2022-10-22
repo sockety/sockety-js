@@ -72,7 +72,7 @@ const createMessageConsumer = new BufferReader()
 
 // TODO: Add option (callback?) to allow different file size than specified
 // TODO: Extract finalization to separate method
-export class SocketChannel {
+export class StreamChannel {
   #consumingMessage = false;
   #consumingResponse = false;
   #consumingStream = false;
