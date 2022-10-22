@@ -219,7 +219,10 @@ export class StreamParser extends Writable {
   #messageContent = (buffer: Buffer) => {
     const message = this.#currentChannel.consumeMessage(buffer);
     if (message) {
-      this.emit('message', message);
+      process.nextTick(() => {
+        // TODO: Do it only when the message is not aborted
+        this.emit('message', message);
+      });
     }
   };
 
