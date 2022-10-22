@@ -1,6 +1,6 @@
-import { Buffer } from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
-import { UUID } from '@sockety/uuid';
+import type { UUID } from '@sockety/uuid';
 import {
   CONSUME_DATA,
   CONSUME_FILE,
@@ -17,10 +17,6 @@ import {
   MessageFilesCountBits,
   MessageFilesSizeBits,
 } from './constants';
-
-function formatBuffer(buffer: Buffer): string {
-  return Array.from(buffer.slice(0, 50)).map((x) => x.toString(16).padStart(2, '0')).join(' ') + (buffer.length > 50 ? ` [...${buffer.length-50}]` : '');
-}
 
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
@@ -93,17 +89,14 @@ export class StreamChannel {
   #dataLeft = 0;
 
   #setId = (id: UUID) => {
-    // console.log(`  [ID] ${id}`);
     this.#id = id;
   };
 
   #setAction = (action: string) => {
-    // console.log(`  [ACTION] ${action}`);
     this.#action = action;
   };
 
   #setDataSize = (dataSize: number) => {
-    // console.log(`  [DATA SIZE] ${dataSize}B`);
     this.#dataSize = dataSize;
     this.#dataLeft = dataSize;
 
@@ -113,7 +106,6 @@ export class StreamChannel {
   };
 
   #setFilesCount = (filesCount: number) => {
-    // console.trace(`  [FILES COUNT] ${filesCount}`, this.#id.toString());
     this.#filesCount = filesCount;
     this.#filesToProcess = filesCount; // TODO: Ignore 0B files?
 
@@ -123,7 +115,6 @@ export class StreamChannel {
   };
 
   #setFilesSize = (filesSize: number) => {
-    // console.log(`  [FILES SIZE] ${filesSize}B`);
     this.#filesSize = filesSize;
     this.#message = new IncomingMessage(
       this.#id,
@@ -139,7 +130,6 @@ export class StreamChannel {
   };
 
   #addFileHeader = ({ name, size }: { name: string, size: number }) => {
-    // console.log(name, size);
     this.#message[CONSUME_FILES_HEADER](name, size);
   };
 
@@ -175,9 +165,6 @@ export class StreamChannel {
     if (this.#isConsuming()) {
       throw new Error('There is already packet in process.');
     }
-
-    // console.log(`[MESSAGE] ${hasStream ? 'has' : 'no'} stream`);
-
     this.#hasStream = hasStream;
     this.#consumingMessage = true;
     this.#consumingStream = hasStream;
@@ -187,9 +174,6 @@ export class StreamChannel {
     if (this.#isConsuming()) {
       throw new Error('There is already packet in process.');
     }
-
-    // console.log(`[RESPONSE] ${hasStream ? 'has' : 'no'} stream`);
-
     this.#consumingResponse = true;
     this.#consumingStream = hasStream;
   }
@@ -198,7 +182,6 @@ export class StreamChannel {
     if (!this.#consumingMessage && !this.#consumingResponse) {
       throw new Error('There is no message in process.');
     }
-
     this.#expectsResponse = expectsResponse;
   }
 
@@ -206,30 +189,20 @@ export class StreamChannel {
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
-
-    // console.log(`[MESSAGE CONTENT] ${formatBuffer(buffer)}`);
-
     const hadMessage = Boolean(this.#message);
-    const index = this.#consumeMessage.readOne(buffer);
-
-    if (index !== buffer.length) {
+    if (this.#consumeMessage.readOne(buffer) !== buffer.length) {
       throw new Error('The message packet size was malformed.');
     }
-
-    const message = this.#message;
-
+    const result = !hadMessage && this.#message || null;
     this.#endMessageIfReady();
-
-    return !hadMessage && message || null;
+    return result;
   }
 
   public consumeResponse(buffer: Buffer): IncomingMessage | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
-
-    // console.log(`[RESPONSE CONTENT] ${formatBuffer(buffer)}`);
-
+    // TODO: Consume response
     // TODO: Clear consuming* and hasStream after finishing the response
     return null;
   }

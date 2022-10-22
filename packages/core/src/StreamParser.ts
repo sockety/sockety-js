@@ -1,11 +1,10 @@
-import { EventEmitter } from 'node:events';
 import { Writable } from 'node:stream';
-import { Buffer } from 'node:buffer';
+import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
-import { UUID } from '@sockety/uuid';
+import type { UUID } from '@sockety/uuid';
 import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from './constants';
+import type { IncomingMessage } from './IncomingMessage';
 import { StreamChannel } from './StreamChannel';
-import { IncomingMessage } from './IncomingMessage';
 
 const createPacketConsumer = new BufferReader()
   .uint8('header').setInternal('header')
