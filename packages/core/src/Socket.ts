@@ -36,7 +36,7 @@ export class Socket extends EventEmitter {
     this.#socket.once(isTlsSocket(this.#socket) ? 'secureConnect' : 'connect', () => this.emit('connect'));
   }
 
-  public send(producer: ContentProducer): Promise<void> {
+  public pass(producer: ContentProducer): Promise<void> {
     return new Promise<void>((resolve, reject) => producer(this.#writer, false, (error) => {
       if (error == null) {
         resolve();
@@ -46,7 +46,7 @@ export class Socket extends EventEmitter {
     }));
   }
 
-  public request<T extends OutgoingMessage<any>>(producer: ContentProducer<T>): Promise<T> {
+  public send<T extends OutgoingMessage<any>>(producer: ContentProducer<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => producer(this.#writer, true, (error, message) => {
       if (error == null) {
         resolve(message!);
