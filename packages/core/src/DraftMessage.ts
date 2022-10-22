@@ -2,7 +2,7 @@ import { createReadStream } from 'node:fs';
 import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 import { Buffer } from 'node:buffer';
-import { createMessageProducer, MessageProducer } from './MessageProducer';
+import { createContentProducer, ContentProducer } from './ContentProducer';
 import { OutgoingMessage } from './OutgoingMessage';
 import {
   MessageActionSizeBits,
@@ -85,17 +85,17 @@ export class DraftMessage<T extends DraftMessageData = DraftMessageDataDefaults>
   }
 
   public prepare(): keyof DraftTemplateData<T> extends never
-    ? (params?: {}) => MessageProducer<OutgoingMessage>
+    ? (params?: {}) => ContentProducer<OutgoingMessage>
     : T['hasStream'] extends true
-      ? (params: DraftTemplateData<T>) => MessageProducer<OutgoingMessage>
-      : (params: DraftTemplateData<T>) => MessageProducer<OutgoingMessage<true>> {
+      ? (params: DraftTemplateData<T>) => ContentProducer<OutgoingMessage>
+      : (params: DraftTemplateData<T>) => ContentProducer<OutgoingMessage<true>> {
     const operations = [];
     const hasStream = this.#hasStream;
     const action = Buffer.from([ 4, 112, 105, 110, 103 ]);
     const actionLength = 5;
 
     return ((params: any) => {
-      return createMessageProducer((writer, expectsResponse, callback) => {
+      return createContentProducer((writer, expectsResponse, callback) => {
         writer.reserveChannel((channelId, release) => {
           // const id = generateUuid();
           // console.log(`Buffer.from([`, buffer.join(', '), '])');

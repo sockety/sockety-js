@@ -4,12 +4,14 @@ import type * as net from 'node:net';
 import type * as tls from 'node:tls';
 import { generateUuid } from '@sockety/uuid';
 import { isTlsSocket } from './utils/isTlsSocket';
-import { MessageProducer } from './MessageProducer';
+import { ContentProducer } from './ContentProducer';
 import { OutgoingMessage } from './OutgoingMessage';
 import { SocketWriter } from './SocketWriter';
 import { SocketReader } from './SocketReader';
 
 type RawSocket = tls.TLSSocket | net.Socket;
+
+const noop = () => {};
 
 // TODO: Add event types
 // TODO: Extract reading and messages out of socket?
@@ -39,7 +41,7 @@ export class Socket extends EventEmitter {
     this.#socket.on('data', (packet: Buffer) => this.#reader.consume(packet));
   }
 
-  public send(producer: MessageProducer): Promise<void> {
+  public send(producer: ContentProducer): Promise<void> {
     return new Promise<void>((resolve, reject) => producer(this.#writer, false, (error) => {
       if (error == null) {
         resolve();
@@ -49,7 +51,7 @@ export class Socket extends EventEmitter {
     }));
   }
 
-  public request<T extends OutgoingMessage<any>>(producer: MessageProducer<T>): Promise<T> {
+  public request<T extends OutgoingMessage<any>>(producer: ContentProducer<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => producer(this.#writer, true, (error, message) => {
       if (error == null) {
         resolve(message!);

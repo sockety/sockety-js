@@ -1,8 +1,8 @@
 import { UUID } from '@sockety/uuid';
-import { createMessageProducer, MessageProducer } from '../MessageProducer';
+import { createContentProducer, ContentProducer } from '../ContentProducer';
 
-export function ack(uuid: UUID): MessageProducer<void> {
-  return createMessageProducer<void>((writer, expectsResponse, callback) => {
+export function ack(uuid: UUID): ContentProducer<void> {
+  return createContentProducer<void>((writer, expectsResponse, callback) => {
     writer.writeAck(uuid, callback);
   });
 }

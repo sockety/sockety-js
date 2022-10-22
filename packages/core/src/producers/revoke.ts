@@ -1,8 +1,8 @@
 import { UUID } from '@sockety/uuid';
-import { createMessageProducer, MessageProducer } from '../MessageProducer';
+import { createContentProducer, ContentProducer } from '../ContentProducer';
 
-export function revoke(uuid: UUID): MessageProducer<void> {
-  return createMessageProducer<void>((writer, expectsResponse, callback) => {
+export function revoke(uuid: UUID): ContentProducer<void> {
+  return createContentProducer<void>((writer, expectsResponse, callback) => {
     writer.writeRevoke(uuid, callback);
   });
 }

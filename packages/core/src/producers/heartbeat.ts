@@ -1,5 +1,5 @@
-import { createMessageProducer } from '../MessageProducer';
+import { createContentProducer } from '../ContentProducer';
 
-export const heartbeat = createMessageProducer<void>((writer, expectsResponse, callback) => {
+export const heartbeat = createContentProducer<void>((writer, expectsResponse, callback) => {
   writer.writeHeartbeat(callback);
 });

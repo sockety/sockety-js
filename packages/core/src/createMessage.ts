@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 import { generateUuid } from '@sockety/uuid';
-import { createMessageProducer, MessageProducer } from './MessageProducer';
+import { createContentProducer, ContentProducer } from './ContentProducer';
 import { OutgoingMessage } from './OutgoingMessage';
 import {
   FileIndexBits,
@@ -82,7 +82,7 @@ export function createMessage<T extends boolean>({
   action,
   data,
   files,
-}: CreateMessageOptions, hasStream: T): MessageProducer<OutgoingMessage<T>> {
+}: CreateMessageOptions, hasStream: T): ContentProducer<OutgoingMessage<T>> {
   // Compute action information
   const actionLength = Buffer.byteLength(action);
   const actionLengthSize = actionLength > 0xff ? 2 : 1;
@@ -171,7 +171,7 @@ export function createMessage<T extends boolean>({
   const packetLength = 2 + 1 + messageLength;
 
   // Build message producer
-  return createMessageProducer((writer, expectsResponse, _callback) => {
+  return createContentProducer((writer, expectsResponse, _callback) => {
     // console.log('ABL', actionBufferLength, actionBuffer);
     // console.log('PSL', payloadSizeLength, payloadSizeBuffer);
     // console.log('PL', payloadLength, data);
