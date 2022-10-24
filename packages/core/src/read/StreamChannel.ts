@@ -184,12 +184,12 @@ export class StreamChannel {
     this.#expectsResponse = expectsResponse;
   }
 
-  public consumeMessage(buffer: Buffer): Message | null {
+  public consumeMessage(buffer: Buffer, offset: number, end: number): Message | null {
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
     const hadMessage = Boolean(this.#message);
-    if (this.#consumeMessage.readOne(buffer) !== buffer.length) {
+    if (this.#consumeMessage.readOne(buffer, offset, end) !== end) {
       throw new Error('The message packet size was malformed.');
     }
     const result = !hadMessage && this.#message || null;
@@ -197,7 +197,7 @@ export class StreamChannel {
     return result;
   }
 
-  public consumeResponse(buffer: Buffer): Message | null {
+  public consumeResponse(buffer: Buffer, offset: number, end: number): Message | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
@@ -206,11 +206,11 @@ export class StreamChannel {
     return null;
   }
 
-  public consumeContinue(buffer: Buffer): Message | null {
+  public consumeContinue(buffer: Buffer, offset: number, end: number): Message | null {
     if (this.#consumingMessage) {
-      return this.consumeMessage(buffer);
+      return this.consumeMessage(buffer, offset, end);
     } else if (this.#consumingResponse) {
-      return this.consumeResponse(buffer);
+      return this.consumeResponse(buffer, offset, end);
     }
     throw new Error('There is no packet in process.');
   }

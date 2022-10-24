@@ -30,19 +30,19 @@ const createPacketConsumer = new BufferReader()
 
     .when('_size', PacketSizeBits.Uint8, $ => $
       .uint8('size').setInternal('size')
-      .rawDynamic('messageContent', 'size', true)
+      .passDynamic('messageContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint16, $ => $
       .uint16le('size').setInternal('size')
-      .rawDynamic('messageContent', 'size', true)
+      .passDynamic('messageContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint24, $ => $
       .uint24le('size').setInternal('size')
-      .rawDynamic('messageContent', 'size', true)
+      .passDynamic('messageContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint32, $ => $
       .uint32le('size').setInternal('size')
-      .rawDynamic('messageContent', 'size', true)
+      .passDynamic('messageContent', 'size')
       .earlyEnd())
 
     .fail('Invalid packet size bits'))
@@ -52,19 +52,19 @@ const createPacketConsumer = new BufferReader()
 
     .when('_size', PacketSizeBits.Uint8, $ => $
       .uint8('size').setInternal('size')
-      .rawDynamic('continueContent', 'size', true)
+      .passDynamic('continueContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint16, $ => $
       .uint16le('size').setInternal('size')
-      .rawDynamic('continueContent', 'size', true)
+      .passDynamic('continueContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint24, $ => $
       .uint24le('size').setInternal('size')
-      .rawDynamic('continueContent', 'size', true)
+      .passDynamic('continueContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint32, $ => $
       .uint32le('size').setInternal('size')
-      .rawDynamic('continueContent', 'size', true)
+      .passDynamic('continueContent', 'size')
       .earlyEnd())
 
     .fail('Invalid packet size bits'))
@@ -76,19 +76,19 @@ const createPacketConsumer = new BufferReader()
 
     .when('_size', PacketSizeBits.Uint8, $ => $
       .uint8('size').setInternal('size')
-      .rawDynamic('responseContent', 'size', true)
+      .passDynamic('responseContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint16, $ => $
       .uint16le('size').setInternal('size')
-      .rawDynamic('responseContent', 'size', true)
+      .passDynamic('responseContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint24, $ => $
       .uint24le('size').setInternal('size')
-      .rawDynamic('responseContent', 'size', true)
+      .passDynamic('responseContent', 'size')
       .earlyEnd())
     .when('_size', PacketSizeBits.Uint32, $ => $
       .uint32le('size').setInternal('size')
-      .rawDynamic('responseContent', 'size', true)
+      .passDynamic('responseContent', 'size')
       .earlyEnd())
 
     .fail('Invalid packet size bits'))
@@ -215,8 +215,8 @@ export class StreamParser extends Writable {
 
   #messageHasStream = (hasStream: boolean) => this.#currentChannel.startMessage(hasStream);
   #messageExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
-  #messageContent = (buffer: Buffer) => {
-    const message = this.#currentChannel.consumeMessage(buffer);
+  #messageContent = (buffer: Buffer, offset: number, end: number) => {
+    const message = this.#currentChannel.consumeMessage(buffer, offset, end);
     if (message) {
       process.nextTick(() => {
         // TODO: Do it only when the message is not aborted
@@ -227,9 +227,9 @@ export class StreamParser extends Writable {
 
   #responseHasStream = (hasStream: boolean) => this.#currentChannel.startResponse(hasStream);
   #responseExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
-  #responseContent = (buffer: Buffer) => this.#currentChannel.consumeResponse(buffer);
+  #responseContent = (buffer: Buffer, offset: number, end: number) => this.#currentChannel.consumeResponse(buffer, offset, end);
 
-  #continueContent = (buffer: Buffer) => this.#currentChannel.consumeContinue(buffer);
+  #continueContent = (buffer: Buffer, offset: number, end: number) => this.#currentChannel.consumeContinue(buffer, offset, end);
 
   #appendData = (buffer: Buffer) => this.#currentChannel.consumeData(buffer);
 
