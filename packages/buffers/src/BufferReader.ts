@@ -20,6 +20,11 @@ import { utf8DynamicDeclaration } from './declarations/utf8DynamicDeclaration';
 import { constantDeclaration } from './declarations/constantDeclaration';
 import { arrayContinuousDeclaration, arrayDeclaration } from './declarations/arrayDeclaration';
 import { arrayDynamicContinuousDeclaration, arrayDynamicDeclaration } from './declarations/arrayDynamicDeclaration';
+import { passDynamicDeclaration } from './declarations/passDynamicDeclaration';
+
+// Special types
+const _BufferPointer: unique symbol = Symbol();
+type BufferPointer = typeof _BufferPointer;
 
 /* eslint-disable quotes */
 
@@ -228,6 +233,18 @@ export class BufferReader<T extends Record<string, any> = {}> {
   ): BufferReader<T & Record<K, Buffer>> {
     const implementation = continuous ? rawDynamicDeclarationContinuous : rawDynamicDeclaration;
     this.#registerOperation(name, implementation.read(lengthKey as any));
+    return this;
+  }
+
+  /**
+   * Add step to export buffer pointers instead of slice.
+   * It may be used for passing buffers between different BufferReader.
+   */
+  public passDynamic<K extends string>(
+    name: K,
+    lengthKey: ConditionalKeys<T, bigint | number>,
+  ): BufferReader<T & Record<K, BufferPointer>> {
+    this.#registerOperation(name, passDynamicDeclaration.read(lengthKey as any));
     return this;
   }
 
@@ -602,7 +619,11 @@ export class BufferReader<T extends Record<string, any> = {}> {
    *
    * FIXME: Internal properties should not have callbacks
    */
-  public end(): (callbacks?: Partial<{ [K in keyof T]: ((value: T[K]) => void) }> & { _end?: () => void }) => {
+  public end(): (callbacks?: Partial<{
+    [K in keyof T]: T[K] extends BufferPointer
+      ? (value: Buffer, offset: number, end: number) => void
+      : ((value: T[K]) => void);
+  }> & { _end?: () => void }) => {
     readOne: (buffer: Uint8Array, offset?: number, end?: number) => number;
     readMany: (buffer: Uint8Array, offset?: number, end?: number) => void;
   } {
