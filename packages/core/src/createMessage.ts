@@ -197,7 +197,7 @@ export function createMessage<T extends boolean>({
         if (callbackCalled) {
           return;
         }
-        if (error || (filesComplete && filesSent)) {
+        if (error || (filesSent && filesSent)) {
           callbackCalled = true;
           _callback(error, message);
         }

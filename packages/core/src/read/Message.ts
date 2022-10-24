@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { UUID } from '@sockety/uuid';
 import { END, MessageStream, PUSH } from './MessageStream';
 import { MessageFileStream } from './MessageFileStream';
+import { MessageDataStream } from './MessageDataStream';
 
 export const END_STREAM = Symbol();
 export const CONSUME_STREAM = Symbol();
@@ -18,6 +19,7 @@ export class Message {
   readonly #totalFilesSize: number;
   readonly #expectsResponse: boolean;
   readonly stream: MessageStream | null;
+  readonly data: MessageDataStream | null;
   readonly #files: MessageFileStream[] = [];
 
   public constructor(
@@ -36,6 +38,7 @@ export class Message {
     this.#totalFilesSize = totalFilesSize;
     this.#expectsResponse = expectsResponse;
     this.stream = hasStream ? new MessageStream() : null;
+    this.data = dataSize === 0 ? null : new MessageDataStream(dataSize);
   }
 
   public get id(): UUID {
@@ -66,15 +69,28 @@ export class Message {
     if (!this.stream) {
       throw new Error('There is no stream expected.');
     }
-    this.stream![PUSH](data);
+    this.stream[PUSH](data);
   }
 
   public [END_STREAM](): void {
     this.stream?.[END]();
   }
 
-  public [CONSUME_DATA](data: Buffer): void {
-    // TODO: Create data stream
+  public [CONSUME_DATA](data: Buffer): boolean {
+    if (!this.data) {
+      throw new Error('There is no data expected.');
+    }
+
+    const size = data.length + this.data.receivedSize;
+    if (size > this.#dataSize) {
+      throw new Error('Data sent over expected size.');
+    }
+    this.data[PUSH](data);
+    if (size === this.#dataSize) {
+      this.data[END]();
+      return false;
+    }
+    return true;
   }
 
   // TODO: Types
@@ -106,7 +122,6 @@ export class Message {
     file[END]();
   }
 
-  // TODO: Delete
   public get files(): MessageFileStream[] {
     return this.#files;
   }

@@ -17,6 +17,7 @@ import {
   CONSUME_STREAM,
   END_STREAM,
 } from './Message';
+import { END, PUSH } from './MessageStream';
 
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
@@ -86,7 +87,6 @@ export class StreamChannel {
   #hasStream!: boolean;
   #fileIndex!: number;
   #filesToProcess = 0;
-  #dataLeft = 0;
 
   #setId = (id: UUID) => {
     this.#id = id;
@@ -98,7 +98,6 @@ export class StreamChannel {
 
   #setDataSize = (dataSize: number) => {
     this.#dataSize = dataSize;
-    this.#dataLeft = dataSize;
 
     if (dataSize > 0) {
       this.#consumingData = true;
@@ -216,32 +215,29 @@ export class StreamChannel {
     throw new Error('There is no packet in process.');
   }
 
+  // TODO: Think if it shouldn't be in Message implementation
   public consumeData(buffer: Buffer): void {
     if (!this.#consumingData) {
       throw new Error('There is no data expected.');
     }
 
-    this.#dataLeft -= buffer.length;
-    if (this.#dataLeft < 0) {
-      throw new Error('The data packet size is malformed.');
-    }
-
-    this.#message[CONSUME_DATA](buffer);
-
-    if (this.#dataLeft === 0) {
+    if (!this.#message[CONSUME_DATA](buffer)) {
       this.#consumingData = false;
       this.#endMessageIfReady();
     }
   }
 
   public consumeStream(buffer: Buffer): void {
-    if (!this.#message) {
-      throw new Error('There is no message in process.');
+    if (!this.#consumingStream) {
+      throw new Error('There is no stream in process.');
     }
     this.#message[CONSUME_STREAM](buffer);
   }
 
   public finishStream(): void {
+    if (!this.#consumingStream) {
+      throw new Error('There is no stream in process.');
+    }
     this.#consumingStream = false;
     if (this.#message) {
       this.#message[END_STREAM]();
@@ -274,17 +270,18 @@ export class StreamChannel {
   }
 
   public endFile(index: number): void {
-    if (!this.#message) {
+    if (!this.#consumingFiles) {
       throw new Error('There is no message processed.');
     }
 
     // TODO: Mark file as ended
 
-    // TODO: Don't assume that there is exactly one FILE END per FILE?
-    this.#filesToProcess--;
-    if (this.#filesToProcess === 0) {
-      this.#consumingFiles = false;
-      this.#endMessageIfReady();
+    if (!this.#message.files[index].loaded) {
+      this.#filesToProcess--;
+      if (this.#filesToProcess === 0) {
+        this.#consumingFiles = false;
+        this.#endMessageIfReady();
+      }
     }
 
     // console.log(`[FILE ${index}]`, 'END');
