@@ -1,16 +1,10 @@
-import { Readable } from 'node:stream';
-import { Buffer } from 'node:buffer';
+import { ENDED, MessageStream } from './MessageStream';
 
-export const CONSUME = Symbol();
 export const CLOSE = Symbol();
-export const END = Symbol();
 
-export class MessageFileStream extends Readable {
+export class MessageFileStream extends MessageStream {
   public readonly name: string;
   public readonly size: number;
-  #loaded = false;
-  #size = 0;
-  #buffer: Buffer[] = [];
 
   public constructor(name: string, size: number) {
     super();
@@ -18,47 +12,12 @@ export class MessageFileStream extends Readable {
     this.size = size;
   }
 
-  public [CONSUME](data: Buffer): void {
-    if (data.length > this.bytesLeft) {
-      data = data.subarray(0, Number(this.bytesLeft));
-    }
-    this.#size += data.length;
-    this.#buffer.push(data);
-    this.push(Buffer.allocUnsafe(0));
-  }
-
-  public _read(size: number): void {
-    while (size > 0 && this.#buffer.length > 0) {
-      const length = this.#buffer[0].length;
-      if (length > size) {
-        this.push(this.#buffer[0].subarray(0, size));
-        this.#buffer[0] = this.#buffer[0].subarray(size);
-        break;
-      } else {
-        this.push(this.#buffer.shift());
-        size -= length;
-      }
-    }
-    if (this.loaded && this.#buffer.length === 0) {
-      this.push(null);
-    }
-  }
-
-  public get receivedSize(): number {
-    return this.#size;
-  }
-
   public get bytesLeft(): number {
-    return this.size - this.#size;
+    return Math.max(this.size - this.receivedSize, 0);
   }
 
   public get loaded(): boolean {
-    return this.#loaded;
-  }
-
-  public [END](): void {
-    this.#loaded = true;
-    this.push(null);
+    return this[ENDED];
   }
 
   public [CLOSE](): void {

@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { UUID } from '@sockety/uuid';
 import { END, MessageStream, PUSH } from './MessageStream';
-import { CONSUME, MessageFileStream, END as FILE_STREAM_END } from './MessageFileStream';
+import { MessageFileStream } from './MessageFileStream';
 
 export const END_STREAM = Symbol();
 export const CONSUME_STREAM = Symbol();
@@ -82,7 +82,6 @@ export class Message {
   // TODO: Consider if files should have unique names
   // TODO: Paths in file names are required, for tasks like copying folder
   public [CONSUME_FILES_HEADER](name: string, size: number): void {
-    // console.log('FILES HEADER', name, size);
     this.#files.push(new MessageFileStream(name, size));
   }
 
@@ -93,7 +92,7 @@ export class Message {
       throw new Error(`There is no file ${index} available yet.`);
     }
     // TODO: Verify size (disallow if it's over the expected, and it's not allowed)
-    file[CONSUME](data);
+    file[PUSH](data);
   }
 
   public [END_FILE](index: number): void {
@@ -104,7 +103,7 @@ export class Message {
       throw new Error(`File has been already finished.`);
     }
     // TODO: Verify size (disallow if it's less than expected, and it's not allowed)
-    file[FILE_STREAM_END]();
+    file[END]();
   }
 
   // TODO: Delete
