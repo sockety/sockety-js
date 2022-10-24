@@ -484,6 +484,11 @@ export class BufferReader<T extends Record<string, any> = {}> {
       fn += `    }\n`;
     }
 
+    // Initialize temporary variables for all operations
+    for (const { name: opName, variables } of this.#operations) {
+      fn += Object.entries(variables).map(([ name, { code } ]) => `      $_${opName}_${name} = ${code};\n`).join('');
+    }
+
     fn += `  }\n`;
 
     function getUsedGlobalVariables(operation: BufferReadOperationInfo): string[] {
@@ -508,14 +513,13 @@ export class BufferReader<T extends Record<string, any> = {}> {
       const isUsedLater = Boolean(restOperations.find((o) => getUsedGlobalVariables(o).includes(operation.name)));
 
       fn += `\n  const { ${operation.stops.map((x) => `${prefix}step${snippetIdsMap.get(operation.snippets[x])}`).join(', ')} } = (function () {\n`;
-      fn += Object.entries(operation.variables).map(([ name, { code } ]) => `      let ${name} = ${code};\n`).join('');
       for (const [ name, snippet ] of Object.entries(operation.snippets)) {
         fn += `    function ${name}(_context, _buffer, _offset, _end) {\n`;
 
         // Detect which variables could be removed
         const continueResetLocalCode = Object.entries(operation.variables)
           .filter(([ , { reset } ]) => reset)
-          .map(([ name, { code } ]) => `${name} = ${code}; `)
+          .map(([ name, { code } ]) => `_context.$_${operation.name}_${name} = ${code}; `)
           .join('');
         const continueResetGlobalCode = resettableGlobalVariables
           .map((name) => `_context.${name} = ${operationsMap[name].initialValue}; `)
@@ -602,7 +606,6 @@ export class BufferReader<T extends Record<string, any> = {}> {
     readOne: (buffer: Uint8Array, offset?: number, end?: number) => number;
     readMany: (buffer: Uint8Array, offset?: number, end?: number) => void;
   } {
-    const code = this.build();
-    return new Function('require', `return (callbacks) => { ${code}\nreturn createReader(callbacks); }`)(require);
+    return new Function('require', `${this.build()}; return createReader;`)(require);
   }
 }

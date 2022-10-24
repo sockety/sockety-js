@@ -18,12 +18,14 @@ export const arrayDeclaration = createDeclaration({
     .header(reader.build(prefix))
     .declare('item', getInitialCode(reader), false)
     .declare('ended', 'false', false)
+    // TODO: Think about nicer way to use local properties?
     .declare('readItem', `${prefix}createReader({
-      ${Object.keys(reader.getVariables()).map((key) => `${key}: (_$) => { item.${key} = _$ },`).join('\n      ')}
-      _end: () => { ended = true },
+      ${Object.keys(reader.getVariables()).map((key) => `${key}: (_$) => { this.$_${operation.name}_item.${key} = _$ },`).join('\n      ')}
+      _end: () => { this.$_${operation.name}_ended = true },
     }).readOne`, false)
+    // TODO: Think about nicer way to use local properties?
     .declare('resetItem', `() => {
-      item = ${getInitialCode(reader)};
+      this.$_${operation.name}_item = ${getInitialCode(reader)};
     }`, false)
 
     .declare('left', length)
@@ -33,17 +35,17 @@ export const arrayDeclaration = createDeclaration({
       ? ($) => `${$.emit('[]')} ${$.continue()}`
       : ($) => `
       do {
-        ended = false;
-        ${$.offset} = readItem(${$.buffer}, ${$.offset}, ${$.end});
-        if (ended === false) {
+        ${$.local('ended')} = false;
+        ${$.offset} = ${$.local('readItem')}(${$.buffer}, ${$.offset}, ${$.end});
+        if (${$.local('ended')} === false) {
           ${$.escape()}
         }
-        left--;
-        temp.push(item);
-        resetItem();
-      } while (left !== 0);
+        ${$.local('left')}--;
+        ${$.local('temp')}.push(${$.local('item')});
+        ${$.local('resetItem')}();
+      } while (${$.local('left')} !== 0);
       
-      ${$.set('temp')}
+      ${$.set($.local('temp'))}
       ${$.continue()}
     `),
 });
@@ -56,12 +58,14 @@ export const arrayContinuousDeclaration = createDeclaration({
     .header(reader.build(prefix))
     .declare('item', getInitialCode(reader), false)
     .declare('ended', 'false', false)
+    // TODO: Think about nicer way to use local properties?
     .declare('readItem', `${prefix}createReader({
-      ${Object.keys(reader.getVariables()).map((key) => `${key}: (_$) => { item.${key} = _$ },`).join('\n      ')}
-      _end: () => { ended = true },
+      ${Object.keys(reader.getVariables()).map((key) => `${key}: (_$) => { this.$_${operation.name}_item.${key} = _$ },`).join('\n      ')}
+      _end: () => { this.$_${operation.name}_ended = true },
     }).readOne`, false)
+    // TODO: Think about nicer way to use local properties?
     .declare('resetItem', `() => {
-      item = ${getInitialCode(reader)};
+      this.$_${operation.name}_item = ${getInitialCode(reader)};
     }`, false)
 
     .declare('left', length)
@@ -71,18 +75,18 @@ export const arrayContinuousDeclaration = createDeclaration({
       ? ($) => `${$.continue()}`
       : ($) => `
       do {
-        ended = false;
-        ${$.offset} = readItem(${$.buffer}, ${$.offset}, ${$.end});
-        if (ended === false) {
+        ${$.local('ended')} = false;
+        ${$.offset} = ${$.local('readItem')}(${$.buffer}, ${$.offset}, ${$.end});
+        if (${$.local('ended')} === false) {
           ${$.escape()}
         }
-        left--;
-        ${$.onlyWhenUsed('temp.push(item);')}
-        ${$.emit('item')}
-        resetItem();
-      } while (left !== 0);
+        ${$.local('left')}--;
+        ${$.onlyWhenUsed(`${$.local('temp')}.push(${$.local('item')});`)}
+        ${$.emit($.local('item'))}
+        ${$.local('resetItem')}();
+      } while (${$.local('left')} !== 0);
       
-      ${$.set('temp', false)}
+      ${$.set($.local('temp'), false)}
       ${$.continue()}
     `),
 });

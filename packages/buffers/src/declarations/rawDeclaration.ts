@@ -28,7 +28,7 @@ export const rawDeclaration = createDeclaration({
     }`)
 
     .entry(length === 0
-      ? ($) => `${$.set('NONE')} ${$.continue()}`
+      ? ($) => `${$.set($.local('NONE'))} ${$.continue()}`
       : ($) => `
       if (${$.hasBytes(length)}) {
         ${$.set(`${$.buffer}.subarray(${$.offset}, ${$.offset} + ${length})`)}
@@ -37,8 +37,8 @@ export const rawDeclaration = createDeclaration({
       } else if (${$.hasBytes()}) {
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
-        parts = [ part ];
-        left = ${length} - partLength;
+        ${$.local('parts')} = [ part ];
+        ${$.local('left')} = ${length} - partLength;
         ${$.moveOffset('partLength')}
         ${$.escape('next')}
       } else {
@@ -47,16 +47,17 @@ export const rawDeclaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
-      if (${$.hasBytes('left')}) {
-        parts.push(${$.buffer}.subarray(${$.offset}, ${$.offset} + left));
+      const parts = ${$.local('parts')};
+      if (${$.hasBytes($.local('left'))}) {
+        parts.push(${$.buffer}.subarray(${$.offset}, ${$.offset} + ${$.local('left')}));
         ${$.set('concat(parts)')}
-        ${$.moveOffset('left')}
+        ${$.moveOffset($.local('left'))}
         ${$.continue()}
       } else if (${$.hasBytes()}) {
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
         parts.push(part);
-        left -= partLength;
+        ${$.local('left')} -= partLength;
         ${$.moveOffset('partLength')}
         ${$.escape()}
       } else {
@@ -93,7 +94,7 @@ export const rawDeclarationContinuous = createDeclaration({
     }`)
 
     .entry(length === 0
-      ? ($) => `${$.set('NONE')} ${$.continue()}`
+      ? ($) => `${$.set($.local('NONE'))} ${$.continue()}`
       : ($) => `
       if (${$.hasBytes(length)}) {
         ${$.set(`${$.buffer}.subarray(${$.offset}, ${$.offset} + length)`)}
@@ -102,9 +103,9 @@ export const rawDeclarationContinuous = createDeclaration({
       } else if (${$.hasBytes()}) {
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
-        ${$.onlyWhenUsed('parts = [ part ];')}
+        ${$.onlyWhenUsed(`${$.local('parts')} = [ part ];`)}
         ${$.emit('part')};
-        left = ${length} - partLength;
+        ${$.local('left')} = ${length} - partLength;
         ${$.moveOffset('partLength')}
         ${$.escape('next')}
       } else {
@@ -113,6 +114,8 @@ export const rawDeclarationContinuous = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const parts = ${$.local('parts')};
+      const left = ${$.local('left')};
       if (${$.hasBytes('left')}) {
         const part = ${$.buffer}.subarray(${$.offset}, ${$.offset} + left);
         ${$.onlyWhenUsed('parts.push(part);')}
@@ -125,7 +128,7 @@ export const rawDeclarationContinuous = createDeclaration({
         const partLength = part.length;
         ${$.onlyWhenUsed('parts.push(part);')}
         ${$.emit('part')}
-        left -= partLength;
+        ${$.local('left')} -= partLength;
         ${$.moveOffset('partLength')}
         ${$.escape()}
       } else {

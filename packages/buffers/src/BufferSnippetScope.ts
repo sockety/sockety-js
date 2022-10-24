@@ -88,6 +88,10 @@ export class BufferSnippetScope {
     return '_end';
   }
 
+  public local(name: string): string {
+    return `${this.context}.$_${this.#name}_${name}`;
+  }
+
   public read(name = this.#name): string {
     this.#readVariables.push(name);
     return `${this.context}.${name}`;

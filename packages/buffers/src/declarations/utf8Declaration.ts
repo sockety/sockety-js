@@ -36,8 +36,8 @@ export const utf8Declaration = createDeclaration({
       } else if (${$.hasBytes()}) {
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
-        parts = [ part ];
-        left = ${length} - partLength;
+        ${$.local('parts')} = [ part ];
+        ${$.local('left')} = ${length} - partLength;
         ${$.moveOffset('partLength')}
         ${$.escape('next')}
       } else {
@@ -46,6 +46,8 @@ export const utf8Declaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const left = ${$.local('left')};
+      const parts = ${$.local('parts')};
       if (${$.hasBytes('left')}) {
         parts.push(${$.buffer}.subarray(${$.offset}, ${$.offset} + left));
         ${$.set('concat(parts).toString()')}
@@ -55,7 +57,7 @@ export const utf8Declaration = createDeclaration({
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
         parts.push(part);
-        left -= partLength;
+        ${$.local('left')} -= partLength;
         ${$.moveOffset('partLength')}
         ${$.escape()}
       } else {

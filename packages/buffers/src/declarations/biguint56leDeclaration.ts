@@ -28,14 +28,15 @@ export const biguint56leDeclaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const parts = ${$.local('parts')};
       let left = ${$.end} - ${$.offset};
       do {
         if (left === 0 || typeof ${$.bufferAt(0)} === 'undefined') {
           ${$.escape()}
         }
         left--;
-        parts[offset++] = ${$.buffer}[${$.offset}++];
-      } while (offset < 7);
+        parts[${$.local('offset')}++] = ${$.buffer}[${$.offset}++];
+      } while (${$.local('offset')} < 7);
       
       ${$.set(`BigInt((
         parts[0] |

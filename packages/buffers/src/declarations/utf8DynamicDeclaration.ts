@@ -4,7 +4,6 @@ export const utf8DynamicDeclaration = createDeclaration({
   read: (lengthKey: string) => (operation) => operation
     .initialValue('""')
     .resetValue(true)
-    .declare('NONE', 'Buffer.allocUnsafe(0)', false)
     .declare('left', 0, false)
     .declare('parts', '[]')
 
@@ -40,7 +39,7 @@ export const utf8DynamicDeclaration = createDeclaration({
         part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
         parts = [ part ];
-        left = length - partLength;
+        ${$.local('left')} = length - partLength;
         ${$.moveOffset('partLength')}
         ${$.escape('next')}
       } else {
@@ -49,6 +48,8 @@ export const utf8DynamicDeclaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const parts = ${$.local('parts')};
+      const left = ${$.local('left')};
       if (${$.hasBytes('left')}) {
         parts.push(${$.buffer}.subarray(${$.offset}, ${$.offset} + left));
         ${$.set('concat(parts).toString()')}
@@ -58,7 +59,7 @@ export const utf8DynamicDeclaration = createDeclaration({
         const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
         parts.push(part);
-        left -= partLength;
+        ${$.local('left')} -= partLength;
         ${$.moveOffset('partLength')}
         ${$.escape()}
       } else {

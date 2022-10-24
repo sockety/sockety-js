@@ -56,6 +56,13 @@ export class BufferReadOperation {
   }
 
   /**
+   * Get the name of read operation.
+   */
+  public get name(): string {
+    return this.#name;
+  }
+
+  /**
    * Get final instructions based on designated buffer operation.
    */
   public getInfo(): BufferReadOperationInfo {

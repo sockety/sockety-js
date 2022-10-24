@@ -12,11 +12,11 @@ export const uint24leDeclaration = createDeclaration({
         ${$.moveOffset(3)}
         ${$.continue()}
       } else if (${$.hasBytes(2)}) {
-        temp = ${$.bufferAt(0)} | ${$.bufferAt(1, 8)};
+        ${$.local('temp')} = ${$.bufferAt(0)} | ${$.bufferAt(1, 8)};
         ${$.moveOffset(2)}
         ${$.escape('last')}
       } else if (${$.hasBytes()}) {
-        temp = ${$.bufferAt(0)};
+        ${$.local('temp')} = ${$.bufferAt(0)};
         ${$.moveOffset(1)}
         ${$.escape('next')}
       }
@@ -25,11 +25,11 @@ export const uint24leDeclaration = createDeclaration({
 
     .snippet('next', ($) => `
       if (${$.hasBytes(2)}) {
-        ${$.set(`temp | ${$.bufferAt(0, 8)} | ${$.bufferAt(1, 16)}`)}
+        ${$.set(`${$.local('temp')} | ${$.bufferAt(0, 8)} | ${$.bufferAt(1, 16)}`)}
         ${$.moveOffset(2)}
         ${$.continue()}
       } else if (${$.hasBytes(1)}) {
-        temp = temp | ${$.bufferAt(0, 8)};
+        ${$.local('temp')} |= ${$.bufferAt(0, 8)};
         ${$.moveOffset(1)}
         ${$.escape('last')}
       }
@@ -38,7 +38,7 @@ export const uint24leDeclaration = createDeclaration({
 
     .snippet('last', ($) => `
       if (${$.hasBytes()}) {
-        ${$.set(`temp | ${$.bufferAt(0, 16)}`)}
+        ${$.set(`${$.local('temp')} | ${$.bufferAt(0, 16)}`)}
         ${$.moveOffset(1)}
         ${$.continue()}
       }

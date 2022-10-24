@@ -12,7 +12,7 @@ export const uint16leDeclaration = createDeclaration({
         ${$.moveOffset(2)}
         ${$.continue()}
       } else if (${$.hasBytes()}) {
-        temp = ${$.bufferAt(0)};
+        ${$.local('temp')} = ${$.bufferAt(0)};
         ${$.moveOffset(1)}
         ${$.escape('next')}
       }
@@ -21,7 +21,7 @@ export const uint16leDeclaration = createDeclaration({
 
     .snippet('next', ($) => `
       if (${$.hasBytes()}) {
-        ${$.set(`temp | ${$.bufferAt(0, 8)}`)}
+        ${$.set(`${$.local('temp')} | ${$.bufferAt(0, 8)}`)}
         ${$.moveOffset(1)}
         ${$.continue()}
       }

@@ -20,14 +20,15 @@ export const uuidStringDeclaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const parts = ${$.local('parts')};
       let left = ${$.end} - ${$.offset};
       do {
         if (left === 0 || typeof ${$.bufferAt(0)} === 'undefined') {
           ${$.escape()}
         }
         left--;
-        parts[offset++] = ${$.buffer}[${$.offset}++];
-      } while (offset < 16);
+        parts[${$.local('offset')}++] = ${$.buffer}[${$.offset}++];
+      } while (${$.local('offset')} < 16);
       
       ${$.set('readUuidToString(parts)')}
       ${$.continue()}

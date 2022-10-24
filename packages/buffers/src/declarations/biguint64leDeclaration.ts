@@ -29,14 +29,15 @@ export const biguint64leDeclaration = createDeclaration({
     `)
 
     .snippet('next', ($) => `
+      const parts = ${$.local('parts')};
       let left = ${$.end} - ${$.offset};
       do {
         if (left === 0 || typeof ${$.bufferAt(0)} === 'undefined') {
           ${$.escape()}
         }
         left--;
-        parts[offset++] = ${$.buffer}[${$.offset}++];
-      } while (offset < 8);
+        parts[${$.local('offset')}++] = ${$.buffer}[${$.offset}++];
+      } while (${$.local('offset')} < 8);
       
       ${$.set(`BigInt((
         parts[0] |
