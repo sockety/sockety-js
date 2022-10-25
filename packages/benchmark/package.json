@@ -1,0 +1,39 @@
+{
+  "name": "@sockety/benchmark",
+  "description": "Benchmark for different communication protocols",
+  "version": "0.0.0",
+  "license": "MIT",
+  "publishConfig": {
+    "private": true
+  },
+  "author": {
+    "name": "Dawid Rusnak",
+    "email": "dawid@drcode.pl",
+    "url": "https://www.drcode.pl"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "homepage": "https://github.com/sockety/sockety-js/tree/master/packages/benchmark#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sockety/sockety-js.git",
+    "directory": "packages/benchmark"
+  },
+  "bugs": {
+    "url": "https://github.com/sockety/sockety-js/issues"
+  },
+  "scripts": {
+    "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@bestest/math": "^1.0.2",
+    "chalk": "^4.1.2",
+    "commander": "^9.4.1",
+    "get-port": "^5.1.1",
+    "glob": "^8.0.3",
+    "parse-duration": "^1.0.2",
+    "node-forge": "^1.3.1"
+  }
+}

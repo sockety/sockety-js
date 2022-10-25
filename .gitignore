@@ -10,8 +10,11 @@ node_modules
 npm-debug.log*
 coverage
 packages/**/*.js
+!packages/benchmark/**/*.js
 packages/**/*.d.ts
 packages/**/*.map
+tmp-cert.pem
+tmp-key.pem
 
 # Temporary data
 *.log
