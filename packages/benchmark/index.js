@@ -7,7 +7,7 @@ const { program } = require('commander');
 const getPort = require('get-port');
 const glob = require('glob');
 const parseDuration = require('parse-duration');
-const { runBenchmark, aggregateBenchmarks, printHeader, printToast, printResult } = require('./src/benchmark');
+const { runBenchmark, aggregateBenchmarks, printHeader, printToast, printResult, printProgress } = require('./src/benchmark');
 const { getSuite, registeredSuites } = require('./src/declare');
 const { setUpClientWorker, setUpServerWorker, setUpServerPrimary, setPriority } = require('./src/worker');
 
@@ -124,22 +124,25 @@ async function runSuite(name) {
       await client.prepare(suite.name);
     }
     if (config.warmingDuration > 0) {
-      printToast(benchmark.name, 'Warming...');
-      await Promise.all(clients.map((client) => client.warm(suite.name, benchmark.name)));
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        printProgress(benchmark.name, 'Warming', (Date.now() - startTime) / config.warmingDuration);
+      }, 25);
+      try {
+        await Promise.all(clients.map((client) => client.warm(suite.name, benchmark.name)));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        clearInterval(interval);
+      } catch (error) {
+        clearInterval(interval);
+        throw error;
+      }
     }
     printToast(benchmark.name, 'Starting...');
 
     const startTime = Date.now();
     const interval = setInterval(() => {
-      const percentage = 100 * (Date.now() - startTime) / config.duration;
-      const length = 66;
-      const bar = '▓'.repeat(Math.min(percentage, 100) / (100 / length)).padEnd(length, '░');
-      if (percentage > 100) {
-        printToast(benchmark.name, 'Finishing...');
-      } else {
-        printToast(benchmark.name, `${bar} ${formatNumber(percentage, 2).padStart(6)}%`);
-      }
-    }, 50);
+      printProgress(benchmark.name, 'Running', (Date.now() - startTime) / config.duration);
+    }, 25);
 
     try {
       const result = aggregateBenchmarks(await Promise.all(clients.map((client) => client.run(suite.name, benchmark.name))));
