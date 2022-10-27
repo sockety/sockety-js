@@ -87,7 +87,7 @@ export function createMessage<T extends boolean>({
   const actionLength = Buffer.byteLength(action);
   const actionLengthSize = actionLength > 0xff ? 2 : 1;
   const actionBufferLength = actionLengthSize + actionLength;
-  const actionBuffer = Buffer.allocUnsafe(actionBufferLength);
+  const actionBuffer = Buffer.allocUnsafeSlow(actionBufferLength);
   if (actionLengthSize === 1) {
     actionBuffer[0] = actionLength;
     actionBuffer.write(action, 1);
@@ -100,7 +100,7 @@ export function createMessage<T extends boolean>({
   // TODO: Fail when uint48 is too low
   const payloadLength = data?.length || 0;
   const payloadSizeLength = payloadLength > 0xffff ? 6 : payloadLength > 0xff ? 2 : payloadLength > 0 ? 1 : 0;
-  const payloadSizeBuffer = Buffer.allocUnsafe(payloadSizeLength);
+  const payloadSizeBuffer = Buffer.allocUnsafeSlow(payloadSizeLength);
   if (payloadSizeLength === 6) {
     payloadSizeBuffer.writeUintLE(payloadLength, 0, 6);
   } else if (payloadSizeLength === 2) {
@@ -117,7 +117,7 @@ export function createMessage<T extends boolean>({
   const totalFilesSize = files?.reduce((acc, file) => acc + (file.size ?? file.buffer.length), 0) || 0;
   const totalFilesSizeLength = filesCount === 0 ? 0 : totalFilesSize > 0xffffffff ? 6 : totalFilesSize > 0xffffff ? 4 : totalFilesSize > 0xffff ? 3 : totalFilesSize > 0 ? 2 : 0;
 
-  const filesSpecBuffer = Buffer.allocUnsafe(filesCountLength + totalFilesSizeLength);
+  const filesSpecBuffer = Buffer.allocUnsafeSlow(filesCountLength + totalFilesSizeLength);
   if (filesCountLength === 3) {
     filesSpecBuffer.writeUintLE(filesCount, 0, 3);
   } else if (filesCountLength === 2) {
@@ -139,7 +139,7 @@ export function createMessage<T extends boolean>({
   // TODO: Consider doing it lazily?
   // @ts-ignore: avoid checks for better performance
   const filesHeaderSize = files?.reduce((acc, file) => acc + getFileHeaderSize(file), 0) || 0;
-  const filesHeaderBuffer = Buffer.allocUnsafe(filesHeaderSize);
+  const filesHeaderBuffer = Buffer.allocUnsafeSlow(filesHeaderSize);
   let offset = 0;
   for (const file of files || []) {
     offset = writeFileHeader(filesHeaderBuffer, offset, file);

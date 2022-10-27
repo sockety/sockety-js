@@ -10,7 +10,7 @@ export interface BufferedWritableOptions {
 
 type Callback = (error: Error | null | undefined) => void;
 
-const NONE = Buffer.allocUnsafe(0);
+const NONE = Buffer.allocUnsafeSlow(0);
 
 // TODO: Extract
 class AggregatedCallback {
@@ -79,7 +79,7 @@ export class BufferedWritable {
     this.#zeroFillUtilizedBuffer = !options.noZeroFillUtilizedBuffer;
     this.#reservedOversizeBytes = options.reservedOversizeBytes ?? 20;
     this.#poolSize = options.poolSize ?? 16_384;
-    this.#pool = Buffer.allocUnsafe(this.#poolSize);
+    this.#pool = Buffer.allocUnsafeSlow(this.#poolSize);
 
     // TODO: Consider nicer way
     this.#inlineBufferSize = Math.min(this.#poolSize / 2, 64);
@@ -192,7 +192,7 @@ export class BufferedWritable {
     this.#commit();
 
     // Regenerate pool
-    this.#pool = Buffer.allocUnsafe(poolSize);
+    this.#pool = Buffer.allocUnsafeSlow(poolSize);
     this.#poolCurrentSize = poolSize;
     this.#poolStart = 0;
     this.#poolOffset = 0;

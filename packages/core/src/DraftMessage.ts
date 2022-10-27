@@ -36,7 +36,7 @@ export type DraftTemplateData<T extends DraftMessageData> =
     ? {}
     : T['hasCustomMessagePackPayload'] extends false ? { data: Buffer } : { data: MessagePackSerializable });
 
-const NONE = Buffer.allocUnsafe(0);
+const NONE = Buffer.allocUnsafeSlow(0);
 
 export class DraftMessage<T extends DraftMessageData = DraftMessageDataDefaults> {
   readonly #action: string;
