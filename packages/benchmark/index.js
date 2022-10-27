@@ -178,7 +178,7 @@ async function handleController() {
   }
 
   // Filter benchmarks
-  const filters = (options.filters || []).map((x) => x.toLowerCase().trim().split(/\s+/g));
+  const filters = (options.filter || []).map((x) => x.toLowerCase().trim().split(/\s+/g));
   const exclude = (options.exclude || []).map((x) => x.toLowerCase().trim().split(/\s+/g));
   for (const suite of registeredSuites) {
     for (let index = 0; index < suite.benchmarks.length; index++) {
@@ -187,7 +187,7 @@ async function handleController() {
       // Ignore benchmark, when there are filters, and it's not matching them,
       // or when there are exclusions, and it's one of them
       if (
-        (filters.length > 0 && !filters.some((rule) => !rule.some((phrase) => name.includes(phrase)))) ||
+        (filters.length > 0 && !filters.some((rule) => rule.every((phrase) => name.includes(phrase)))) ||
         (exclude.length > 0 && exclude.some((rule) => rule.every((phrase) => name.includes(phrase))))
       ) {
         suite.benchmarks.splice(index, 1);
