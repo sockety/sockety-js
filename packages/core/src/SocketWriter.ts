@@ -31,7 +31,6 @@ export class SocketWriter {
       poolSize: 16_384,
       // poolSize: 0,
       reservedOversizeBytes: 20,
-      // noZeroFillUtilizedBuffer: true,
     });
     this.#maxChannels = maxChannels;
   }
