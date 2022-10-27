@@ -58,9 +58,10 @@ suite('HTTP/1', () => {
   });
 
   prepareClient(async (context) => {
-    const { port } = context.config;
+    const { port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     context.http = http;
-    context.url = (url) => `http://localhost:${port}${url}`;
+    context.url = (url) => `http://${host}:${port}${url}`;
     context.call = (url, options = {}, stream) => new Promise((resolve, reject) => {
       const req = http.request(context.url(url), options, (res) => {
         res.on('data', () => {});
@@ -96,9 +97,10 @@ suite('HTTPS/1', () => {
   });
 
   prepareClient(async (context) => {
-    const { port } = context.config;
+    const { port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     context.http = https;
-    context.url = (url) => `https://localhost:${port}${url}`;
+    context.url = (url) => `https://${host}:${port}${url}`;
     context.call = (url, options = {}, stream) => new Promise((resolve, reject) => {
       const req = https.request(context.url(url), { ...options, ca: certificate }, (res) => {
         res.on('data', () => {});

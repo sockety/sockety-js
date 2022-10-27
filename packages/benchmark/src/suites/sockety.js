@@ -108,7 +108,8 @@ suite('Sockety', () => {
   });
 
   prepareClient(async (context) => {
-    const { connectionsPerWorker, port } = context.config;
+    const { connectionsPerWorker, port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     const bucket = context.bucket = new UUIDMap();
     const noop = () => {};
     const received = (id) => {
@@ -122,7 +123,7 @@ suite('Sockety', () => {
 
     context.getClient = await makePool(connectionsPerWorker, async () => {
       const socket = await new Promise((resolve, reject) => {
-        const socket = net.connect({ port }, (error) => {
+        const socket = net.connect({ host, port }, (error) => {
           if (error == null) {
             resolve(new Socket(socket));
           } else {
@@ -160,7 +161,8 @@ suite('Sockety TLS', () => {
   });
 
   prepareClient(async (context) => {
-    const { connectionsPerWorker, port } = context.config;
+    const { connectionsPerWorker, port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     const bucket = context.bucket = new UUIDMap();
     const noop = () => {};
     const received = (id) => {
@@ -174,7 +176,7 @@ suite('Sockety TLS', () => {
 
     context.getClient = await makePool(connectionsPerWorker, async () => {
       const socket = await new Promise((resolve, reject) => {
-        const socket = tls.connect({ ca: certificate, port }, (error) => {
+        const socket = tls.connect({ ca: certificate, host, port }, (error) => {
           if (error == null) {
             resolve(new Socket(socket));
           } else {

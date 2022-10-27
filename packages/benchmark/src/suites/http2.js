@@ -95,9 +95,10 @@ suite('HTTP/2', () => {
   });
 
   prepareClient(async (context) => {
-    const { connectionsPerWorker, port } = context.config;
+    const { connectionsPerWorker, port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     context.getClient = await makePool(connectionsPerWorker, () => new Promise((resolve, reject) => {
-      const client = http2.connect(`http://localhost:${port}`, {
+      const client = http2.connect(`http://${host}:${port}`, {
         // Increase all limits to avoid NGHTTP2_ENHANCE_YOUR_CALM
         maxReservedRemoteStreams: 10000,
         maxHeaderListPairs: 128 * 50,
@@ -142,9 +143,10 @@ suite('HTTPS/2', () => {
   });
 
   prepareClient(async (context) => {
-    const { connectionsPerWorker, port } = context.config;
+    const { connectionsPerWorker, port, remoteHost } = context.config;
+    const host = remoteHost || 'localhost';
     context.getClient = await makePool(connectionsPerWorker, () => new Promise((resolve, reject) => {
-      const client = http2.connect(`https://localhost:${port}`, {
+      const client = http2.connect(`https://${host}:${port}`, {
         ca: certificate,
         // Increase all limits to avoid NGHTTP2_ENHANCE_YOUR_CALM
         maxReservedRemoteStreams: 10000,
