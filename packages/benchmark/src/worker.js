@@ -113,9 +113,26 @@ function setUpClientWorker(config) {
     });
   }
 
+  function warm(suiteName, benchmarkName) {
+    return new Promise((resolve, reject) => {
+      const messageListener = (message) => {
+        if (message?.type === 'warming-finished' && message.suite === suiteName && message.benchmark === benchmarkName) {
+          worker.off('message', messageListener);
+          resolve(message.data);
+        }
+      };
+      worker.on('message', messageListener);
+      worker.once('error', (error) => {
+        worker.off('message', messageListener);
+        reject(error);
+      });
+      worker.postMessage({ type: 'warm', suite: suiteName, benchmark: benchmarkName });
+    });
+  }
+
   return new Promise((resolve, reject) => {
     worker.once('error', reject);
-    worker.once('message', () => resolve({ prepare, run, kill }));
+    worker.once('message', () => resolve({ prepare, run, kill, warm }));
   });
 }
 

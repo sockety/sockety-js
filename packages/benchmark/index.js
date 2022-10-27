@@ -19,6 +19,7 @@ const defaultConfig = {
   connectionsPerWorker: 2,
   concurrencyPerWorker: 250,
   duration: 5000,
+  warmingDuration: 0,
 };
 const config = JSON.parse(process.env.SERVER_WORKER_CONFIG || 'null') || workerData?.config || defaultConfig;
 
@@ -82,6 +83,22 @@ async function handleClientWorker() {
           duration: config.duration,
         }),
       });
+    } else if (message?.type === 'warm') {
+      const suite = getSuite(message.suite, config);
+      const fn = suite.benchmarks.find((x) => x.name === message.benchmark)?.handler;
+      if (!fn) {
+        throw new Error(`"${message.benchmark}" is not registered in "${message.suite}" suite.`);
+      }
+
+      parentPort.postMessage({
+        type: 'warming-finished',
+        suite: message.suite,
+        benchmark: message.benchmark,
+        data: await runBenchmark(fn, suite.context, {
+          concurrency: config.concurrencyPerWorker,
+          duration: config.warmingDuration,
+        }),
+      });
     }
   });
   parentPort.postMessage('started instance');
@@ -106,6 +123,11 @@ async function runSuite(name) {
       // Do one by one, so it will be able to split server connections between servers more evenly
       await client.prepare(suite.name);
     }
+    if (config.warmingDuration > 0) {
+      printToast(benchmark.name, 'Warming...');
+      await Promise.all(clients.map((client) => client.warm(suite.name, benchmark.name)));
+    }
+    printToast(benchmark.name, 'Starting...');
 
     const startTime = Date.now();
     const interval = setInterval(() => {
@@ -140,6 +162,7 @@ async function handleController() {
     .option('-c, --clients <count>', 'Number of client workers', 'servers * 2')
     .option('-cc, --concurrency <count>', 'Concurrency for each client', defaultConfig.concurrencyPerWorker)
     .option('-cn, --connections <count>', 'Connections maintained for each client', defaultConfig.connectionsPerWorker)
+    .option('-w, --warming <ms>', 'Warming duration for each benchmark', defaultConfig.warmingDuration)
     .option('-f, --filter [filter...]', 'Filter benchmarks to run')
     .option('-e, --exclude [exclude...]', 'Exclude benchmarks to run')
     .parse()
@@ -177,6 +200,12 @@ async function handleController() {
     config.connectionsPerWorker = parseInt(options.connections, 10);
     if (!config.connectionsPerWorker) {
       throw new Error('Invalid --connections passed');
+    }
+  }
+  if (options.warming) {
+    config.warmingDuration = parseDuration(options.warming);
+    if (!config.warmingDuration) {
+      throw new Error('Invalid --warming passed');
     }
   }
 
@@ -217,6 +246,7 @@ async function handleController() {
   console.log(`${chalk.ansi256(30).bold('   Connections:')} ${config.clientWorkers} × ${config.connectionsPerWorker} (${config.clientWorkers * config.connectionsPerWorker})`);
   console.log(`${chalk.ansi256(30).bold('   Concurrency:')} ${config.clientWorkers} × ${config.concurrencyPerWorker} (${config.clientWorkers * config.concurrencyPerWorker})`);
   console.log(`${chalk.ansi256(30).bold('      Duration:')} ${formatNumber(config.duration)}ms`);
+  console.log(`${chalk.ansi256(30).bold('  Warming time:')} ${formatNumber(config.warmingDuration)}ms`);
 
   // Check if it's possible to increase threads priority
   if (!setPriority(-15)) {
