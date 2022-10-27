@@ -92,6 +92,20 @@ export class SocketWriter {
     this.#buffer.writeUint48(uint48);
   }
 
+  public writeUint(uint: number, byteLength: number): void {
+    if (byteLength === 1) {
+      this.#buffer.writeUint8(uint);
+    } else if (byteLength === 2) {
+      this.#buffer.writeUint16(uint);
+    } else if (byteLength === 3) {
+      this.#buffer.writeUint24(uint);
+    } else if (byteLength === 4) {
+      this.#buffer.writeUint32(uint);
+    } else if (byteLength === 6) {
+      this.#buffer.writeUint48(uint);
+    }
+  }
+
   public writeUtf8(utf8: string, callback?: (error: Error | null | undefined) => void): boolean {
     return this.#buffer.writeUtf8(utf8, callback);
   }

@@ -14,6 +14,8 @@ import {
   PacketTypeBits
 } from './constants';
 import { RequestStream } from './RequestStream';
+import { createNumberBytesGetter } from './createNumberBytesGetter';
+import { createNumberBytesMapper } from './createNumberBytesMapper';
 
 // TODO: Extract type
 type FileSent = { name: string, buffer: Buffer } | { name: string, size: number, stream: Readable };
@@ -24,49 +26,88 @@ export interface CreateMessageOptions {
   files?: FileSent[];
 }
 
+const getTotalFilesSizeBytes = createNumberBytesGetter('total files size', [ 2, 3, 4, 6 ]);
+const getTotalFilesSizeFlag = createNumberBytesMapper('total files size', {
+  2: MessageFilesSizeBits.Uint16,
+  3: MessageFilesSizeBits.Uint24,
+  4: MessageFilesSizeBits.Uint32,
+  6: MessageFilesSizeBits.Uint48,
+});
+
+const getFilesCountBytes = createNumberBytesGetter('files count', [ 0, 1, 2, 3 ]);
+const getFilesCountFlag = createNumberBytesMapper('files count', {
+  0: MessageFilesCountBits.None,
+  1: MessageFilesCountBits.Uint8,
+  2: MessageFilesCountBits.Uint16,
+  3: MessageFilesCountBits.Uint24,
+});
+
+const getDataBytes = createNumberBytesGetter('data', [ 0, 1, 2, 6 ]);
+const getDataFlag = createNumberBytesMapper('data', {
+  0: MessageDataSizeBits.None,
+  1: MessageDataSizeBits.Uint8,
+  2: MessageDataSizeBits.Uint16,
+  6: MessageDataSizeBits.Uint48,
+});
+
+const getActionNameBytes = createNumberBytesGetter('action name', [ 1, 2 ]);
+const getActionNameFlag = createNumberBytesMapper('action name', {
+  1: MessageActionSizeBits.Uint8,
+  2: MessageActionSizeBits.Uint16,
+});
+
+const getFileHeaderNameBytes = createNumberBytesGetter('file name', [ 1, 2 ]);
+const getFileHeaderNameFlag = createNumberBytesMapper('file name', {
+  1: FileNameSizeBits.Uint8,
+  2: FileNameSizeBits.Uint16,
+});
+
+const getFileHeaderSizeBytes = createNumberBytesGetter('file size', [ 1, 2, 3, 6 ]);
+const getFileHeaderSizeFlag = createNumberBytesMapper('file size', {
+  1: FileSizeBits.Uint8,
+  2: FileSizeBits.Uint16,
+  3: FileSizeBits.Uint24,
+  6: FileSizeBits.Uint48,
+});
+
+const getFileHeaderIndexBytes = createNumberBytesGetter('file index', [ 1, 2, 3, 6 ]);
+const getFileHeaderIndexFlag = createNumberBytesMapper('file index', {
+  // TODO: Consider 0 -> None, as there is empty slot anyway?
+  1: FileIndexBits.Uint8,
+  2: FileIndexBits.Uint16,
+  3: FileIndexBits.Uint24,
+});
+
 // TODO: Extract type
 function getFileHeaderSize(file: FileSent): number {
   const nameLength = Buffer.byteLength(file.name);
-  // TODO: Fail when it's over uint24/uint48
-  const nameSize = nameLength > 0xff ? 2 : 1;
+  const nameSize = getFileHeaderNameBytes(nameLength);
   // @ts-ignore: ignore types for optimization
   const size = file.size ?? file.buffer.length;
-  const sizeSize = size > 0xffffff ? 6 : size > 0xffff ? 3 : size > 0xff ? 2 : 1;
+  const sizeSize = getFileHeaderSizeBytes(size);
   return 1 + sizeSize + nameSize + nameLength;
 }
 
 function writeFileHeader(buffer: Buffer, offset: number, file: FileSent): number {
   const name = file.name;
   const nameLength = Buffer.byteLength(name);
-  const nameBits = nameLength > 0xff ? FileNameSizeBits.Uint16 : FileNameSizeBits.Uint8;
+  const nameSize = getFileHeaderNameBytes(nameLength);
+  const nameBits = getFileHeaderNameFlag(nameLength);
   // @ts-ignore: ignore types for optimization
   const size = file.size ?? file.buffer.length;
-  const sizeBits = size > 0xffffff ? FileSizeBits.Uint48 : size > 0xffff ? FileSizeBits.Uint24 : size > 0xff ? FileSizeBits.Uint16 : FileSizeBits.Uint8;
+  const sizeSize = getFileHeaderSizeBytes(size);
+  const sizeBits = getFileHeaderSizeFlag(size);
 
   // Write header
   buffer[offset++] = sizeBits | nameBits;
 
   // Write file size
-  if (sizeBits === FileSizeBits.Uint48) {
-    buffer.writeUintLE(size, offset, 6);
-    offset += 6;
-  } else if (sizeBits === FileSizeBits.Uint24) {
-    buffer.writeUintLE(size, offset, 3);
-    offset += 3;
-  } else if (sizeBits === FileSizeBits.Uint16) {
-    buffer.writeUint16LE(size, offset);
-    offset += 2;
-  } else {
-    buffer[offset++] = size;
-  }
+  buffer.writeUintLE(size, offset, sizeSize);
+  offset += sizeSize;
 
   // Write name size
-  if (nameBits === FileNameSizeBits.Uint16) {
-    buffer.writeUint16LE(nameLength, offset);
-    offset += 2;
-  } else {
-    buffer[offset++] = nameLength;
-  }
+  buffer.writeUintLE(nameLength, offset, nameSize);
+  offset += nameSize;
 
   // Write name
   offset += buffer.write(name, offset);
@@ -85,54 +126,31 @@ export function createMessage<T extends boolean>({
 }: CreateMessageOptions, hasStream: T): ContentProducer<Request<T>> {
   // Compute action information
   const actionLength = Buffer.byteLength(action);
-  const actionLengthSize = actionLength > 0xff ? 2 : 1;
+  const actionLengthSize = getActionNameBytes(actionLength);
   const actionBufferLength = actionLengthSize + actionLength;
   const actionBuffer = Buffer.allocUnsafeSlow(actionBufferLength);
-  if (actionLengthSize === 1) {
-    actionBuffer[0] = actionLength;
-    actionBuffer.write(action, 1);
-  } else {
-    actionBuffer.writeUint16LE(actionLength);
-    actionBuffer.write(action, 2);
-  }
+  actionBuffer.writeUintLE(actionLength, 0, actionLengthSize);
+  actionBuffer.write(action, actionLengthSize);
 
-  // Compute payload details
-  // TODO: Fail when uint48 is too low
-  const payloadLength = data?.length || 0;
-  const payloadSizeLength = payloadLength > 0xffff ? 6 : payloadLength > 0xff ? 2 : payloadLength > 0 ? 1 : 0;
-  const payloadSizeBuffer = Buffer.allocUnsafeSlow(payloadSizeLength);
-  if (payloadSizeLength === 6) {
-    payloadSizeBuffer.writeUintLE(payloadLength, 0, 6);
-  } else if (payloadSizeLength === 2) {
-    payloadSizeBuffer.writeUint16LE(payloadLength);
-  } else if (payloadSizeLength === 1) {
-    payloadSizeBuffer[0] = payloadLength;
+  // Compute data details
+  const dataLength = data?.length || 0;
+  const dataSizeLength = getDataBytes(dataLength);
+  const dataSizeBuffer = Buffer.allocUnsafeSlow(dataSizeLength);
+  if (dataSizeLength > 0) {
+    dataSizeBuffer.writeUintLE(dataLength, 0, dataSizeLength);
   }
 
   // Compute files details
-  // TODO: Fail when uint24 / uint48 is too low
   const filesCount = files?.length || 0;
-  const filesCountLength = filesCount > 0xffff ? 3 : filesCount > 0xff ? 2 : filesCount > 0 ? 1 : 0;
+  const filesCountLength = getFilesCountBytes(filesCount);
   // @ts-ignore: avoid checks for better performance
   const totalFilesSize = files?.reduce((acc, file) => acc + (file.size ?? file.buffer.length), 0) || 0;
-  const totalFilesSizeLength = filesCount === 0 ? 0 : totalFilesSize > 0xffffffff ? 6 : totalFilesSize > 0xffffff ? 4 : totalFilesSize > 0xffff ? 3 : totalFilesSize > 0 ? 2 : 0;
+  const totalFilesSizeLength = filesCount === 0 ? 0 : getTotalFilesSizeBytes(totalFilesSize);
 
   const filesSpecBuffer = Buffer.allocUnsafeSlow(filesCountLength + totalFilesSizeLength);
-  if (filesCountLength === 3) {
-    filesSpecBuffer.writeUintLE(filesCount, 0, 3);
-  } else if (filesCountLength === 2) {
-    filesSpecBuffer.writeUint16LE(filesCount);
-  } else if (filesCountLength === 1) {
-    filesSpecBuffer[0] = filesCount;
-  }
-  if (totalFilesSizeLength === 6) {
-    filesSpecBuffer.writeUintLE(totalFilesSize, filesCountLength, 6);
-  } else if (totalFilesSizeLength === 4) {
-    filesSpecBuffer.writeUint32LE(totalFilesSize, filesCountLength);
-  } else if (totalFilesSizeLength === 3) {
-    filesSpecBuffer.writeUintLE(totalFilesSize, filesCountLength, 3);
-  } else if (totalFilesSizeLength === 2) {
-    filesSpecBuffer.writeUint16LE(totalFilesSize, filesCountLength);
+  if (filesCountLength > 0) {
+    filesSpecBuffer.writeUintLE(filesCount, 0, filesCountLength);
+    filesSpecBuffer.writeUintLE(totalFilesSize, filesCountLength, totalFilesSizeLength);
   }
 
   // TODO: Return Request immediately
@@ -146,35 +164,23 @@ export function createMessage<T extends boolean>({
   }
 
   // Compute flags
-  const filesCountBits = filesCountLength === 3
-    ? MessageFilesCountBits.Uint24
-    : filesCountLength === 2
-      ? MessageFilesCountBits.Uint16
-      : filesCountLength === 1 ? MessageFilesCountBits.Uint8 : MessageFilesCountBits.None;
-  const filesSizeBits = totalFilesSizeLength === 6
-    ? MessageFilesSizeBits.Uint48
-    : totalFilesSizeLength === 4
-      ? MessageFilesSizeBits.Uint32
-      : totalFilesSizeLength === 3 ? MessageFilesSizeBits.Uint24 : MessageFilesSizeBits.Uint16;
-  const dataSizeBits = payloadSizeLength === 6
-    ? MessageDataSizeBits.Uint48
-    : payloadSizeLength === 2
-      ? MessageDataSizeBits.Uint16
-      : payloadSizeLength === 1 ? MessageDataSizeBits.Uint8 : MessageDataSizeBits.None;
-  const actionSizeBits = actionLengthSize === 1 ? MessageActionSizeBits.Uint8 : MessageActionSizeBits.Uint16;
+  const filesCountBits = getFilesCountFlag(filesCount);
+  const filesSizeBits = getTotalFilesSizeFlag(totalFilesSize);
+  const dataSizeBits = getDataFlag(dataLength);
+  const actionSizeBits = getActionNameFlag(actionLength);
   const flags = filesCountBits | filesSizeBits | dataSizeBits | actionSizeBits;
 
   // Compute message size
   // Flags (1B) + UUID (16B) + Action size and name (dynamic) + Payload size (0-6B) + Files count size (0-3B) + Total file size (0-6B)
-  const messageLength = 1 + 16 + actionBufferLength + payloadSizeLength + filesCountLength + totalFilesSizeLength + filesHeaderSize;
+  const messageLength = 1 + 16 + actionBufferLength + dataSizeLength + filesCountLength + totalFilesSizeLength + filesHeaderSize;
   // Channel (0-2B) + Header (1B) + Message length + Payload header (0-1B) + Payload length
   const packetLength = 2 + 1 + messageLength;
 
   // Build message producer
   return createContentProducer((writer, expectsResponse, _callback) => {
     // console.log('ABL', actionBufferLength, actionBuffer);
-    // console.log('PSL', payloadSizeLength, payloadSizeBuffer);
-    // console.log('PL', payloadLength, data);
+    // console.log('PSL', dataSizeLength, dataSizeBuffer);
+    // console.log('PL', dataLength, data);
     // console.log('FC', filesCountLength);
     // console.log('TFS', totalFilesSizeLength, filesSpecBuffer);
     // console.log('FHS', filesHeaderSize, filesHeaderBuffer);
@@ -205,7 +211,7 @@ export function createMessage<T extends boolean>({
 
       // Compute
       const id = generateUuid();
-      const inlinedPayloadLength = (payloadLength > 0 ? 1 : 0) + (writer.shouldInlineBuffer(payloadLength) ? payloadLength : 0);
+      const inlinedPayloadLength = (dataLength > 0 ? 1 : 0) + (writer.shouldInlineBuffer(dataLength) ? dataLength : 0);
       const inlinedLength = packetLength + inlinedPayloadLength;
 
       // Notify about expected message size for pool optimization
@@ -220,9 +226,9 @@ export function createMessage<T extends boolean>({
       writer.writeUuid(id);
       writer.write(actionBuffer);
 
-      // Write payload size
-      if (payloadLength !== 0) {
-        writer.write(payloadSizeBuffer);
+      // Write data size
+      if (dataLength !== 0) {
+        writer.write(dataSizeBuffer);
       }
 
       // Write files header
@@ -233,11 +239,11 @@ export function createMessage<T extends boolean>({
         writer.write(filesHeaderBuffer);
       }
 
-      // Write payload
+      // Write data
       // TODO: Drain?
       // TODO: Support splitting for >4GB
-      if (payloadLength !== 0) {
-        writer.writeDataSignature(payloadLength);
+      if (dataLength !== 0) {
+        writer.writeDataSignature(dataLength);
         writer.write(data!);
       }
 
@@ -286,33 +292,17 @@ export function createMessage<T extends boolean>({
         // FIXME: 'in' performance
         if ('buffer' in file) {
           const size = file.buffer.length;
-          const sizeBits = size > 0xffffff ? FileSizeBits.Uint48 : size > 0xffff ? FileSizeBits.Uint24 : size > 0xff ? FileSizeBits.Uint16 : FileSizeBits.Uint8;
-          const indexBits = index > 0xffff ? FileIndexBits.Uint24 : index > 0xff ? FileIndexBits.Uint16 : FileIndexBits.Uint8;
+          const sizeBits = getFileHeaderSizeFlag(size);
+          const indexBits = getFileHeaderIndexFlag(index);
 
           // TODO: Ensure length?
 
           // Write File packet header
           writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
 
-          // Write file index
-          if (indexBits === FileIndexBits.Uint24) {
-            writer.writeUint24(index);
-          } else if (indexBits === FileIndexBits.Uint16) {
-            writer.writeUint16(index);
-          } else {
-            writer.writeUint8(index);
-          }
-
-          // Write file size
-          if (sizeBits === FileSizeBits.Uint48) {
-            writer.writeUint48(size);
-          } else if (sizeBits === FileSizeBits.Uint24) {
-            writer.writeUint24(size);
-          } else if (sizeBits === FileSizeBits.Uint16) {
-            writer.writeUint16(size);
-          } else {
-            writer.writeUint8(size);
-          }
+          // Write file index & size
+          writer.writeUint(index, getFileHeaderIndexBytes(index));
+          writer.writeUint(size, getFileHeaderSizeBytes(size));
 
           // Write file
           // TODO: Support splitting for >4GB
@@ -320,13 +310,7 @@ export function createMessage<T extends boolean>({
 
           // Write FileEnd packet
           writer.writeUint8(PacketTypeBits.FileEnd | indexBits);
-          if (indexBits === FileIndexBits.Uint24) {
-            writer.writeUint24(index);
-          } else if (indexBits === FileIndexBits.Uint16) {
-            writer.writeUint16(index);
-          } else {
-            writer.writeUint8(index);
-          }
+          writer.writeUint(index, getFileHeaderIndexBytes(index));
 
           filesLeft--;
           if (filesLeft === 0) {
@@ -338,12 +322,13 @@ export function createMessage<T extends boolean>({
             });
           }
         } else {
-          const indexBits = index > 0xffff ? FileIndexBits.Uint24 : index > 0xff ? FileIndexBits.Uint16 : FileIndexBits.Uint8;
+          const indexBits = getFileHeaderIndexFlag(index);
+          const indexBytes = getFileHeaderIndexBytes(index);
 
           // TODO: Abort when it's aborted/closed
           file.stream.on('data', (data) => {
             const size = data.length;
-            const sizeBits = size > 0xffffff ? FileSizeBits.Uint48 : size > 0xffff ? FileSizeBits.Uint24 : size > 0xff ? FileSizeBits.Uint16 : FileSizeBits.Uint8;
+            const sizeBits = getFileHeaderSizeFlag(size);
 
             // TODO: Ensure length?
             writer.ensureChannel(channelId);
@@ -351,25 +336,9 @@ export function createMessage<T extends boolean>({
             // Write File packet header
             writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
 
-            // Write file index
-            if (indexBits === FileIndexBits.Uint24) {
-              writer.writeUint24(index);
-            } else if (indexBits === FileIndexBits.Uint16) {
-              writer.writeUint16(index);
-            } else {
-              writer.writeUint8(index);
-            }
-
-            // Write file size
-            if (sizeBits === FileSizeBits.Uint48) {
-              writer.writeUint48(size);
-            } else if (sizeBits === FileSizeBits.Uint24) {
-              writer.writeUint24(size);
-            } else if (sizeBits === FileSizeBits.Uint16) {
-              writer.writeUint16(size);
-            } else {
-              writer.writeUint8(size);
-            }
+            // Write file index & size
+            writer.writeUint(index, indexBytes);
+            writer.writeUint(size, getFileHeaderSizeBytes(size));
 
             // Write file
             // TODO: Support splitting for >4GB
@@ -379,13 +348,7 @@ export function createMessage<T extends boolean>({
             writer.ensureChannel(channelId);
             // Write FileEnd packet
             writer.writeUint8(PacketTypeBits.FileEnd | indexBits);
-            if (indexBits === FileIndexBits.Uint24) {
-              writer.writeUint24(index);
-            } else if (indexBits === FileIndexBits.Uint16) {
-              writer.writeUint16(index);
-            } else {
-              writer.writeUint8(index);
-            }
+            writer.writeUint(index, indexBytes);
 
             filesLeft--;
             if (filesLeft === 0) {
