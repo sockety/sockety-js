@@ -102,7 +102,10 @@ async function runSuite(name) {
     printToast(benchmark.name, 'Starting client workers...');
     const clients = await Promise.all(new Array(config.clientWorkers).fill(1).map(() => setUpClientWorker(config)));
     printToast(benchmark.name, 'Preparing client workers...');
-    await Promise.all(clients.map((client) => client.prepare(suite.name)));
+    for (const client of clients) {
+      // Do one by one, so it will be able to split server connections between servers more evenly
+      await client.prepare(suite.name);
+    }
 
     const startTime = Date.now();
     const interval = setInterval(() => {
