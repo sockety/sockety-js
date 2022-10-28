@@ -301,8 +301,8 @@ export function createMessage<T extends boolean>({
           writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
 
           // Write file index & size
-          writer.writeUint(index, getFileHeaderIndexBytes(index));
           writer.writeUint(size, getFileHeaderSizeBytes(size));
+          writer.writeUint(index, getFileHeaderIndexBytes(index));
 
           // Write file
           // TODO: Support splitting for >4GB
@@ -337,8 +337,8 @@ export function createMessage<T extends boolean>({
             writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
 
             // Write file index & size
-            writer.writeUint(index, indexBytes);
             writer.writeUint(size, getFileHeaderSizeBytes(size));
+            writer.writeUint(index, indexBytes);
 
             // Write file
             // TODO: Support splitting for >4GB

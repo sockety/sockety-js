@@ -163,28 +163,19 @@ const createPacketConsumer = new BufferReader()
 
   // Files
   .when('type', PacketTypeBits.File, $ => $
-    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00001100).setInternal('_fileIndex')
-    .when('_fileIndex', FileIndexBits.Uint8, $ => $.uint8('fileIndex').setInternal('fileIndex'))
-    .when('_fileIndex', FileIndexBits.Uint16, $ => $.uint16le('fileIndex').setInternal('fileIndex'))
-    .when('_fileIndex', FileIndexBits.Uint24, $ => $.uint24le('fileIndex').setInternal('fileIndex'))
-
     .mask<'_fileSize', FileSizeBits>('_fileSize', 'header', 0b00000011).setInternal('_fileSize')
-    .when('_fileSize', FileSizeBits.Uint8, $ => $
-      .uint8('fileSize').setInternal('fileSize')
-      .rawDynamic('fileContent', 'fileSize', true)
-      .earlyEnd())
-    .when('_fileSize', FileSizeBits.Uint16, $ => $
-      .uint16le('fileSize').setInternal('fileSize')
-      .rawDynamic('fileContent', 'fileSize', true)
-      .earlyEnd())
-    .when('_fileSize', FileSizeBits.Uint24, $ => $
-      .uint24le('fileSize').setInternal('fileSize')
-      .rawDynamic('fileContent', 'fileSize', true)
-      .earlyEnd())
-    .when('_fileSize', FileSizeBits.Uint48, $ => $
-      .uint48le('fileSize').setInternal('fileSize')
-      .rawDynamic('fileContent', 'fileSize', true)
-      .earlyEnd())
+    .when('_fileSize', FileSizeBits.Uint8, $ => $.uint8('fileSize').setInternal('fileSize'))
+    .when('_fileSize', FileSizeBits.Uint16, $ => $.uint16le('fileSize').setInternal('fileSize').earlyEnd())
+    .when('_fileSize', FileSizeBits.Uint24, $ => $.uint24le('fileSize').setInternal('fileSize'))
+    .when('_fileSize', FileSizeBits.Uint48, $ => $.uint48le('fileSize').setInternal('fileSize'))
+
+    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00001100).setInternal('_fileIndex')
+    .when('_fileIndex', FileIndexBits.Uint8, $ => $.uint8('fileIndex'))
+    .when('_fileIndex', FileIndexBits.Uint16, $ => $.uint16le('fileIndex'))
+    .when('_fileIndex', FileIndexBits.Uint24, $ => $.uint24le('fileIndex'))
+
+    .rawDynamic('fileContent', 'fileSize', true)
+    .earlyEnd()
   )
   .when('type', PacketTypeBits.FileEnd, $ => $
     .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00001100).setInternal('_fileIndex')
@@ -197,6 +188,7 @@ const createPacketConsumer = new BufferReader()
 
   .end();
 
+// TODO: Allow extending IncomingMessage etc
 export class StreamParser extends Writable {
   // Current state
   #channels: Record<number, StreamChannel> = {};
