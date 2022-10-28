@@ -24,14 +24,16 @@ function setUpServerPrimary(config) {
       const messageListener = (message) => {
         if (message?.type === 'ready' && message.suite === suiteName) {
           worker.off('message', messageListener);
+          worker.off('error', errorListener);
           resolve();
         }
       };
-      worker.on('message', messageListener);
-      worker.once('error', (error) => {
+      const errorListener = (error) => {
         worker.off('message', messageListener);
         reject(error);
-      });
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
       worker.postMessage({ type: 'prepare', suite: suiteName });
     });
   }
@@ -54,14 +56,16 @@ function setUpServerWorker(config) {
       const messageListener = (message) => {
         if (message?.type === 'ready' && message.suite === suiteName) {
           worker.off('message', messageListener);
+          worker.off('error', errorListener);
           resolve();
         }
       };
-      worker.on('message', messageListener);
-      worker.once('error', (error) => {
+      const errorListener = (error) => {
         worker.off('message', messageListener);
         reject(error);
-      });
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
       worker.send({ type: 'prepare', suite: suiteName });
     });
   }
@@ -84,14 +88,16 @@ function setUpClientWorker(config) {
       const messageListener = (message) => {
         if (message?.type === 'ready' && message.suite === suiteName) {
           worker.off('message', messageListener);
+          worker.off('error', errorListener);
           resolve();
         }
       };
-      worker.on('message', messageListener);
-      worker.once('error', (error) => {
+      const errorListener = (error) => {
         worker.off('message', messageListener);
         reject(error);
-      });
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
       worker.postMessage({ type: 'prepare', suite: suiteName });
     });
   }
@@ -101,14 +107,16 @@ function setUpClientWorker(config) {
       const messageListener = (message) => {
         if (message?.type === 'finished' && message.suite === suiteName && message.benchmark === benchmarkName) {
           worker.off('message', messageListener);
+          worker.off('error', errorListener);
           resolve(message.data);
         }
       };
-      worker.on('message', messageListener);
-      worker.once('error', (error) => {
+      const errorListener = (error) => {
         worker.off('message', messageListener);
         reject(error);
-      });
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
       worker.postMessage({ type: 'run', suite: suiteName, benchmark: benchmarkName });
     });
   }
@@ -118,14 +126,16 @@ function setUpClientWorker(config) {
       const messageListener = (message) => {
         if (message?.type === 'warming-finished' && message.suite === suiteName && message.benchmark === benchmarkName) {
           worker.off('message', messageListener);
+          worker.off('error', errorListener);
           resolve(message.data);
         }
       };
-      worker.on('message', messageListener);
-      worker.once('error', (error) => {
+      const errorListener = (error) => {
         worker.off('message', messageListener);
         reject(error);
-      });
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
       worker.postMessage({ type: 'warm', suite: suiteName, benchmark: benchmarkName });
     });
   }
