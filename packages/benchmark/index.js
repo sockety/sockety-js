@@ -293,9 +293,13 @@ async function handleController() {
     console.log(`${chalk.ansi256(30).bold('   Concurrency:')} ${config.clientWorkers} × ${config.concurrencyPerWorker} (${config.clientWorkers * config.concurrencyPerWorker})`);
     console.log(`${chalk.ansi256(30).bold('      Duration:')} ${formatNumber(config.duration)}ms`);
     console.log(`${chalk.ansi256(30).bold('  Warming time:')} ${formatNumber(config.warmingDuration)}ms`);
-    console.log(`${chalk.ansi256(30).bold(' Remote server:')} ${config.remoteHost || '-'}`);
+    if (config.remoteHost) {
+      console.log(`${chalk.ansi256(30).bold(' Remote server:')} ${config.remoteHost}`);
+    }
   }
-  console.log(`${chalk.ansi256(30).bold('          Port:')} ${config.port}`);
+  if (config.serverOnly || config.remoteHost) {
+    console.log(`${chalk.ansi256(30).bold('          Port:')} ${config.port}`);
+  }
 
   // Check if it's possible to increase threads priority
   if (!setPriority(-15)) {
