@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
-import { BufferedWritable } from './BufferedWritable';
+import { WritableBuffer } from './WritableBuffer';
 import { FileIndexBits, PacketResponseBits, PacketSizeBits, PacketStreamBits, PacketTypeBits } from './constants';
 import { createNumberBytesGetter } from './createNumberBytesGetter';
 import { createNumberBytesMapper } from './createNumberBytesMapper';
@@ -29,11 +29,11 @@ const getPacketSizeFlag = createNumberBytesMapper('packet size', {
 
 class StreamWriterInstruction {
   public next: StreamWriterInstruction | undefined;
-  public run: (buffer: BufferedWritable) => void;
+  public run: (buffer: WritableBuffer) => void;
   public sent: SendCallback | undefined;
   public written: WriteCallback | undefined;
 
-  public constructor(run: (buffer: BufferedWritable) => void, sent: SendCallback | undefined, written: WriteCallback | undefined) {
+  public constructor(run: (buffer: WritableBuffer) => void, sent: SendCallback | undefined, written: WriteCallback | undefined) {
     this.run = run;
     this.sent = sent;
     this.written = written;
@@ -46,19 +46,19 @@ export interface StreamWriterOptions {
   poolReservedOversizeBytes?: number; // default: 20
 }
 
-const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: BufferedWritable) => {
-  $.unsafeWriteUint8(PacketTypeBits.FileEnd | flags);
-  $.unsafeWriteUint(index, indexByteLength);
+const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.FileEnd | flags);
+  $.writeUint(index, indexByteLength);
 };
-const streamEndInstruction = ($: BufferedWritable) => $.unsafeWriteUint8(PacketTypeBits.StreamEnd);
-const heartbeatInstruction = ($: BufferedWritable) => $.unsafeWriteUint8(PacketTypeBits.Heartbeat);
-const goAwayInstruction = ($: BufferedWritable) => $.unsafeWriteUint8(PacketTypeBits.GoAway);
-const abortInstruction = ($: BufferedWritable) => $.unsafeWriteUint8(PacketTypeBits.GoAway);
-const uint8Instruction = (value: number) => ($: BufferedWritable) => $.unsafeWriteUint8(value);
-const uint16Instruction = (value: number) => ($: BufferedWritable) => $.unsafeWriteUint16(value);
-const uint24Instruction = (value: number) => ($: BufferedWritable) => $.unsafeWriteUint24(value);
-const uint32Instruction = (value: number) => ($: BufferedWritable) => $.unsafeWriteUint32(value);
-const uint48Instruction = (value: number) => ($: BufferedWritable) => $.unsafeWriteUint48(value);
+const streamEndInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.StreamEnd);
+const heartbeatInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.Heartbeat);
+const goAwayInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.GoAway);
+const abortInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.GoAway);
+const uint8Instruction = (value: number) => ($: WritableBuffer) => $.writeUint8(value);
+const uint16Instruction = (value: number) => ($: WritableBuffer) => $.writeUint16(value);
+const uint24Instruction = (value: number) => ($: WritableBuffer) => $.writeUint24(value);
+const uint32Instruction = (value: number) => ($: WritableBuffer) => $.writeUint32(value);
+const uint48Instruction = (value: number) => ($: WritableBuffer) => $.writeUint48(value);
 const uintInstruction = (value: number, byteLength: number) => {
   if (byteLength === 1) {
     return uint8Instruction(value);
@@ -74,28 +74,29 @@ const uintInstruction = (value: number, byteLength: number) => {
     throw new Error('Only 1-4 and 6 bytes are supported.');
   }
 };
-const uuidInstruction = (id: UUID) => ($: BufferedWritable) => $.unsafeWriteUuid(id);
-const utf8Instruction = (text: string) => ($: BufferedWritable) => $.unsafeWriteUtf8(text);
-const switchChannelLowInstruction = (channel: number) => ($: BufferedWritable) =>  $.unsafeWriteUint8(PacketTypeBits.ChannelSwitchLow | channel);
-const switchChannelHighInstruction = (channel: number) => ($: BufferedWritable) =>  {
-  $.unsafeWriteUint8(PacketTypeBits.ChannelSwitch | (channel >> 8));
-  $.unsafeWriteUint8(channel & 0x00ff);
+const uuidInstruction = (id: UUID) => ($: WritableBuffer) => $.writeUuid(id);
+const utf8InlineInstruction = (text: string) => ($: WritableBuffer) => $.writeUtf8Inline(text);
+const utf8WriteInstruction = (text: string) => ($: WritableBuffer) => $.writeUtf8(text);
+const switchChannelLowInstruction = (channel: number) => ($: WritableBuffer) =>  $.writeUint8(PacketTypeBits.ChannelSwitchLow | channel);
+const switchChannelHighInstruction = (channel: number) => ($: WritableBuffer) =>  {
+  $.writeUint8(PacketTypeBits.ChannelSwitch | (channel >> 8));
+  $.writeUint8(channel & 0x00ff);
 };
-const ackInstruction = (id: UUID) => ($: BufferedWritable) => {
-  $.unsafeWriteUint8(PacketTypeBits.Ack);
-  $.unsafeWriteUuid(id);
+const ackInstruction = (id: UUID) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.Ack);
+  $.writeUuid(id);
 };
-const revokeInstruction = (id: UUID) => ($: BufferedWritable) => {
-  $.unsafeWriteUint8(PacketTypeBits.Revoke);
-  $.unsafeWriteUuid(id);
+const revokeInstruction = (id: UUID) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.Revoke);
+  $.writeUuid(id);
 };
-const bufferInlineInstruction = (buffer: Buffer) => ($: BufferedWritable) => $.unsafeInlineBuffer(buffer);
-const bufferWriteInstruction = (buffer: Buffer) => ($: BufferedWritable) => $.unsafeWriteBuffer(buffer);
+const bufferInlineInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBufferInline(buffer);
+const bufferWriteInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBuffer(buffer);
 
-// TODO: It doesn't have to use BufferedWritable,
+// TODO: It doesn't have to use WritableBuffer,
 //       it could have a pre-allocated buffer without all additional stuff.
 export class StreamWriter {
-  readonly #buffer: BufferedWritable;
+  readonly #buffer: WritableBuffer;
   readonly #maxChannels: number;
 
   readonly #streamingChannels: boolean[]; // TODO: Consider Record<number, boolean>?
@@ -130,7 +131,7 @@ export class StreamWriter {
     // Build buffered writable (?)
     const poolSize = options.poolSize ?? 16_384;
     const reservedOversizeBytes = options.poolReservedOversizeBytes ?? 20;
-    this.#buffer = new BufferedWritable(writable, {
+    this.#buffer = new WritableBuffer(writable, {
       poolSize,
       reservedOversizeBytes,
     });
@@ -160,7 +161,7 @@ export class StreamWriter {
       if (this.#buffer.needsDrain) {
         this.#firstInstruction = instruction;
         this.#buffer.drained(this.#commit);
-        this.#buffer.sendImmediately();
+        this.#buffer.send();
         return;
       }
       instruction.run(this.#buffer);
@@ -173,7 +174,7 @@ export class StreamWriter {
     this.#instructionsMaxBytes = 0;
     this.#lastInstruction = undefined;
 
-    this.#buffer.sendImmediately(); // FIXME
+    this.#buffer.send(); // FIXME
   };
 
   #isPacket(type: number): boolean {
@@ -181,7 +182,7 @@ export class StreamWriter {
   }
 
   // TODO: Split it when it's over some size
-  #instruction(instruction: (buffer: BufferedWritable) => void, maxByteLength: number, sent?: SendCallback, written?: WriteCallback): void {
+  #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#instructionsCount++;
     this.#instructionsMaxBytes += maxByteLength;
     if (this.#currentPacket !== null) {
@@ -253,8 +254,8 @@ export class StreamWriter {
     this.#instructionsMaxBytes -= 4 - bytes;
     // TODO: Consider function builders
     this.#instructionsPacketPlaceholder!.run = ($) => {
-      $.unsafeWriteUint8(packet | flags);
-      $.unsafeWriteUint(packetBytes, bytes);
+      $.writeUint8(packet | flags);
+      $.writeUint(packetBytes, bytes);
     };
     this.#currentPacket = null;
 
@@ -396,7 +397,13 @@ export class StreamWriter {
   }
 
   public writeUtf8(text: string, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(utf8Instruction(text), Buffer.byteLength(text), sent, written);
+    const length = text.length;
+    if (length > 60_000) {
+      this.#instruction(utf8WriteInstruction(text), 0, sent, written);
+      this.#currentPacketBytes += length; // FIXME: Hacky way
+    } else {
+      this.#instruction(utf8InlineInstruction(text), Buffer.byteLength(text), sent, written);
+    }
   }
 
   public writeBuffer(buffer: Buffer, sent?: SendCallback, written?: WriteCallback): void {

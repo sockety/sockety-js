@@ -2,10 +2,7 @@ import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
 import { DrainListener } from './DrainListener';
 
-export interface BufferedWritableOptions {
-  poolSize?: number;
-  noZeroFillUtilizedBuffer?: boolean;
-  reservedOversizeBytes?: number;
+export interface WritableBufferOptions {
 }
 
 type Callback = (error: Error | null | undefined) => void;
@@ -50,12 +47,9 @@ class AggregatedCallback {
 // TODO: Handle backpressure?
 // TODO: Consider boolean for all writes
 // TODO: Consider splitting for smaller buffers, so callbacks will be run more often on worse transfer.
-export class BufferedWritable {
+export class WritableBuffer {
   readonly #writable: Writable;
   readonly #drain: DrainListener;
-  readonly #zeroFillUtilizedBuffer: boolean;
-  readonly #reservedOversizeBytes: number;
-  readonly #poolSize: number;
 
   #corked = false;
 
@@ -68,22 +62,9 @@ export class BufferedWritable {
   #prevCallback = AggregatedCallback.done(null);
   #callback = new AggregatedCallback();
 
-  // This may be used, to detect if the buffer length should be notified or not
-  // TODO: Consider options
-  readonly #inlineBufferSize: number;
-  readonly #inlineUtf8Size: number;
-
-  public constructor(writable: Writable, options: BufferedWritableOptions = {}) {
+  public constructor(writable: Writable, options: WritableBufferOptions = {}) {
     this.#writable = writable;
     this.#drain = new DrainListener(this.#writable);
-    this.#zeroFillUtilizedBuffer = !options.noZeroFillUtilizedBuffer;
-    this.#reservedOversizeBytes = options.reservedOversizeBytes ?? 20;
-    this.#poolSize = options.poolSize ?? 16_384;
-    this.#pool = Buffer.allocUnsafeSlow(this.#poolSize);
-
-    // TODO: Consider nicer way
-    this.#inlineBufferSize = Math.min(this.#poolSize / 2, 64);
-    this.#inlineUtf8Size = Math.min(this.#poolSize, 1000);
   }
 
   public get needsDrain(): boolean {
@@ -143,21 +124,11 @@ export class BufferedWritable {
       return;
     }
 
-    // Clear sensitive data when it is no longer needed
-    const callback = this.#zeroFillUtilizedBuffer
-      ? () => {
-        // Do not need to clear, when there is new buffer pool - it should be GCed anyway
-        // TODO: Confirm that
-        if (this.#pool === pool) {
-          pool.fill(0, start, end);
-        }
-      }
-      : undefined;
-    this.#write(pool.subarray(start, end), callback);
+    this.#write(pool.subarray(start, end));
     this.#poolStart = this.#poolOffset;
   }
 
-  public sendImmediately() {
+  public send(): void {
     this.#commit();
     this.#uncork();
   }
@@ -173,79 +144,41 @@ export class BufferedWritable {
       return;
     }
 
-    // Decide what size should the new pool have - either default, or oversize if not enough
-    const poolSize = length > this.#poolSize ? length + this.#reservedOversizeBytes : this.#poolSize;
-
     // Apply current data
     this.#commit();
 
     // Regenerate pool
-    this.#pool = Buffer.allocUnsafeSlow(poolSize);
-    this.#poolCurrentSize = poolSize;
+    this.#pool = Buffer.allocUnsafeSlow(length);
+    this.#poolCurrentSize = length;
     this.#poolStart = 0;
     this.#poolOffset = 0;
   }
 
-  public shouldInlineBuffer(bufferLength: number): boolean {
-    return false;
-    // return bufferLength <= this.#inlineBufferSize;
-  }
-
-  public shouldInlineUtf8(byteLength: number): boolean {
-    return true;
-    // TODO:
-    // return byteLength < this.#inlineUtf8Size;
-  }
-
-  public write(data: Buffer, callback?: Callback): boolean {
-    const length = data.length;
-    if (!this.shouldInlineBuffer(length)) {
-      this.#commit();
-      return this.#write(data, callback);
-    }
-    this.arrangeSize(length);
-    this.#poolOffset += data.copy(this.#pool, this.#poolOffset);
-    this.#poolUpdated();
-    this.addCallback(callback);
-    // TODO: Consider writableDrain instead
-    return true;
-  }
-
-  public unsafeInlineBuffer(data: Buffer, callback?: Callback): void {
+  public writeBufferInline(data: Buffer, callback?: Callback): void {
     this.#poolOffset += data.copy(this.#pool, this.#poolOffset);
     this.#poolUpdated();
     this.addCallback(callback);
   }
 
-  public unsafeWriteBuffer(data: Buffer, callback?: Callback): void {
+  public writeBuffer(data: Buffer, callback?: Callback): void {
     this.#commit();
     this.#write(data, callback);
   }
 
-  public unsafeWriteUint8(uint8: number, callback?: Callback): void {
+  public writeUint8(uint8: number, callback?: Callback): void {
     this.#pool[this.#poolOffset++] = uint8;
     this.#poolUpdated();
     this.addCallback(callback);
   }
 
-  public writeUint8(uint8: number, callback?: Callback): void {
-    this.arrangeSize(1);
-    this.unsafeWriteUint8(uint8, callback);
-  }
-
-  public unsafeWriteUint16(uint16: number, callback?: Callback): void {
+  public writeUint16(uint16: number, callback?: Callback): void {
     this.#pool[this.#poolOffset++] = uint16 & 0x00ff;
     this.#pool[this.#poolOffset++] = uint16 >> 8;
     this.#poolUpdated();
     this.addCallback(callback);
   }
 
-  public writeUint16(uint16: number, callback?: Callback): void {
-    this.arrangeSize(2);
-    this.unsafeWriteUint16(uint16, callback);
-  }
-
-  public unsafeWriteUint24(uint24: number, callback?: Callback): void {
+  public writeUint24(uint24: number, callback?: Callback): void {
     this.#pool[this.#poolOffset++] = uint24 & 0x0000ff;
     this.#pool[this.#poolOffset++] = uint24 >> 8;
     this.#pool[this.#poolOffset++] = uint24 >> 16;
@@ -253,12 +186,7 @@ export class BufferedWritable {
     this.addCallback(callback);
   }
 
-  public writeUint24(uint24: number, callback?: Callback): void {
-    this.arrangeSize(3);
-    this.unsafeWriteUint24(uint24, callback);
-  }
-
-  public unsafeWriteUint32(uint32: number, callback?: Callback): void {
+  public writeUint32(uint32: number, callback?: Callback): void {
     this.#pool[this.#poolOffset++] = uint32 & 0x000000ff;
     this.#pool[this.#poolOffset++] = uint32 >> 8;
     this.#pool[this.#poolOffset++] = uint32 >> 16;
@@ -267,37 +195,11 @@ export class BufferedWritable {
     this.addCallback(callback);
   }
 
-  public writeUint32(uint32: number, callback?: Callback): void {
-    this.arrangeSize(4);
-    this.unsafeWriteUint32(uint32, callback);
-  }
-
-  public unsafeWriteUint48(uint48: number, callback?: Callback): void {
+  public writeUint48(uint48: number, callback?: Callback): void {
     this.#pool.writeUintLE(uint48, this.#poolOffset, 6);
     this.#poolOffset += 6;
     this.#poolUpdated();
     this.addCallback(callback);
-  }
-
-  public writeUint48(uint48: number, callback?: Callback): void {
-    this.arrangeSize(6);
-    this.unsafeWriteUint48(uint48, callback);
-  }
-
-  public unsafeWriteUint(uint: number, byteLength: number, callback?: Callback): void {
-    if (byteLength === 1) {
-      this.unsafeWriteUint8(uint, callback);
-    } else if (byteLength === 2) {
-      this.unsafeWriteUint16(uint, callback);
-    } else if (byteLength === 3) {
-      this.unsafeWriteUint24(uint, callback);
-    } else if (byteLength === 4) {
-      this.unsafeWriteUint32(uint, callback);
-    } else if (byteLength === 6) {
-      this.unsafeWriteUint48(uint, callback);
-    } else {
-      throw new Error('Only 1-4 and 6 bytes are supported.');
-    }
   }
 
   public writeUint(uint: number, byteLength: number, callback?: Callback): void {
@@ -316,7 +218,7 @@ export class BufferedWritable {
     }
   }
 
-  public unsafeWriteUtf8(data: string, callback?: Callback): void {
+  public writeUtf8Inline(data: string, callback?: Callback): void {
     if (data.length === 0) {
       this.addCallback(callback);
       return;
@@ -326,28 +228,15 @@ export class BufferedWritable {
     this.addCallback(callback);
   }
 
-  public writeUtf8(data: string, callback?: Callback): boolean {
-    const length = Buffer.byteLength(data);
-    if (!this.shouldInlineUtf8(length)) {
-      this.#commit();
-      this.#empty = false;
-      return this.#write(data, callback);
-    }
-    this.arrangeSize(length);
-    this.unsafeWriteUtf8(data, callback);
-    // TODO: Consider writableDrain instead
-    return true;
+  public writeUtf8(data: string, callback?: Callback): void {
+    this.#commit();
+    this.#write(data, callback);
   }
 
-  public unsafeWriteUuid(uuid: UUID, callback?: Callback): void {
+  public writeUuid(uuid: UUID, callback?: Callback): void {
     uuid.write(this.#pool, this.#poolOffset);
     this.#poolOffset += 16;
     this.#poolUpdated();
     this.addCallback(callback);
-  }
-
-  public writeUuid(uuid: UUID, callback?: Callback): void {
-    this.arrangeSize(16);
-    this.unsafeWriteUuid(uuid, callback);
   }
 }
