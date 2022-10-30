@@ -182,7 +182,7 @@ export function createMessage<T extends boolean>({
     // console.log('TOTAL', messageLength);
 
     // TODO: Think about "Abort" on "Revoke"
-    writer.reserveChannel((channelId, _release) => writer.drained(() => {
+    writer.reserveChannel((channelId, _release) => {
       // State
       let message: any;
       let callbackCalled = false;
@@ -329,6 +329,6 @@ export function createMessage<T extends boolean>({
           });
         }
       }
-    }));
+    });
   });
 }
