@@ -11,6 +11,8 @@ import { StreamWriter } from './StreamWriter';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
+const noop = () => {};
+
 // TODO: Add event types
 // TODO: Extract reading and messages out of socket?
 export class Socket extends EventEmitter {
@@ -40,23 +42,17 @@ export class Socket extends EventEmitter {
   }
 
   public pass(producer: ContentProducer): Promise<void> {
-    return new Promise<void>((resolve, reject) => producer(this.#writer, false, (error) => {
+    return new Promise<void>((resolve, reject) => producer(this.#writer, (error) => {
       if (error == null) {
         resolve();
       } else {
         reject(error);
       }
-    }));
+    }, noop, false));
   }
 
-  public send<T extends Request<any>>(producer: ContentProducer<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => producer(this.#writer, true, (error, message) => {
-      if (error == null) {
-        resolve(message!);
-      } else {
-        reject(error);
-      }
-    }));
+  public send<T extends Request<any>>(producer: ContentProducer<T>): T {
+    return producer(this.#writer, noop, noop, true);
   }
 
   public async close(force: boolean): Promise<void> {

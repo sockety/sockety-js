@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
 import { generateUuid } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from './ContentProducer';
-import { Request } from './Request';
+import { Request, REQUEST_DONE } from './Request';
 import {
   FileIndexBits,
   FileNameSizeBits,
@@ -11,9 +11,8 @@ import {
   MessageDataSizeBits,
   MessageFilesCountBits,
   MessageFilesSizeBits,
-  PacketTypeBits
 } from './constants';
-import { RequestStream } from './RequestStream';
+import { ATTACH_STREAM, RequestStream } from './RequestStream';
 import { createNumberBytesGetter } from './createNumberBytesGetter';
 import { createNumberBytesMapper } from './createNumberBytesMapper';
 
@@ -68,14 +67,6 @@ const getFileHeaderSizeFlag = createNumberBytesMapper('file size', {
   2: FileSizeBits.Uint16,
   3: FileSizeBits.Uint24,
   6: FileSizeBits.Uint48,
-});
-
-const getFileHeaderIndexBytes = createNumberBytesGetter('file index', [ 1, 2, 3, 6 ]);
-const getFileHeaderIndexFlag = createNumberBytesMapper('file index', {
-  // TODO: Consider 0 -> None, as there is empty slot anyway?
-  1: FileIndexBits.Uint8,
-  2: FileIndexBits.Uint16,
-  3: FileIndexBits.Uint24,
 });
 
 // TODO: Extract type
@@ -172,40 +163,35 @@ export function createMessage<T extends boolean>({
 
   // Build message producer
   // TODO: Use second callback as *Complete
-  return createContentProducer((writer, expectsResponse, _callback) => {
-    // console.log('ABL', actionBufferLength, actionBuffer);
-    // console.log('PSL', dataSizeLength, dataSizeBuffer);
-    // console.log('PL', dataLength, data);
-    // console.log('FC', filesCountLength);
-    // console.log('TFS', totalFilesSizeLength, filesSpecBuffer);
-    // console.log('FHS', filesHeaderSize, filesHeaderBuffer);
-    // console.log('TOTAL', messageLength);
+  return createContentProducer((writer, sent, written, expectsResponse) => {
+    const id = generateUuid();
+    const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
+    const request = new Request(id, stream);
 
     // TODO: Think about "Abort" on "Revoke"
     writer.reserveChannel((channelId, _release) => {
       // State
-      let message: any;
       let callbackCalled = false;
       let filesComplete = filesCount === 0;
-      let filesSent = filesCount === 0;
+      let filesSent = filesComplete;
       let streamComplete = !hasStream || !expectsResponse;
+      let streamSent = streamComplete;
       const release = () => {
         if (filesComplete && streamComplete) {
           _release();
+          written();
         }
       };
-      const callback = (error: Error | null | undefined, message?: any) => {
+      const callback = (error: Error | null | undefined) => {
         if (callbackCalled) {
           return;
         }
-        if (error || (filesSent && filesSent)) {
+        if (error || (filesSent && streamSent)) {
           callbackCalled = true;
-          _callback(error, message);
+          sent(error);
+          request[REQUEST_DONE](error);
         }
       };
-
-      // Compute
-      const id = generateUuid();
 
       // Write message header
       writer.channel(channelId);
@@ -237,6 +223,17 @@ export function createMessage<T extends boolean>({
         writer.writeBuffer(data!);
       }
 
+      // Register stream
+      if (stream) {
+        stream[ATTACH_STREAM](channelId, (error) => {
+          streamSent = true;
+          callback(error);
+        }, () => {
+          streamComplete = true;
+          release();
+        });
+      }
+
       // Create outgoing message
       if (hasStream) {
         if (expectsResponse) {
@@ -244,13 +241,6 @@ export function createMessage<T extends boolean>({
             if (error != null) {
               callback(error);
               release();
-            } else {
-              const stream = new RequestStream(channelId, writer, () => {
-                streamComplete = true;
-                release();
-              });
-              message = new Request<true>(id, stream);
-              callback(null, message as any);
             }
           });
         } else {
@@ -261,9 +251,6 @@ export function createMessage<T extends boolean>({
         writer.addCallback((error) => {
           if (error) {
             callback(error);
-          } else if (expectsResponse) {
-            message = new Request<false>(id, null);
-            callback(null, message as any);
           } else {
             callback(null);
           }
@@ -297,7 +284,7 @@ export function createMessage<T extends boolean>({
             release();
             writer.addCallback((error) => {
               filesSent = true;
-              callback(error, message);
+              callback(error);
             });
           }
         } else {
@@ -323,12 +310,14 @@ export function createMessage<T extends boolean>({
               release();
               writer.addCallback((error) => {
                 filesSent = true;
-                callback(error, message);
+                callback(error);
               });
             }
           });
         }
       }
     });
+
+    return request;
   });
 }

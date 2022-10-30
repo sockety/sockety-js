@@ -1,36 +1,64 @@
 import { Writable } from 'node:stream';
 import { StreamWriter } from './StreamWriter';
 
-export class RequestStream extends Writable {
-  readonly #channelId: number;
-  readonly #release: () => void;
-  readonly #writer: StreamWriter;
+type SendCallback = (error: Error | null | undefined) => void;
+type WriteCallback = () => void;
 
-  public constructor(channelId: number, writer: StreamWriter, release: () => void) {
+export const ATTACH_STREAM = Symbol();
+
+export class RequestStream extends Writable {
+  readonly #writer: StreamWriter;
+  #queued: (() => void)[] = [];
+  #written!: WriteCallback;
+  #sent!: SendCallback;
+  #channel!: number;
+  #attached = false;
+
+  public constructor(writer: StreamWriter) {
     super({ objectMode: true });
-    this.#channelId = channelId;
     this.#writer = writer;
-    this.#release = release;
   }
 
-  public _write(chunk: any, encoding: BufferEncoding, callback: (error?: (Error | null)) => void): void {
-    if (chunk.length === 0) {
-      callback(null);
-      return;
-    }
-
-    this.#writer.channel(this.#channelId);
+  #write(chunk: Buffer | string, sent: SendCallback): void {
+    this.#writer.channel(this.#channel);
     this.#writer.stream();
     if (typeof chunk === 'string') {
-      this.#writer.writeUtf8(chunk, callback);
+      this.#writer.writeUtf8(chunk, sent);
     } else {
-      this.#writer.writeBuffer(chunk, callback);
+      this.#writer.writeBuffer(chunk, sent);
     }
   }
 
-  public _final(callback: (error?: (Error | null)) => void) {
-    this.#writer.channel(this.#channelId);
-    this.#writer.endStream(callback);
-    this.#release();
+  #end(callback: SendCallback): void {
+    this.#writer.channel(this.#channel);
+    this.#writer.endStream((error) => {
+      this.#sent(error);
+      callback(error);
+    }, this.#written);
+  }
+
+  public _write(chunk: any, encoding: BufferEncoding, sent: SendCallback): void {
+    if (this.#attached) {
+      this.#write(chunk, sent);
+    } else {
+      this.#queued.push(() => this.#write(chunk, sent));
+    }
+  }
+
+  public _final(sent: SendCallback): void {
+    if (this.#attached) {
+      this.#end(sent);
+    } else {
+      this.#queued.push(() => this.#end(sent));
+    }
+  }
+
+  public [ATTACH_STREAM](channel: number, sent: SendCallback, written: WriteCallback): void {
+    this.#written = written;
+    this.#sent = sent;
+    this.#attached = true;
+    this.#channel = channel;
+    this.#queued.forEach((op) => op());
+    this.#queued = [];
   }
 }

@@ -23,7 +23,7 @@ function common() {
   {
     const message = createMessage({ action: 'fast' }, false);
     benchmark('ACKed message', async ({ getClient, bucket }) => {
-      const outgoing = await getClient().send(message);
+      const outgoing = getClient().send(message);
       await new Promise((resolve) => {
         const current = bucket.get(outgoing.id);
         if (current) {
@@ -38,7 +38,7 @@ function common() {
   {
     const message = createMessage({ action: 'echo' }, false);
     benchmark('Echo message', async ({ getClient, bucket }) => {
-      const outgoing = await getClient().send(message);
+      const outgoing = getClient().send(message);
       await new Promise((resolve) => {
         const current = bucket.get(outgoing.id);
         if (current) {
