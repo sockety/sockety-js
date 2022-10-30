@@ -8,7 +8,7 @@ const { Socket } = require('../../../core/src/Socket');
 const { createContentProducer } = require('../../../core/src/ContentProducer');
 const { MessageDataSizeBits, MessageFilesSizeBits, MessageFilesCountBits, MessageActionSizeBits } = require('../../../core/src/constants');
 const { certificate, privateKey } = require('../../tls');
-const { mb1, mb4 } = require('../../files');
+const { kb512, mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 const { makePool } = require('../makePool');
 
@@ -58,6 +58,16 @@ function common() {
   {
     benchmark('1MB file from FS', async ({ getClient }) => {
       const message = createMessage({ action: 'ping', files: [ { name: 'file-1.txt', size: mb1.content.length, stream: mb1.stream() } ] }, false);
+      return getClient().pass(message);
+    });
+  }
+
+  {
+    benchmark('2x 0.5MB file from FS', async ({ getClient }) => {
+      const message = createMessage({ action: 'ping', files: [
+        { name: 'file-1.txt', size: kb512.content.length, stream: kb512.stream() },
+        { name: 'file-2.txt', size: kb512.content.length, stream: kb512.stream() },
+      ] }, false);
       return getClient().pass(message);
     });
   }

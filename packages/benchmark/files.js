@@ -35,5 +35,6 @@ for (const event of [ 'SIGINT', 'SIGTERM', 'SIGUSR1', 'SIGUSR2' ]) {
   process.on(event, () => process.exit(2));
 }
 
+exports.kb512 = createFile('512kb', 512 * 1024);
 exports.mb1 = createFile('1mb', 1024 * 1024);
 exports.mb4 = createFile('4mb', 4 * 1024 * 1024);
