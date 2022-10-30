@@ -2,6 +2,7 @@ const cluster = require('node:cluster');
 const os = require('node:os');
 const { join } = require('node:path');
 const { Worker } = require('node:worker_threads');
+const { fork } = require('node:child_process');
 
 function setPriority(priority) {
   try {
@@ -13,10 +14,14 @@ function setPriority(priority) {
 }
 
 function setUpServerPrimary(config) {
-  const worker = new Worker(join(__dirname, '..', 'index.js'), { workerData: { type: 'server', config } });
+  const worker = fork(join(__dirname, '..', 'index.js'), [
+    process.argv,
+    '--fork',
+    JSON.stringify({ type: 'server', config }),
+  ]);
 
   function kill() {
-    return worker.terminate();
+    return worker.kill();
   }
 
   function prepare(suiteName) {
@@ -34,13 +39,32 @@ function setUpServerPrimary(config) {
       };
       worker.on('message', messageListener);
       worker.once('error', errorListener);
-      worker.postMessage({ type: 'prepare', suite: suiteName });
+      worker.send({ type: 'prepare', suite: suiteName });
+    });
+  }
+
+  function cpu() {
+    return new Promise((resolve, reject) => {
+      const messageListener = (message) => {
+        if (message?.type === 'cpu') {
+          worker.off('message', messageListener);
+          worker.off('error', errorListener);
+          resolve(message.cpu);
+        }
+      };
+      const errorListener = (error) => {
+        worker.off('message', messageListener);
+        reject(error);
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
+      worker.send({ type: 'cpu' });
     });
   }
 
   return new Promise((resolve, reject) => {
     worker.once('error', reject);
-    worker.once('message', () => resolve({ prepare, kill }));
+    worker.once('message', () => resolve({ prepare, kill, cpu }));
   });
 }
 
@@ -70,9 +94,28 @@ function setUpServerWorker(config) {
     });
   }
 
+  function cpu() {
+    return new Promise((resolve, reject) => {
+      const messageListener = (message) => {
+        if (message?.type === 'cpu') {
+          worker.off('message', messageListener);
+          worker.off('error', errorListener);
+          resolve(message.cpu);
+        }
+      };
+      const errorListener = (error) => {
+        worker.off('message', messageListener);
+        reject(error);
+      };
+      worker.on('message', messageListener);
+      worker.once('error', errorListener);
+      worker.send({ type: 'cpu' });
+    });
+  }
+
   return new Promise((resolve, reject) => {
     worker.once('error', reject);
-    worker.once('message', () => resolve({ prepare, kill }));
+    worker.once('message', () => resolve({ prepare, kill, cpu }));
   });
 }
 

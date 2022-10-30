@@ -11,6 +11,17 @@ const { runBenchmark, aggregateBenchmarks, printHeader, printToast, printResult,
 const { getSuite, registeredSuites } = require('./src/declare');
 const { setUpClientWorker, setUpServerWorker, setUpServerPrimary, setPriority } = require('./src/worker');
 
+// Extract fork data
+
+const argv = Array.from(process.argv).slice();
+const forkData = process.argv[process.argv.length - 2] === '--fork'
+  ? JSON.parse(process.argv[process.argv.length - 1])
+  : null;
+if (forkData) {
+  process.argv.pop();
+  process.argv.pop();
+}
+
 // Set up configuration
 
 const defaultConfig = {
@@ -22,7 +33,7 @@ const defaultConfig = {
   warmingDuration: 0,
   remoteHost: null,
 };
-const config = JSON.parse(process.env.SERVER_WORKER_CONFIG || 'null') || workerData?.config || defaultConfig;
+const config = JSON.parse(process.env.SERVER_WORKER_CONFIG || 'null') || forkData?.config || workerData?.config || defaultConfig;
 
 // Load benchmarks
 
@@ -38,13 +49,18 @@ async function handleServerPrimary() {
   for (let i = 0; i < config.serverWorkers; i++) {
     workers.push(await setUpServerWorker(config));
   }
-  parentPort.on('message', async (message) => {
+  process.on('message', async (message) => {
     if (message?.type === 'prepare') {
       await Promise.all(workers.map((worker) => worker.prepare(message.suite)));
-      parentPort.postMessage({ type: 'ready', suite: message.suite });
+      process.send({ type: 'ready', suite: message.suite });
+    } else if (message?.type === 'cpu') {
+      const cpu = await Promise.all(workers.map((x) => x.cpu()));
+      const cpuUser = cpu.reduce((acc, x) => acc + x.user, 0);
+      const cpuSystem = cpu.reduce((acc, x) => acc + x.system, 0);
+      process.send({ type: 'cpu', cpu: { user: cpuUser, system: cpuSystem } });
     }
   });
-  parentPort.postMessage('started instance');
+  process.send('started instance');
 }
 
 async function handleServerWorker() {
@@ -54,6 +70,8 @@ async function handleServerWorker() {
       const suite = getSuite(message.suite, config);
       await suite.serverSetup(suite.context);
       process.send({ type: 'ready', suite: message.suite });
+    } else if (message?.type === 'cpu') {
+      process.send({ type: 'cpu', cpu: process.cpuUsage() });
     }
   });
   cluster.worker.send('started instance');
@@ -161,9 +179,25 @@ async function runSuite(name) {
     }, 25);
 
     try {
+      const startTime = Date.now();
+      const startServerCpu = server ? await server.cpu() : null;
+      const startCpu = process.cpuUsage();
       const result = aggregateBenchmarks(await Promise.all(clients.map((client) => client.run(suite.name, benchmark.name))));
+      const endCpu = process.cpuUsage(startCpu);
+      const endTime = Date.now();
+      const endServerCpu = server ? await server.cpu() : null;
+      const cpuClientsUser = endCpu.user / (endTime - startTime) / 1000;
+      const cpuClientsSystem = endCpu.system / (endTime - startTime) / 1000;
+      const cpuServersUser = server ? (endServerCpu.user - startServerCpu.user) / (endTime - startTime) / 1000 : null;
+      const cpuServersSystem = server ? (endServerCpu.system - startServerCpu.system) / (endTime - startTime) / 1000 : null;
       clearInterval(interval);
-      printResult(benchmark.name, result, config);
+      printResult(benchmark.name, {
+        ...result,
+        cpu: {
+          clients: { user: cpuClientsUser, system: cpuClientsSystem },
+          servers: server ? { user: cpuServersUser, system: cpuServersSystem } : null,
+        },
+      }, config);
     } catch (error) {
       clearInterval(interval);
       throw error;
@@ -284,6 +318,8 @@ async function handleController() {
   }
 
   // Print configuration
+  console.log(`${chalk.ansi256(30).bold('  Node version:')} ${process.versions.node}`);
+  console.log(`${chalk.ansi256(30).bold('    V8 version:')} ${process.versions.v8}`);
   if (!config.remoteHost) {
     console.log(`${chalk.ansi256(30).bold('Server workers:')} ${config.serverWorkers}`);
   }
@@ -333,9 +369,9 @@ const liftError = (fn) => Promise.resolve().then(fn).catch((error) => setTimeout
 
 if (cluster.worker) {
   liftError(handleServerWorker);
-} else if (cluster.isPrimary && isMainThread) {
+} else if (cluster.isPrimary && !forkData && !workerData) {
   liftError(handleController);
-} else if (workerData?.type === 'server') {
+} else if (forkData?.type === 'server') {
   liftError(handleServerPrimary);
 } else {
   liftError(handleClientWorker);

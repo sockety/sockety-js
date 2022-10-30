@@ -150,6 +150,8 @@ function printHeader(name) {
         'min'.padStart(13) +
         'avg'.padStart(13) +
         'max'.padStart(13) +
+        'CPU/client u/s/t'.padStart(19) +
+        'CPU/server u/s/t'.padStart(19) +
         chalk.ansi256(30).bgAnsi256(30)('.')
       )) + '\n'
   );
@@ -164,8 +166,19 @@ function printResult(name, result, config) {
   const avg = `${formatNumber(result.avg * 1e3, 2)}ms`;
   const min = `${formatNumber(result.min * 1e3, 2)}ms`;
   const max = `${formatNumber(result.max * 1e3, 2)}ms`;
+
+  const formatCpu = (value, workers) => (value == null ? 'n/a' : `${formatNumber(100 * value / workers)}%`);
+  const formatCpuGroup = (user, system, total) => ` ${user.padStart(4)} ${system.padStart(4)} ${total.padStart(4)}`;
+  const cpuClientTotal = formatCpu(result.cpu.clients.user + result.cpu.clients.system, config.clientWorkers);
+  const cpuClientUser = formatCpu(result.cpu.clients.user, config.clientWorkers);
+  const cpuClientSystem = formatCpu(result.cpu.clients.system, config.clientWorkers);
+  const cpuClient = formatCpuGroup(cpuClientUser, cpuClientSystem, cpuClientTotal);
+  const cpuServerTotal = formatCpu(result.cpu.servers.user + result.cpu.servers.system, config.serverWorkers);
+  const cpuServerUser = formatCpu(result.cpu.servers.user, config.serverWorkers);
+  const cpuServerSystem = formatCpu(result.cpu.servers.system, config.serverWorkers);
+  const cpuServer = formatCpuGroup(cpuServerUser, cpuServerSystem, cpuServerTotal);
   const state = result.errors === 0 ? chalk.green : result.success > 0.9 ? chalk.yellow : chalk.red;
-  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}\n`.padEnd(60, ' '));
+  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}${cpuClient.padStart(19)}${cpuServer.padStart(19)}\n`.padEnd(60, ' '));
   if (result.errors) {
     process.stdout.write(chalk.red.bold(`  Failed ${result.errors} times`) + '\n');
   }
