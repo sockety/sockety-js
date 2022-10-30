@@ -1,6 +1,7 @@
 const http2 = require('node:http2');
 const stream = require('node:stream');
 const { certificate, privateKey } = require('../../tls');
+const { mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 const { makePool } = require('../makePool');
 
@@ -29,20 +30,32 @@ function common() {
     req.end();
   }));
 
-  const mb1 = Buffer.allocUnsafe(1024 * 1024);
   benchmark('1MB data', async ({ getClient }) => new Promise((resolve, reject) => {
-    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb1.length });
+    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb1.content.length });
     req.on('finish', resolve);
     req.on('error', reject);
-    stream.Readable.from(mb1).pipe(req);
+    stream.Readable.from(mb1.content).pipe(req);
   }));
 
-  const mb4 = Buffer.allocUnsafe(4 * 1024 * 1024);
-  benchmark('4MB data', async ({ getClient }) => new Promise((resolve, reject) => {
-    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb4.length });
+  benchmark('1MB data from FS', async ({ getClient }) => new Promise((resolve, reject) => {
+    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb1.content.length });
     req.on('finish', resolve);
     req.on('error', reject);
-    stream.Readable.from(mb4).pipe(req);
+    mb1.stream().pipe(req);
+  }));
+
+  benchmark('4MB data', async ({ getClient }) => new Promise((resolve, reject) => {
+    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb4.content.length });
+    req.on('finish', resolve);
+    req.on('error', reject);
+    stream.Readable.from(mb4.content).pipe(req);
+  }));
+
+  benchmark('4MB data from FS', async ({ getClient }) => new Promise((resolve, reject) => {
+    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb4.content.length });
+    req.on('finish', resolve);
+    req.on('error', reject);
+    mb4.stream().pipe(req);
   }));
 }
 

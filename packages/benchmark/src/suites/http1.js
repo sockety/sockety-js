@@ -2,6 +2,7 @@ const http = require('node:http');
 const https = require('node:https');
 const { Readable } = require('node:stream');
 const { certificate, privateKey } = require('../../tls');
+const { mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 
 function common() {
@@ -9,11 +10,13 @@ function common() {
 
   benchmark('Request / short response', async ({ call }) => call('/ping'));
 
-  const mb1 = Buffer.allocUnsafe(1024 * 1024);
-  benchmark('1MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.length } }, Readable.from(mb1)));
+  benchmark('1MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, Readable.from(mb1.content)));
 
-  const mb4 = Buffer.allocUnsafe(4 * 1024 * 1024);
-  benchmark('4MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.length } }, Readable.from(mb4)));
+  benchmark('1MB data from FS', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, mb1.stream()));
+
+  benchmark('4MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.content.length } }, Readable.from(mb4.content)));
+
+  benchmark('4MB data from FS', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.content.length } }, mb4.stream()));
 }
 
 async function requestListener(req, res) {

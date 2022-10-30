@@ -15,6 +15,7 @@ packages/**/*.d.ts
 packages/**/*.map
 tmp-cert.pem
 tmp-key.pem
+tmp-*.bin
 
 # Temporary data
 *.log

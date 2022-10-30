@@ -8,6 +8,7 @@ const { Socket } = require('../../../core/src/Socket');
 const { createContentProducer } = require('../../../core/src/ContentProducer');
 const { MessageDataSizeBits, MessageFilesSizeBits, MessageFilesCountBits, MessageActionSizeBits } = require('../../../core/src/constants');
 const { certificate, privateKey } = require('../../tls');
+const { mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 const { makePool } = require('../makePool');
 
@@ -50,17 +51,24 @@ function common() {
   }
 
   {
-    const message = createMessage({ action: 'ping', files: [ { name: 'file-1.txt', buffer: Buffer.allocUnsafe(1024 * 1024) } ] }, false);
+    const message = createMessage({ action: 'ping', files: [ { name: 'file-1.txt', buffer: mb1.content } ] }, false);
     benchmark('1MB file', async ({ getClient }) => getClient().pass(message));
   }
 
   {
-    const message = createMessage({ action: 'ping', data: Buffer.allocUnsafe(1024 * 1024) }, false);
+    benchmark('1MB file from FS', async ({ getClient }) => {
+      const message = createMessage({ action: 'ping', files: [ { name: 'file-1.txt', size: mb1.content.length, stream: mb1.stream() } ] }, false);
+      return getClient().pass(message);
+    });
+  }
+
+  {
+    const message = createMessage({ action: 'ping', data: mb1.content }, false);
     benchmark('1MB data', async ({ getClient }) => getClient().pass(message));
   }
 
   {
-    const message = createMessage({ action: 'ping', data: Buffer.allocUnsafe(4 * 1024 * 1024) }, false);
+    const message = createMessage({ action: 'ping', data: mb4.content }, false);
     benchmark('4MB data', async ({ getClient }) => getClient().pass(message));
   }
 }
