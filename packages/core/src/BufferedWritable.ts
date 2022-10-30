@@ -49,6 +49,7 @@ class AggregatedCallback {
 
 // TODO: Handle backpressure?
 // TODO: Consider boolean for all writes
+// TODO: Consider splitting for smaller buffers, so callbacks will be run more often on worse transfer.
 export class BufferedWritable {
   readonly #writable: Writable;
   readonly #drain: DrainListener;
@@ -57,7 +58,6 @@ export class BufferedWritable {
   readonly #poolSize: number;
 
   #corked = false;
-  #scheduled = false;
 
   #pool = NONE;
   #poolCurrentSize = 0;
@@ -120,7 +120,6 @@ export class BufferedWritable {
     }
     this.#writable.cork();
     this.#corked = true;
-    this.#schedule();
   }
 
   #uncork(): void {
@@ -132,23 +131,7 @@ export class BufferedWritable {
   }
 
   #poolUpdated(): void {
-    // TODO: Consider running this.#schedule() only for "safe" operations
-    this.#schedule();
     this.#empty = false;
-  }
-
-  #schedule(): void {
-    if (this.#scheduled) {
-      return;
-    }
-    this.#scheduled = true;
-    process.nextTick(() => this.#flush());
-  }
-
-  #flush(): void {
-    this.#commit();
-    this.#uncork();
-    this.#scheduled = false;
   }
 
   #commit(): void {
@@ -172,6 +155,11 @@ export class BufferedWritable {
       : undefined;
     this.#write(pool.subarray(start, end), callback);
     this.#poolStart = this.#poolOffset;
+  }
+
+  public sendImmediately() {
+    this.#commit();
+    this.#uncork();
   }
 
   public addCallback(callback?: Callback): void {
@@ -199,11 +187,14 @@ export class BufferedWritable {
   }
 
   public shouldInlineBuffer(bufferLength: number): boolean {
-    return bufferLength <= this.#inlineBufferSize;
+    return false;
+    // return bufferLength <= this.#inlineBufferSize;
   }
 
   public shouldInlineUtf8(byteLength: number): boolean {
-    return byteLength < this.#inlineUtf8Size;
+    return true;
+    // TODO:
+    // return byteLength < this.#inlineUtf8Size;
   }
 
   public write(data: Buffer, callback?: Callback): boolean {
@@ -218,6 +209,17 @@ export class BufferedWritable {
     this.addCallback(callback);
     // TODO: Consider writableDrain instead
     return true;
+  }
+
+  public unsafeInlineBuffer(data: Buffer, callback?: Callback): void {
+    this.#poolOffset += data.copy(this.#pool, this.#poolOffset);
+    this.#poolUpdated();
+    this.addCallback(callback);
+  }
+
+  public unsafeWriteBuffer(data: Buffer, callback?: Callback): void {
+    this.#commit();
+    this.#write(data, callback);
   }
 
   public unsafeWriteUint8(uint8: number, callback?: Callback): void {
@@ -280,6 +282,38 @@ export class BufferedWritable {
   public writeUint48(uint48: number, callback?: Callback): void {
     this.arrangeSize(6);
     this.unsafeWriteUint48(uint48, callback);
+  }
+
+  public unsafeWriteUint(uint: number, byteLength: number, callback?: Callback): void {
+    if (byteLength === 1) {
+      this.unsafeWriteUint8(uint, callback);
+    } else if (byteLength === 2) {
+      this.unsafeWriteUint16(uint, callback);
+    } else if (byteLength === 3) {
+      this.unsafeWriteUint24(uint, callback);
+    } else if (byteLength === 4) {
+      this.unsafeWriteUint32(uint, callback);
+    } else if (byteLength === 6) {
+      this.unsafeWriteUint48(uint, callback);
+    } else {
+      throw new Error('Only 1-4 and 6 bytes are supported.');
+    }
+  }
+
+  public writeUint(uint: number, byteLength: number, callback?: Callback): void {
+    if (byteLength === 1) {
+      this.writeUint8(uint, callback);
+    } else if (byteLength === 2) {
+      this.writeUint16(uint, callback);
+    } else if (byteLength === 3) {
+      this.writeUint24(uint, callback);
+    } else if (byteLength === 4) {
+      this.writeUint32(uint, callback);
+    } else if (byteLength === 6) {
+      this.writeUint48(uint, callback);
+    } else {
+      throw new Error('Only 1-4 and 6 bytes are supported.');
+    }
   }
 
   public unsafeWriteUtf8(data: string, callback?: Callback): void {

@@ -163,13 +163,13 @@ const createPacketConsumer = new BufferReader()
 
   // Files
   .when('type', PacketTypeBits.File, $ => $
-    .mask<'_fileSize', FileSizeBits>('_fileSize', 'header', 0b00000011).setInternal('_fileSize')
-    .when('_fileSize', FileSizeBits.Uint8, $ => $.uint8('fileSize').setInternal('fileSize'))
-    .when('_fileSize', FileSizeBits.Uint16, $ => $.uint16le('fileSize').setInternal('fileSize').earlyEnd())
-    .when('_fileSize', FileSizeBits.Uint24, $ => $.uint24le('fileSize').setInternal('fileSize'))
-    .when('_fileSize', FileSizeBits.Uint48, $ => $.uint48le('fileSize').setInternal('fileSize'))
+    .mask<'_fileSize', PacketSizeBits>('_fileSize', 'header', 0b00001100).setInternal('_fileSize')
+    .when('_fileSize', PacketSizeBits.Uint8, $ => $.uint8('fileSize').setInternal('fileSize'))
+    .when('_fileSize', PacketSizeBits.Uint16, $ => $.uint16le('fileSize').setInternal('fileSize'))
+    .when('_fileSize', PacketSizeBits.Uint24, $ => $.uint24le('fileSize').setInternal('fileSize'))
+    .when('_fileSize', PacketSizeBits.Uint32, $ => $.uint48le('fileSize').setInternal('fileSize'))
 
-    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00001100).setInternal('_fileIndex')
+    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00000011).setInternal('_fileIndex')
     .when('_fileIndex', FileIndexBits.Uint8, $ => $.uint8('fileIndex'))
     .when('_fileIndex', FileIndexBits.Uint16, $ => $.uint16le('fileIndex'))
     .when('_fileIndex', FileIndexBits.Uint24, $ => $.uint24le('fileIndex'))
@@ -178,7 +178,7 @@ const createPacketConsumer = new BufferReader()
     .earlyEnd()
   )
   .when('type', PacketTypeBits.FileEnd, $ => $
-    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00001100).setInternal('_fileIndex')
+    .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00000011).setInternal('_fileIndex')
     .when('_fileIndex', FileIndexBits.Uint8, $ => $.uint8('fileEnd'))
     .when('_fileIndex', FileIndexBits.Uint16, $ => $.uint16le('fileEnd'))
     .when('_fileIndex', FileIndexBits.Uint24, $ => $.uint24le('fileEnd'))

@@ -3,6 +3,6 @@ import { createContentProducer, ContentProducer } from '../ContentProducer';
 
 export function revoke(uuid: UUID): ContentProducer<void> {
   return createContentProducer<void>((writer, expectsResponse, callback) => {
-    writer.writeRevoke(uuid, callback);
+    writer.revoke(uuid, callback);
   });
 }

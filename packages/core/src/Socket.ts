@@ -6,15 +6,15 @@ import { isTlsSocket } from './utils/isTlsSocket';
 import { Message } from './read/Message';
 import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
-import { SocketWriter } from './SocketWriter';
 import { StreamParser } from './read/StreamParser';
+import { StreamWriter } from './StreamWriter';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
 // TODO: Add event types
 // TODO: Extract reading and messages out of socket?
 export class Socket extends EventEmitter {
-  readonly #writer: SocketWriter;
+  readonly #writer: StreamWriter;
   readonly #parser: StreamParser;
   #socket: RawSocket | null;
   #closing = false;
@@ -25,7 +25,7 @@ export class Socket extends EventEmitter {
     // Set up socket
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
-    this.#writer = new SocketWriter(this.#socket, 4095);
+    this.#writer = new StreamWriter(this.#socket, { maxChannels: 4095 });
     this.#parser = new StreamParser();
 
     // Pass events down

@@ -53,13 +53,13 @@ const createMessageConsumer = new BufferReader()
   .arrayDynamic('filesHeader', 'filesCount', $ => $
     .uint8('header').setInternal('header')
 
-    .mask<'_size', FileSizeBits>('_size', 'header', 0b00000011).setInternal('_size')
+    .mask<'_size', FileSizeBits>('_size', 'header', 0b00001100).setInternal('_size')
     .when('_size', FileSizeBits.Uint8, $ => $.uint8('size'))
     .when('_size', FileSizeBits.Uint16, $ => $.uint16le('size'))
     .when('_size', FileSizeBits.Uint24, $ => $.uint24le('size'))
     .when('_size', FileSizeBits.Uint48, $ => $.uint48le('size'))
 
-    .mask<'_nameSize', FileNameSizeBits>('_nameSize', 'header', 0b00000100).setInternal('_nameSize')
+    .mask<'_nameSize', FileNameSizeBits>('_nameSize', 'header', 0b00000010).setInternal('_nameSize')
     .when('_nameSize', FileNameSizeBits.Uint8, $ => $.uint8('nameSize').setInternal('nameSize'))
     .when('_nameSize', FileNameSizeBits.Uint16, $ => $.uint16le('nameSize').setInternal('nameSize'))
     .utf8Dynamic('name', 'nameSize') // TODO: Validate file name?

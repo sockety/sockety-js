@@ -1,12 +1,12 @@
 import { Writable } from 'node:stream';
-import { SocketWriter } from './SocketWriter';
+import { StreamWriter } from './StreamWriter';
 
 export class RequestStream extends Writable {
-  #channelId: number;
-  #release: () => void;
-  #writer: SocketWriter;
+  readonly #channelId: number;
+  readonly #release: () => void;
+  readonly #writer: StreamWriter;
 
-  public constructor(channelId: number, writer: SocketWriter, release: () => void) {
+  public constructor(channelId: number, writer: StreamWriter, release: () => void) {
     super({ objectMode: true });
     this.#channelId = channelId;
     this.#writer = writer;
@@ -19,18 +19,18 @@ export class RequestStream extends Writable {
       return;
     }
 
-    this.#writer.ensureChannel(this.#channelId);
+    this.#writer.channel(this.#channelId);
+    this.#writer.stream();
     if (typeof chunk === 'string') {
-      this.#writer.writeStreamSignature(Buffer.byteLength(chunk));
       this.#writer.writeUtf8(chunk, callback);
     } else {
-      this.#writer.writeStreamSignature(chunk.length);
-      this.#writer.write(chunk, callback);
+      this.#writer.writeBuffer(chunk, callback);
     }
   }
 
   public _final(callback: (error?: (Error | null)) => void) {
-    this.#writer.writeStreamEnd(this.#channelId, callback);
+    this.#writer.channel(this.#channelId);
+    this.#writer.endStream(callback);
     this.#release();
   }
 }

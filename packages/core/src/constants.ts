@@ -19,29 +19,29 @@ export enum PacketTypeBits {
 }
 
 // File packet size bucket:
-// Takes next 2 bits of packet header - 0b0000XX00
+// Takes next 2 bits of packet header - 0b000000XX
 // It's ignored for different packet types than File and FileEnd
 export enum FileIndexBits {
-  Uint8 = 0 << 2,
-  Uint16 = 1 << 2,
-  Uint24 = 2 << 2,
-}
-
-// File packet size bucket:
-// Takes last 2 bits of packet header - 0b000000XX
-// It's ignored for different packet types than File and FileEnd
-// Used also for determining file size bucket in files header, as 0b000000XX.
-export enum FileSizeBits {
   Uint8 = 0 << 0,
   Uint16 = 1 << 0,
   Uint24 = 2 << 0,
-  Uint48 = 3 << 0,
 }
 
-// Used to determine file name bucket in files header, as 0b00000X00.
-export enum FileNameSizeBits {
+// File packet size bucket:
+// Takes last 2 bits of packet header - 0b0000XX00
+// It's ignored for different packet types than File and FileEnd
+// Used also for determining file size bucket in files header, as 0b000000XX.
+export enum FileSizeBits {
   Uint8 = 0 << 2,
   Uint16 = 1 << 2,
+  Uint24 = 2 << 2,
+  Uint48 = 3 << 2,
+}
+
+// Used to determine file name bucket in files header, as 0b000000X0.
+export enum FileNameSizeBits {
+  Uint8 = 0 << 1,
+  Uint16 = 1 << 1,
 }
 
 // Packet size bucket:

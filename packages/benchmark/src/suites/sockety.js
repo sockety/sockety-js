@@ -69,9 +69,8 @@ async function messageListener(connection, message) {
   if (message.action === 'echo') {
     await connection.pass(createContentProducer((writer, expectsResponse, callback) => {
       writer.reserveChannel((channelId, release) => writer.drained(async () => {
-        writer.notifyLength(2 + 1 + 1 + 16 + 5);
-        writer.ensureChannel(channelId);
-        writer.writeMessageSignature(1 + 16 + 5, false, false);
+        writer.channel(channelId);
+        writer.startMessage(false, false);
         writer.writeUint8(MessageDataSizeBits.None | MessageFilesSizeBits.Uint16 | MessageFilesCountBits.None | MessageActionSizeBits.Uint8);
         writer.writeUuid(message.id);
         writer.writeUint8(4);
@@ -80,7 +79,7 @@ async function messageListener(connection, message) {
         writer.writeUint8(104);
         writer.writeUint8(111);
         release();
-        writer.addListener(callback);
+        writer.addCallback(callback);
       }));
     }));
   } else if (message.action === 'fast') {

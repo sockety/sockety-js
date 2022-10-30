@@ -170,13 +170,8 @@ export function createMessage<T extends boolean>({
   const actionSizeBits = getActionNameFlag(actionLength);
   const flags = filesCountBits | filesSizeBits | dataSizeBits | actionSizeBits;
 
-  // Compute message size
-  // Flags (1B) + UUID (16B) + Action size and name (dynamic) + Payload size (0-6B) + Files count size (0-3B) + Total file size (0-6B)
-  const messageLength = 1 + 16 + actionBufferLength + dataSizeLength + filesCountLength + totalFilesSizeLength + filesHeaderSize;
-  // Channel (0-2B) + Header (1B) + Message length + Payload header (0-1B) + Payload length
-  const packetLength = 2 + 1 + messageLength;
-
   // Build message producer
+  // TODO: Use second callback as *Complete
   return createContentProducer((writer, expectsResponse, _callback) => {
     // console.log('ABL', actionBufferLength, actionBuffer);
     // console.log('PSL', dataSizeLength, dataSizeBuffer);
@@ -211,46 +206,41 @@ export function createMessage<T extends boolean>({
 
       // Compute
       const id = generateUuid();
-      const inlinedPayloadLength = (dataLength > 0 ? 1 : 0) + (writer.shouldInlineBuffer(dataLength) ? dataLength : 0);
-      const inlinedLength = packetLength + inlinedPayloadLength;
-
-      // Notify about expected message size for pool optimization
-      writer.notifyLength(inlinedLength);
 
       // Write message header
-      writer.ensureChannel(channelId);
-      writer.writeMessageSignature(messageLength, hasStream, expectsResponse);
+      writer.channel(channelId);
+      writer.startMessage(expectsResponse, hasStream);
 
       // Write basic data
       writer.writeUint8(flags);
       writer.writeUuid(id);
-      writer.write(actionBuffer);
+      writer.writeBuffer(actionBuffer);
 
       // Write data size
       if (dataLength !== 0) {
-        writer.write(dataSizeBuffer);
+        writer.writeBuffer(dataSizeBuffer);
       }
 
       // Write files header
       // TODO: Drain?
       // TODO: Split with "CONTINUE"?
       if (filesCount > 0) {
-        writer.write(filesSpecBuffer);
-        writer.write(filesHeaderBuffer);
+        writer.writeBuffer(filesSpecBuffer);
+        writer.writeBuffer(filesHeaderBuffer);
       }
 
       // Write data
       // TODO: Drain?
       // TODO: Support splitting for >4GB
       if (dataLength !== 0) {
-        writer.writeDataSignature(dataLength);
-        writer.write(data!);
+        writer.data();
+        writer.writeBuffer(data!);
       }
 
       // Create outgoing message
       if (hasStream) {
         if (expectsResponse) {
-          writer.addListener((error) => {
+          writer.addCallback((error) => {
             if (error != null) {
               callback(error);
               release();
@@ -264,11 +254,11 @@ export function createMessage<T extends boolean>({
             }
           });
         } else {
-          writer.writeStreamEnd(channelId, callback);
+          writer.endStream(callback);
           release();
         }
       } else {
-        writer.addListener((error) => {
+        writer.addCallback((error) => {
           if (error) {
             callback(error);
           } else if (expectsResponse) {
@@ -291,70 +281,47 @@ export function createMessage<T extends boolean>({
         const file = files![index];
         // FIXME: 'in' performance
         if ('buffer' in file) {
-          const size = file.buffer.length;
-          const sizeBits = getFileHeaderSizeFlag(size);
-          const indexBits = getFileHeaderIndexFlag(index);
-
-          // TODO: Ensure length?
-
           // Write File packet header
-          writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
-
-          // Write file index & size
-          writer.writeUint(size, getFileHeaderSizeBytes(size));
-          writer.writeUint(index, getFileHeaderIndexBytes(index));
+          writer.file(index);
 
           // Write file
           // TODO: Support splitting for >4GB
-          writer.write(file.buffer);
+          writer.writeBuffer(file.buffer);
 
           // Write FileEnd packet
-          writer.writeUint8(PacketTypeBits.FileEnd | indexBits);
-          writer.writeUint(index, getFileHeaderIndexBytes(index));
+          writer.endFile(index);
 
           filesLeft--;
           if (filesLeft === 0) {
             filesComplete = true;
             release();
-            writer.addListener((error) => {
+            writer.addCallback((error) => {
               filesSent = true;
               callback(error, message);
             });
           }
         } else {
-          const indexBits = getFileHeaderIndexFlag(index);
-          const indexBytes = getFileHeaderIndexBytes(index);
-
           // TODO: Abort when it's aborted/closed
           file.stream.on('data', (data) => {
-            const size = data.length;
-            const sizeBits = getFileHeaderSizeFlag(size);
-
-            // TODO: Ensure length?
-            writer.ensureChannel(channelId);
+            writer.channel(channelId);
 
             // Write File packet header
-            writer.writeUint8(PacketTypeBits.File | sizeBits | indexBits);
-
-            // Write file index & size
-            writer.writeUint(size, getFileHeaderSizeBytes(size));
-            writer.writeUint(index, indexBytes);
+            writer.file(index);
 
             // Write file
             // TODO: Support splitting for >4GB
-            writer.write(data);
+            writer.writeBuffer(data);
           });
           file.stream.on('end', () => {
-            writer.ensureChannel(channelId);
+            writer.channel(channelId);
             // Write FileEnd packet
-            writer.writeUint8(PacketTypeBits.FileEnd | indexBits);
-            writer.writeUint(index, indexBytes);
+            writer.endFile(index);
 
             filesLeft--;
             if (filesLeft === 0) {
               filesComplete = true;
               release();
-              writer.addListener((error) => {
+              writer.addCallback((error) => {
                 filesSent = true;
                 callback(error, message);
               });

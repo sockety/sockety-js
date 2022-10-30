@@ -3,6 +3,6 @@ import { createContentProducer, ContentProducer } from '../ContentProducer';
 
 export function ack(uuid: UUID): ContentProducer<void> {
   return createContentProducer<void>((writer, expectsResponse, callback) => {
-    writer.writeAck(uuid, callback);
+    writer.ack(uuid, callback);
   });
 }
