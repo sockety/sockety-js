@@ -188,15 +188,15 @@ function printResult(name, result, config) {
   const min = `${formatNumber(result.min * 1e3, 2)}ms`;
   const max = `${formatNumber(result.max * 1e3, 2)}ms`;
 
-  const formatCpu = (value, workers) => (value == null ? 'n/a' : `${formatNumber(100 * value / workers)}%`);
+  const formatCpu = (value, workers) => (isNaN(value) ? 'n/a' : `${formatNumber(100 * value / workers)}%`);
   const formatCpuGroup = (user, system, total) => `${user.padStart(5)}${system.padStart(5)}${total.padStart(5)}`;
   const cpuClientTotal = formatCpu(result.cpu.clients.user + result.cpu.clients.system, config.clientWorkers);
   const cpuClientUser = formatCpu(result.cpu.clients.user, config.clientWorkers);
   const cpuClientSystem = formatCpu(result.cpu.clients.system, config.clientWorkers);
   const cpuClient = formatCpuGroup(cpuClientUser, cpuClientSystem, cpuClientTotal);
-  const cpuServerTotal = formatCpu(result.cpu.servers.user + result.cpu.servers.system, config.serverWorkers);
-  const cpuServerUser = formatCpu(result.cpu.servers.user, config.serverWorkers);
-  const cpuServerSystem = formatCpu(result.cpu.servers.system, config.serverWorkers);
+  const cpuServerTotal = formatCpu(result.cpu.servers?.user + result.cpu.servers?.system, config.serverWorkers);
+  const cpuServerUser = formatCpu(result.cpu.servers?.user, config.serverWorkers);
+  const cpuServerSystem = formatCpu(result.cpu.servers?.system, config.serverWorkers);
   const cpuServer = formatCpuGroup(cpuServerUser, cpuServerSystem, cpuServerTotal);
   const state = result.errors === 0 ? chalk.green : result.success > 0.9 ? chalk.yellow : chalk.red;
   process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}  ${cpuClient}${cpuServer}\n`.padEnd(60, ' '));
