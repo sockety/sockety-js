@@ -211,21 +211,8 @@ function printToast(name, content) {
   process.stdout.write(chalk.yellow(` ${chalk.bold(name.padEnd(37))}${content}`));
 }
 
-function printProgress(name, description, progress) {
-  const percentage = Math.max(100 * progress);
-  const formattedDescription = description.trim() === '' ? '' : `${description.trim()}  `;
-  const length = 64 - formattedDescription.length;
-  const bar = '█'.repeat(Math.min(percentage, 100) / (100 / length)).padEnd(length, '▂');
-  if (percentage > 100) {
-    printToast(name, `${formattedDescription}▐${bar}▌~100.00%`);
-  } else {
-    printToast(name, `${formattedDescription}▐${bar}▌ ${formatNumber(percentage, 2).padStart(6)}%`);
-  }
-}
-
 exports.runBenchmark = runBenchmark;
 exports.aggregateBenchmarks = aggregateBenchmarks;
 exports.printHeader = printHeader;
 exports.printResult = printResult;
 exports.printToast = printToast;
-exports.printProgress = printProgress;
