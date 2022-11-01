@@ -30,11 +30,13 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
       // Set-up variables variables required for runtime
       let runningTasks = 0;
       let finished = false;
+      let scheduled = false;
       let currentTime = getCurrentTime();
 
       // Set-up helper functions
 
       function runExecutions() {
+        scheduled = false;
         for (let i = runningTasks; i < concurrency; i++) {
           spawnNextTask();
         }
@@ -61,34 +63,38 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
         currentTime = getCurrentTime();
         runningTasks--;
         successfulCount++;
-        min = Math.min(min, currentTime - taskStartTime);
-        max = Math.max(max, currentTime - taskStartTime);
+        const took = currentTime - taskStartTime;
+        if (min > took) {
+          min = took;
+        }
+        if (max < took) {
+          max = took;
+        }
+        tick();
       }
 
       function failTask() {
         currentTime = getCurrentTime();
         runningTasks--;
         failedCount++;
+        tick();
       }
 
       function tick() {
-        currentTime = getCurrentTime();
         finished = finished || (currentTime >= expectedEndTime);
 
         if (finished) {
           return end();
         }
 
-        if (runningTasks < concurrency) {
-          runExecutions();
+        if (!scheduled && runningTasks < concurrency) {
+          scheduled = true;
+          scheduleTask(runExecutions);
         }
-
-        scheduleTask(tick);
       }
 
       function end() {
         if (runningTasks > 0) {
-          scheduleTask(tick);
           return;
         }
 
@@ -115,7 +121,6 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
 
       // Run tasks
       runExecutions();
-      scheduleTask(tick);
     }
 
     runTest();
