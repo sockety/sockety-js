@@ -154,10 +154,9 @@ export class WritableBuffer {
     this.#poolOffset = 0;
   }
 
-  public writeBufferInline(data: Buffer, callback?: Callback): void {
+  public writeBufferInline(data: Buffer): void {
     this.#poolOffset += data.copy(this.#pool, this.#poolOffset);
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
   public writeBuffer(data: Buffer, callback?: Callback): void {
@@ -165,67 +164,60 @@ export class WritableBuffer {
     this.#write(data, callback);
   }
 
-  public writeUint8(uint8: number, callback?: Callback): void {
+  public writeUint8(uint8: number): void {
     this.#pool[this.#poolOffset++] = uint8;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
-  public writeUint16(uint16: number, callback?: Callback): void {
+  public writeUint16(uint16: number): void {
     this.#pool[this.#poolOffset++] = uint16 & 0x00ff;
     this.#pool[this.#poolOffset++] = uint16 >> 8;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
-  public writeUint24(uint24: number, callback?: Callback): void {
+  public writeUint24(uint24: number): void {
     this.#pool[this.#poolOffset++] = uint24 & 0x0000ff;
     this.#pool[this.#poolOffset++] = uint24 >> 8;
     this.#pool[this.#poolOffset++] = uint24 >> 16;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
-  public writeUint32(uint32: number, callback?: Callback): void {
+  public writeUint32(uint32: number): void {
     this.#pool[this.#poolOffset++] = uint32 & 0x000000ff;
     this.#pool[this.#poolOffset++] = uint32 >> 8;
     this.#pool[this.#poolOffset++] = uint32 >> 16;
     this.#pool[this.#poolOffset++] = uint32 >> 24;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
-  public writeUint48(uint48: number, callback?: Callback): void {
+  public writeUint48(uint48: number): void {
     this.#pool.writeUintLE(uint48, this.#poolOffset, 6);
     this.#poolOffset += 6;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
-  public writeUint(uint: number, byteLength: number, callback?: Callback): void {
+  public writeUint(uint: number, byteLength: number): void {
     if (byteLength === 1) {
-      this.writeUint8(uint, callback);
+      this.writeUint8(uint);
     } else if (byteLength === 2) {
-      this.writeUint16(uint, callback);
+      this.writeUint16(uint);
     } else if (byteLength === 3) {
-      this.writeUint24(uint, callback);
+      this.writeUint24(uint);
     } else if (byteLength === 4) {
-      this.writeUint32(uint, callback);
+      this.writeUint32(uint);
     } else if (byteLength === 6) {
-      this.writeUint48(uint, callback);
+      this.writeUint48(uint);
     } else {
       throw new Error('Only 1-4 and 6 bytes are supported.');
     }
   }
 
-  public writeUtf8Inline(data: string, callback?: Callback): void {
+  public writeUtf8Inline(data: string): void {
     if (data.length === 0) {
-      this.addCallback(callback);
       return;
     }
     this.#poolOffset += this.#pool.write(data, this.#poolOffset);
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 
   public writeUtf8(data: string, callback?: Callback): void {
@@ -233,10 +225,9 @@ export class WritableBuffer {
     this.#write(data, callback);
   }
 
-  public writeUuid(uuid: UUID, callback?: Callback): void {
+  public writeUuid(uuid: UUID): void {
     uuid.write(this.#pool, this.#poolOffset);
     this.#poolOffset += 16;
     this.#poolUpdated();
-    this.addCallback(callback);
   }
 }
