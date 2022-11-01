@@ -5,6 +5,7 @@ import { WritableBuffer } from './WritableBuffer';
 import { FileIndexBits, PacketResponseBits, PacketSizeBits, PacketStreamBits, PacketTypeBits } from './constants';
 import { createNumberBytesGetter } from './createNumberBytesGetter';
 import { createNumberBytesMapper } from './createNumberBytesMapper';
+import { StreamWriterInstruction } from './StreamWriterInstruction';
 
 const noop = () => {};
 
@@ -26,19 +27,6 @@ const getPacketSizeFlag = createNumberBytesMapper('packet size', {
   3: PacketSizeBits.Uint24,
   4: PacketSizeBits.Uint32,
 });
-
-class StreamWriterInstruction {
-  public next: StreamWriterInstruction | undefined;
-  public run: (buffer: WritableBuffer) => void;
-  public sent: SendCallback | undefined;
-  public written: WriteCallback | undefined;
-
-  public constructor(run: (buffer: WritableBuffer) => void, sent: SendCallback | undefined, written: WriteCallback | undefined) {
-    this.run = run;
-    this.sent = sent;
-    this.written = written;
-  }
-}
 
 export interface StreamWriterOptions {
   maxChannels?: number; // default: 4_095
@@ -112,6 +100,8 @@ export class StreamWriter {
   #firstInstruction: StreamWriterInstruction | undefined = undefined;
   #lastInstruction: StreamWriterInstruction | undefined = undefined;
   #instructionsPacketPlaceholder: StreamWriterInstruction | undefined = undefined;
+  #instructionsPacketSent: SendCallback | undefined = undefined;
+  #instructionsPacketWritten: WriteCallback | undefined = undefined;
   #instructionsMaxBytes = 0;
   #instructionsCount = 0;
 
@@ -153,7 +143,6 @@ export class StreamWriter {
     this.#buffer.arrangeSize(this.#instructionsMaxBytes);
 
     let instruction = this.#firstInstruction;
-    this.#firstInstruction = undefined;
 
     // TODO: Handle errors?
     // TODO: Wait for drain? and recalculate max bytes for sent instructions?
@@ -165,16 +154,15 @@ export class StreamWriter {
         return;
       }
       instruction.run(this.#buffer);
-      instruction.written?.();
-      this.#buffer.addCallback(instruction.sent);
-      instruction = instruction.next;
+      this.#instructionsMaxBytes -= instruction.bytes;
       this.#instructionsCount--;
+      instruction = instruction.next;
     }
     this.#instructionsCount = 0;
     this.#instructionsMaxBytes = 0;
+    this.#firstInstruction = undefined;
     this.#lastInstruction = undefined;
-
-    this.#buffer.send(); // FIXME
+    this.#buffer.send();
   };
 
   #isPacket(type: number): boolean {
@@ -190,7 +178,7 @@ export class StreamWriter {
     }
 
     // TODO: benchmark POJO instead
-    const item = new StreamWriterInstruction(instruction, sent, written);
+    const item = new StreamWriterInstruction(instruction, maxByteLength, sent, written);
     if (this.#lastInstruction) {
       this.#lastInstruction = this.#lastInstruction.next = item;
     } else {
@@ -207,7 +195,11 @@ export class StreamWriter {
 
   #callback(sent?: SendCallback, written?: WriteCallback): void {
     if (sent || written) {
-      this.#instruction(noop, 0, sent, written);
+      if (this.#lastInstruction) {
+        this.#lastInstruction.callback(sent, written);
+      } else {
+        this.#instruction(noop, 0, sent, written);
+      }
     }
   }
 
@@ -219,7 +211,9 @@ export class StreamWriter {
   #startPacket(packet: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#currentPacket = packet;
     this.#currentPacketBytes = 0;
-    const item = this.#instructionsPacketPlaceholder = new StreamWriterInstruction(noop, sent, written);
+    const item = this.#instructionsPacketPlaceholder = new StreamWriterInstruction(noop, 5, sent, written);
+    this.#instructionsPacketSent = sent;
+    this.#instructionsPacketWritten = written;
     if (this.#lastInstruction) {
       this.#lastInstruction = this.#lastInstruction.next = item;
     } else {
@@ -240,23 +234,23 @@ export class StreamWriter {
     if (packetBytes === 0) {
       if (this.#isPacket(PacketTypeBits.File)) {
         // FIXME: Hacky way to remove file index
-        this.#instructionsPacketPlaceholder!.next!.run = noop;
+        this.#instructionsPacketPlaceholder!.next!.disable();
         // TODO: It's not removing max bytes for index
       }
 
       this.#currentPacket = null;
-      this.#instructionsMaxBytes -= 5;
+      this.#instructionsMaxBytes -= this.#instructionsPacketPlaceholder!.bytes;
       return;
     }
 
     const flags = getPacketSizeFlag(packetBytes);
     const bytes = getPacketSizeBytes(packetBytes);
     this.#instructionsMaxBytes -= 4 - bytes;
-    // TODO: Consider function builders
-    this.#instructionsPacketPlaceholder!.run = ($) => {
+    this.#instructionsPacketPlaceholder!.decrementBytes(4 - bytes);
+    this.#instructionsPacketPlaceholder!.replace(($) => {
       $.writeUint8(packet | flags);
       $.writeUint(packetBytes, bytes);
-    };
+    }, undefined, this.#instructionsPacketSent, this.#instructionsPacketWritten);
     this.#currentPacket = null;
 
     // TODO: Consider that
