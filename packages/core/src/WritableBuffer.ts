@@ -20,8 +20,7 @@ class AggregatedCallback {
     } else if (this.#listeners) {
       this.#listeners.push(callback);
     } else {
-      // TODO: Consider nextTick
-      callback(this.#error);
+      process.nextTick(() => callback(this.#error));
     }
   }
 
@@ -33,8 +32,7 @@ class AggregatedCallback {
     const listeners = this.#listeners;
     this.#listeners = undefined;
 
-    // TODO: Consider nextTick
-    listeners.forEach((listener) => listener(error));
+    process.nextTick(() => listeners.forEach((listener) => listener(error)));
   };
 
   public static done(error: Error | null | undefined): AggregatedCallback {
