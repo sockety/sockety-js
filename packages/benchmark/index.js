@@ -164,24 +164,28 @@ async function runSuite(name) {
     }
     printToast(benchmark.name, 'Running...');
 
-    const startTime = Date.now();
-    const startServerCpu = server ? await server.cpu() : null;
-    const startCpu = process.cpuUsage();
-    const result = aggregateBenchmarks(await Promise.all(clients.map((client) => client.run(suite.name, benchmark.name))));
-    const endCpu = process.cpuUsage(startCpu);
-    const endTime = Date.now();
-    const endServerCpu = server ? await server.cpu() : null;
-    const cpuClientsUser = endCpu.user / (endTime - startTime) / 1000;
-    const cpuClientsSystem = endCpu.system / (endTime - startTime) / 1000;
-    const cpuServersUser = server ? (endServerCpu.user - startServerCpu.user) / (endTime - startTime) / 1000 : null;
-    const cpuServersSystem = server ? (endServerCpu.system - startServerCpu.system) / (endTime - startTime) / 1000 : null;
-    printResult(benchmark.name, {
-      ...result,
-      cpu: {
-        clients: { user: cpuClientsUser, system: cpuClientsSystem },
-        servers: server ? { user: cpuServersUser, system: cpuServersSystem } : null,
-      },
-    }, config);
+    try {
+      const startTime = Date.now();
+      const startServerCpu = server ? await server.cpu() : null;
+      const startCpu = process.cpuUsage();
+      const result = aggregateBenchmarks(await Promise.all(clients.map((client) => client.run(suite.name, benchmark.name))));
+      const endCpu = process.cpuUsage(startCpu);
+      const endTime = Date.now();
+      const endServerCpu = server ? await server.cpu() : null;
+      const cpuClientsUser = endCpu.user / (endTime - startTime) / 1000;
+      const cpuClientsSystem = endCpu.system / (endTime - startTime) / 1000;
+      const cpuServersUser = server ? (endServerCpu.user - startServerCpu.user) / (endTime - startTime) / 1000 : null;
+      const cpuServersSystem = server ? (endServerCpu.system - startServerCpu.system) / (endTime - startTime) / 1000 : null;
+      printResult(benchmark.name, {
+        ...result,
+        cpu: {
+          clients: { user: cpuClientsUser, system: cpuClientsSystem },
+          servers: server ? { user: cpuServersUser, system: cpuServersSystem } : null,
+        },
+      }, config);
+    } catch (error) {
+      printToast(benchmark.name, `Error: ${error.message}`);
+    }
 
     await Promise.all([ server?.kill(), ...clients.map((client) => client.kill()) ]);
   }

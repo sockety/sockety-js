@@ -26,6 +26,7 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
       let failedCount = 0;
       let min = Infinity;
       let max = -Infinity;
+      let sum = 0;
 
       // Set-up variables variables required for runtime
       let runningTasks = 0;
@@ -64,6 +65,7 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
         runningTasks--;
         successfulCount++;
         const took = currentTime - taskStartTime;
+        sum += took;
         if (min > took) {
           min = took;
         }
@@ -107,7 +109,7 @@ async function runBenchmark(asyncFn, context, { concurrency, duration }) {
           qps,
           min: min / 1e12,
           max: max / 1e12,
-          avg: 1 / (qps / concurrency),
+          avg: sum / successfulCount / 1e12,
           successful: successfulCount,
           errors: failedCount,
         });
@@ -183,15 +185,22 @@ function printHeader(name) {
   );
 }
 
+function formatTime(seconds, fractionDigits) {
+  if (seconds < 0.00001) {
+    return `${formatNumber(seconds * 1e6, fractionDigits)}μs`;
+  }
+  return `${formatNumber(seconds * 1e3, fractionDigits)}ms`;
+}
+
 function printResult(name, result, config) {
   process.stdout.clearLine();
   process.stdout.cursorTo(0);
   const success = `${formatNumber(result.success * 100, 2)}%`;
   const qps = formatNumber(result.qps);
   const qpss = formatNumber(result.qps / config.serverWorkers);
-  const avg = `${formatNumber(result.avg * 1e3, 2)}ms`;
-  const min = `${formatNumber(result.min * 1e3, 2)}ms`;
-  const max = `${formatNumber(result.max * 1e3, 2)}ms`;
+  const avg = formatTime(result.avg, 2);
+  const min = formatTime(result.min, 2);
+  const max = formatTime(result.max, 2);
 
   const formatCpu = (value, workers) => (isNaN(value) ? 'n/a' : `${formatNumber(100 * value / workers)}%`);
   const formatCpuGroup = (user, system, total) => `${user.padStart(5)}${system.padStart(5)}${total.padStart(5)}`;
