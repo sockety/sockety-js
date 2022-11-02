@@ -14,7 +14,6 @@ type WriteCallback = () => void;
 
 const getFileIndexBytes = createNumberBytesGetter('file index', [ 1, 2, 3, 6 ]);
 const getFileIndexFlag = createNumberBytesMapper('file index', {
-  // TODO: Consider 0 -> None, as there is empty slot anyway?
   1: FileIndexBits.Uint8,
   2: FileIndexBits.Uint16,
   3: FileIndexBits.Uint24,
@@ -36,7 +35,9 @@ export interface StreamWriterOptions {
 
 const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: WritableBuffer) => {
   $.writeUint8(PacketTypeBits.FileEnd | flags);
-  $.writeUint(index, indexByteLength);
+  if (indexByteLength !== 0) {
+    $.writeUint(index, indexByteLength);
+  }
 };
 const streamEndInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.StreamEnd);
 const heartbeatInstruction = ($: WritableBuffer) => $.writeUint8(PacketTypeBits.Heartbeat);
@@ -234,8 +235,10 @@ export class StreamWriter {
     if (packetBytes === 0) {
       if (this.#isPacket(PacketTypeBits.File)) {
         // FIXME: Hacky way to remove file index
-        this.#instructionsPacketPlaceholder!.next!.disable();
-        // TODO: It's not removing max bytes for index
+        if ((this.#currentPacket! & 0b11) !== 0) {
+          this.#instructionsPacketPlaceholder!.next!.disable();
+          // TODO: It's not removing max bytes for index
+        }
       }
 
       this.#currentPacket = null;
@@ -368,19 +371,21 @@ export class StreamWriter {
     this.#endPacket();
     this.#packetFileIndex = index;
 
-    const flags = getFileIndexFlag(index);
-    const bytes = getFileIndexBytes(index);
+    const flags = index === 0 ? FileIndexBits.First : getFileIndexFlag(index);
+    const bytes = index === 0 ? 0 : getFileIndexBytes(index);
     this.#startPacket(PacketTypeBits.File | flags, sent, written);
     // TODO: Include that in start packet instruction somehow
-    this.#instruction(uintInstruction(index, bytes), bytes, sent, written);
-    this.#currentPacketBytes--; // FIXME: Hacky way
+    if (index !== 0) {
+      this.#instruction(uintInstruction(index, bytes), bytes, sent, written);
+      this.#currentPacketBytes -= bytes; // FIXME: Hacky way
+    }
   }
 
   public endFile(index: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#endPacket();
 
-    const flags = getFileIndexFlag(index);
-    const bytes = getFileIndexBytes(index);
+    const flags = index === 0 ? FileIndexBits.First : getFileIndexFlag(index);
+    const bytes = index === 0 ? 0 : getFileIndexBytes(index);
     this.#instruction(fileEndInstruction(flags, index, bytes), bytes + 1, sent, written);
   }
 

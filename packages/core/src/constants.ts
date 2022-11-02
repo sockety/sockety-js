@@ -22,9 +22,10 @@ export enum PacketTypeBits {
 // Takes next 2 bits of packet header - 0b000000XX
 // It's ignored for different packet types than File and FileEnd
 export enum FileIndexBits {
-  Uint8 = 0 << 0,
-  Uint16 = 1 << 0,
-  Uint24 = 2 << 0,
+  First = 0 << 0,
+  Uint8 = 1 << 0,
+  Uint16 = 2 << 0,
+  Uint24 = 3 << 0,
 }
 
 // File packet size bucket:
