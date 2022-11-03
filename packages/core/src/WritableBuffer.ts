@@ -32,7 +32,7 @@ class AggregatedCallback {
     const listeners = this.#listeners;
     this.#listeners = undefined;
 
-    process.nextTick(() => listeners.forEach((listener) => listener(error)));
+    listeners.forEach((listener) => listener(error));
   };
 
   public static done(error: Error | null | undefined): AggregatedCallback {
