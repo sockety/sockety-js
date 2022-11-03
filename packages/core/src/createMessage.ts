@@ -17,14 +17,21 @@ import { filesList } from './slices/filesList';
 import { pipe } from './slices/pipe';
 import { endStream } from './slices/endStream';
 import { parallel } from './slices/parallel';
+import { none } from './slices/none';
 
 // TODO: Extract type
-type FileSent = { name: string, buffer: Buffer } | { name: string, size: number, stream: Readable };
+type FileBufferSent = { name: string, buffer: Buffer };
+type FileStreamSent = { name: string, size: number, stream: Readable };
+type FileSent = FileBufferSent | FileStreamSent;
 
 export interface CreateMessageOptions {
   action: string;
   data?: Buffer;
   files?: FileSent[];
+}
+
+function isFileStream(file: FileSent): file is FileStreamSent {
+  return (file as any).stream;
 }
 
 // TODO: Validate provided data? Or on receive?
@@ -54,6 +61,19 @@ export function createMessage<T extends boolean>({
   // Compute message start information
   const messageStartSlice = messageStart(hasStream, actionLength)(dataLength, filesCount, totalFilesSize);
 
+  // Write/schedule files
+  // TODO: For 0-size, it should be optional
+  // TODO: Max concurrency?
+  const filesSlices = files ? files.map((file, index) => {
+    if (isFileStream(file)) {
+      return fileStream(index, file.stream);
+    }
+    return pipe([
+      fileContent(index)(file.buffer),
+      fileEnd(index),
+    ]);
+  }) : [];
+
   // Build message producer
   return createContentProducer((writer, sent, written, expectsResponse) => {
     const id = generateUuid();
@@ -62,51 +82,22 @@ export function createMessage<T extends boolean>({
 
     // TODO: Think about "Abort" on "Revoke"
     writer.reserveChannel((channelId, release) => {
-      // State
-      const callback = (error: Error | null | undefined) => {
-        sent(error);
-        request[REQUEST_DONE](error);
-      };
-
-      const operations = [
-        // Write message header
+      pipe([
         messageStartSlice(id, expectsResponse),
         actionSlice,
         dataSizeSlice,
         filesSpecSlice,
         filesListSlice,
-      ];
-
-      const parallelActions = [
-        dataSlice,
-        attachStream(stream),
-      ];
-
-      if (hasStream && !expectsResponse) {
-        parallelActions.push(endStream);
-      }
-
-      // Write/schedule files
-      // TODO: For 0-size, it should be optional
-      // TODO: Make it asynchronously (& drain & ensure channel)
-      // TODO: Max concurrency?
-      for (let index = 0; index < filesCount; index++) {
-        const file = files![index];
-        // FIXME: 'in' performance
-        if ('buffer' in file) {
-          parallelActions.push(pipe([
-            fileContent(index)(file.buffer),
-            fileEnd(index),
-          ]))
-        } else {
-          parallelActions.push(fileStream(index, file.stream));
-        }
-      }
-
-      // Add parallel actions
-      operations.push(parallel(parallelActions));
-
-      pipe(operations)(writer, channelId, callback, written, release);
+        hasStream && !stream ? endStream : none,
+        parallel([
+          dataSlice,
+          attachStream(stream),
+          ...filesSlices,
+        ]),
+      ])(writer, channelId, (error: Error | null | undefined) => {
+        sent(error);
+        request[REQUEST_DONE](error);
+      }, written, release);
     });
 
     return request;
