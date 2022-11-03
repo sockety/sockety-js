@@ -6,12 +6,14 @@ type WriteCallback = () => void;
 
 export const ATTACH_STREAM = Symbol();
 
+const noop = () => {};
+
 export class RequestStream extends Writable {
   readonly #writer: StreamWriter;
   #queued: (() => void)[] = [];
-  #written!: WriteCallback;
-  #sent!: SendCallback;
   #channel!: number;
+  #sent!: SendCallback;
+  #written?: WriteCallback;
   #attached = false;
 
   public constructor(writer: StreamWriter) {
@@ -32,7 +34,7 @@ export class RequestStream extends Writable {
   #end(callback: SendCallback): void {
     this.#writer.channel(this.#channel);
     this.#writer.endStream((error) => {
-      this.#sent(error);
+      this.#sent?.(error);
       callback(error);
     }, this.#written);
   }
@@ -53,7 +55,7 @@ export class RequestStream extends Writable {
     }
   }
 
-  public [ATTACH_STREAM](channel: number, sent: SendCallback, written: WriteCallback): void {
+  public [ATTACH_STREAM](channel: number, sent: SendCallback = noop, written?: WriteCallback): void {
     this.#written = written;
     this.#sent = sent;
     this.#attached = true;

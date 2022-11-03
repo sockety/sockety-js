@@ -10,3 +10,13 @@ export type ContentProducer<T = any> = RawContentProducer<T> & { [ContentProduce
 export function createContentProducer<T>(fn: RawContentProducer<T>): ContentProducer<T> {
   return fn as ContentProducer<T>;
 }
+
+declare const ContentProducerSliceSymbol: unique symbol;
+
+// TODO: Consider if 'written' is needed at all
+export type RegisterCallback = () => void;
+export type RawContentProducerSlice = (writer: StreamWriter, channel: number, sent?: SendCallback, written?: WriteCallback, registered?: RegisterCallback) => void;
+export type ContentProducerSlice = RawContentProducerSlice & { [ContentProducerSliceSymbol]: true };
+export function createContentProducerSlice<T>(fn: RawContentProducerSlice): ContentProducerSlice {
+  return fn as ContentProducerSlice;
+}

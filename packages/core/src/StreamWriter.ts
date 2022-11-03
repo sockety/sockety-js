@@ -29,8 +29,6 @@ const getPacketSizeFlag = createNumberBytesMapper('packet size', {
 
 export interface StreamWriterOptions {
   maxChannels?: number; // default: 4_095
-  poolSize?: number; // default: 16_384
-  poolReservedOversizeBytes?: number; // default: 20
 }
 
 const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: WritableBuffer) => {
@@ -120,12 +118,7 @@ export class StreamWriter {
     this.#reservedChannels = new Array(this.#maxChannels).fill(false);
 
     // Build buffered writable (?)
-    const poolSize = options.poolSize ?? 16_384;
-    const reservedOversizeBytes = options.poolReservedOversizeBytes ?? 20;
-    this.#buffer = new WritableBuffer(writable, {
-      poolSize,
-      reservedOversizeBytes,
-    });
+    this.#buffer = new WritableBuffer(writable);
   }
 
   #schedule(): void {
@@ -198,6 +191,13 @@ export class StreamWriter {
     if (sent || written) {
       if (this.#lastInstruction) {
         this.#lastInstruction.callback(sent, written);
+      } else if (this.#instructionsCount === 0) {
+        if (written) {
+          process.nextTick(written);
+        }
+        if (sent) {
+          this.#buffer.addCallback(sent);
+        }
       } else {
         this.#instruction(noop, 0, sent, written);
       }
@@ -286,6 +286,21 @@ export class StreamWriter {
     this.#instruction(abortInstruction, 1, sent, written);
   }
 
+  public channelNoCallback(channel: number): void {
+    if (this.#currentChannel === channel) {
+      return;
+    }
+    this.#endPacket();
+    this.#currentChannel = channel;
+    if (channel <= 0x0f) {
+      this.#instruction(switchChannelLowInstruction(channel), 1);
+    } else if (channel <= 0x0fff) {
+      this.#instruction(switchChannelHighInstruction(channel), 2);
+    } else {
+      throw new Error(`Maximum channel ID is 4095.`);
+    }
+  }
+
   public channel(channel: number, sent?: SendCallback, written?: WriteCallback): void {
     if (this.#currentChannel === channel) {
       this.#callback(sent, written);
@@ -320,6 +335,15 @@ export class StreamWriter {
     );
     this.#endPacket();
     this.#startPacket(type, sent, written);
+  }
+
+  public continueMessageNoCallback(): void {
+    // TODO: Consider caching information if that's a message
+    if (this.#isPacket(PacketTypeBits.Message) || this.#isPacket(PacketTypeBits.Continue) || this.#isPacket(PacketTypeBits.Response)) {
+      return;
+    }
+    this.#endPacket();
+    this.#startPacket(PacketTypeBits.Continue);
   }
 
   public continueMessage(sent?: SendCallback, written?: WriteCallback): void {

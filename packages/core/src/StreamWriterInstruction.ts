@@ -6,19 +6,20 @@ type ExecuteWrite = (buffer: WritableBuffer) => void;
 type SendCallback = (error: Error | null | undefined) => void;
 type WriteCallback = () => void;
 
+// TODO: Consider flattening "written" calls
 function createRunner(run: ExecuteWrite, sent: SendCallback, written: WriteCallback): ExecuteWrite {
   if (sent === noop && written == noop) {
     return run;
   } else if (sent === noop) {
     return (buffer) => {
       run(buffer);
-      written();
+      process.nextTick(written);
     };
   }
   return (buffer) => {
     run(buffer);
     buffer.addCallback(sent);
-    written();
+    process.nextTick(written);
   };
 }
 

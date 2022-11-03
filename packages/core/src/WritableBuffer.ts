@@ -2,9 +2,6 @@ import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
 import { DrainListener } from './DrainListener';
 
-export interface WritableBufferOptions {
-}
-
 type Callback = (error: Error | null | undefined) => void;
 
 const NONE = Buffer.allocUnsafeSlow(0);
@@ -60,7 +57,7 @@ export class WritableBuffer {
   #prevCallback = AggregatedCallback.done(null);
   #callback = new AggregatedCallback();
 
-  public constructor(writable: Writable, options: WritableBufferOptions = {}) {
+  public constructor(writable: Writable) {
     this.#writable = writable;
     this.#drain = new DrainListener(this.#writable);
   }
