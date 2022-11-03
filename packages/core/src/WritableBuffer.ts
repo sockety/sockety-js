@@ -46,8 +46,6 @@ export class WritableBuffer {
   readonly #writable: Writable;
   readonly #drain: DrainListener;
 
-  #corked = false;
-
   #pool = NONE;
   #poolCurrentSize = 0;
   #poolOffset = 0;
@@ -86,24 +84,7 @@ export class WritableBuffer {
     this.#empty = true;
 
     // Send
-    this.#cork();
     return this.#writable.write(data, this.#prevCallback.callback);
-  }
-
-  #cork(): void {
-    if (this.#corked) {
-      return;
-    }
-    this.#writable.cork();
-    this.#corked = true;
-  }
-
-  #uncork(): void {
-    if (!this.#corked) {
-      return;
-    }
-    this.#corked = false;
-    this.#writable.uncork();
   }
 
   #poolUpdated(): void {
@@ -125,7 +106,6 @@ export class WritableBuffer {
 
   public send(): void {
     this.#commit();
-    this.#uncork();
   }
 
   public addCallback(callback?: Callback): void {
