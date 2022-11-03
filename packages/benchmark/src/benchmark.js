@@ -186,7 +186,7 @@ function printHeader(name) {
 }
 
 function formatTime(seconds, fractionDigits) {
-  if (seconds < 0.00001) {
+  if (seconds < 0.0001) {
     return `${formatNumber(seconds * 1e6, fractionDigits)}μs`;
   }
   return `${formatNumber(seconds * 1e3, fractionDigits)}ms`;
