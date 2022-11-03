@@ -11,7 +11,7 @@ export class MessageStream extends Readable {
   [ENDED] = false;
   #size = 0;
   #buffer: Buffer[] = [];
-  #waiting = false;
+  #waiting = true;
 
   public constructor() {
     super({ objectMode: true });
