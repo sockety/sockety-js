@@ -80,6 +80,7 @@ const revokeInstruction = (id: UUID) => ($: WritableBuffer) => {
 const bufferInlineInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBufferInline(buffer);
 const bufferWriteInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBuffer(buffer);
 
+// TODO: "Abort" could delete whole packet
 // TODO: It doesn't have to use WritableBuffer,
 //       it could have a pre-allocated buffer without all additional stuff.
 export class StreamWriter {
@@ -180,7 +181,8 @@ export class StreamWriter {
     }
 
     // TODO: Consider that
-    if (this.#currentPacket === null && (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500)) {
+    // if (this.#currentPacket === null && (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500)) {
+    if (this.#currentPacket === null && this.#instructionsMaxBytes > 65_000) {
       this.#commit();
     } else {
       this.#schedule();
@@ -258,8 +260,8 @@ export class StreamWriter {
 
     // TODO: Consider that
     // FIXME: Flush if the list is big
-    // if (this.#instructionsMaxBytes > 65_000) {
-    if (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500) {
+    if (this.#instructionsMaxBytes > 65_000) {
+    // if (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500) {
       this.#commit();
     }
   }
