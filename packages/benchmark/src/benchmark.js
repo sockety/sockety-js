@@ -158,8 +158,9 @@ function printHeader(name) {
         ' '.repeat(13) +
         ' '.repeat(13) +
         ' '.repeat(13) +
-        '  ' +
+        '   ' +
         '   CPU%/client ' +
+        '   ' +
         '   CPU%/server ' +
         chalk.ansi256(30).bgAnsi256(30)('.')
       ))
@@ -173,10 +174,11 @@ function printHeader(name) {
         'min'.padStart(13) +
         'avg'.padStart(13) +
         'max'.padStart(13) +
-        '  ' +
+        '   ' +
         'usr'.padStart(5) +
         'sys'.padStart(5) +
         'u+s'.padStart(5) +
+        '   ' +
         'usr'.padStart(5) +
         'sys'.padStart(5) +
         'u+s'.padStart(5) +
@@ -213,7 +215,7 @@ function printResult(name, result, config) {
   const cpuServerSystem = formatCpu(result.cpu.servers?.system, config.serverWorkers);
   const cpuServer = formatCpuGroup(cpuServerUser, cpuServerSystem, cpuServerTotal);
   const state = result.errors === 0 ? chalk.green : result.success > 0.9 ? chalk.yellow : chalk.red;
-  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}  ${cpuClient}${cpuServer}\n`.padEnd(60, ' '));
+  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}   ${cpuClient}   ${cpuServer}\n`.padEnd(60, ' '));
   if (result.errors) {
     process.stdout.write(chalk.red.bold(`  Failed ${result.errors} times`) + '\n');
   }
