@@ -12,7 +12,10 @@ export const pipe = (slices: ContentProducerSlice[]) => {
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
     let index = 0;
     const next = () => {
-      const slice = slices[index];
+      let slice = slices[index];
+      while (slice === none && index !== end) {
+        slice = slices[++index];
+      }
       if (index === end) {
         slice(writer, channel, sent, written, registered);
       } else {

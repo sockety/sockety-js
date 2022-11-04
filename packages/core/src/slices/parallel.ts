@@ -40,7 +40,7 @@ function createCallback(left: number, callback: Callback | undefined): Callback 
 // TODO: Think if shouldn't there be error handler on each step
 export const parallel = (slices: ContentProducerSlice[], concurrency = Infinity) => {
   const total = slices.length;
-  if (total === 0) {
+  if (total === 0 || !slices.some((x) => x !== none)) {
     return none;
   }
   if (concurrency >= total) {
