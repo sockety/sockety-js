@@ -6,7 +6,7 @@ import { isTlsSocket } from './utils/isTlsSocket';
 import { RawMessage } from './read/RawMessage';
 import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
-import { StreamParser } from './read/StreamParser';
+import { StreamParser, StreamParserOptions } from './read/StreamParser';
 import { StreamWriter } from './StreamWriter';
 import { FastReply } from './constants';
 import { RawResponse } from './read/RawResponse';
@@ -15,22 +15,25 @@ type RawSocket = tls.TLSSocket | net.Socket;
 
 const noop = () => {};
 
-// TODO: Add event types
-// TODO: Extract reading and messages out of socket?
-export class Socket extends EventEmitter {
+export interface SocketOptions<M extends RawMessage, R extends RawResponse> {
+  createMessage: StreamParserOptions<M, R>['createMessage'];
+  createResponse: StreamParserOptions<M, R>['createResponse'];
+}
+
+export class Socket<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> extends EventEmitter {
   readonly #writer: StreamWriter;
   readonly #parser: StreamParser;
   #socket: RawSocket | null;
   #closing = false;
 
-  public constructor(socket: RawSocket) {
+  public constructor(socket: RawSocket, options?: Partial<SocketOptions<M, R>>) {
     super();
 
     // Set up socket
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
     this.#writer = new StreamWriter(this.#socket, { maxChannels: 4095 });
-    this.#parser = new StreamParser();
+    this.#parser = new StreamParser(options);
 
     // Pass events down
     // TODO: Handle timeout
@@ -80,22 +83,22 @@ export class Socket extends EventEmitter {
   }
 }
 
-export interface Socket {
-  addListener(event: 'message', listener: (message: RawMessage) => void): this;
-  on(event: 'message', listener: (message: RawMessage) => void): this;
-  once(event: 'message', listener: (message: RawMessage) => void): this;
-  prependListener(event: 'message', listener: (message: RawMessage) => void): this;
-  prependOnceListener(event: 'message', listener: (message: RawMessage) => void): this;
-  removeListener(event: 'message', listener: (message: RawMessage) => void): this;
-  emit(event: 'message', message: RawMessage): boolean;
+export interface Socket<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> {
+  addListener(event: 'message', listener: (message: M) => void): this;
+  on(event: 'message', listener: (message: M) => void): this;
+  once(event: 'message', listener: (message: M) => void): this;
+  prependListener(event: 'message', listener: (message: M) => void): this;
+  prependOnceListener(event: 'message', listener: (message: M) => void): this;
+  removeListener(event: 'message', listener: (message: M) => void): this;
+  emit(event: 'message', message: M): boolean;
 
-  addListener(event: 'response', listener: (response: RawResponse) => void): this;
-  on(event: 'response', listener: (response: RawResponse) => void): this;
-  once(event: 'response', listener: (response: RawResponse) => void): this;
-  prependListener(event: 'response', listener: (response: RawResponse) => void): this;
-  prependOnceListener(event: 'response', listener: (response: RawResponse) => void): this;
-  removeListener(event: 'response', listener: (response: RawResponse) => void): this;
-  emit(event: 'response', response: RawResponse): boolean;
+  addListener(event: 'response', listener: (response: R) => void): this;
+  on(event: 'response', listener: (response: R) => void): this;
+  once(event: 'response', listener: (response: R) => void): this;
+  prependListener(event: 'response', listener: (response: R) => void): this;
+  prependOnceListener(event: 'response', listener: (response: R) => void): this;
+  removeListener(event: 'response', listener: (response: R) => void): this;
+  emit(event: 'response', response: R): boolean;
 
   addListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
   on(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;

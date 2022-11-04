@@ -4,8 +4,13 @@ import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
 import { FastReply, FileIndexBits, PacketSizeBits, PacketTypeBits } from '../constants';
 import type { RawMessage } from './RawMessage';
-import { StreamChannel } from './StreamChannel';
+import { StreamChannel, StreamChannelOptions } from './StreamChannel';
 import { RawResponse } from './RawResponse';
+
+export interface StreamParserOptions<M extends RawMessage, R extends RawResponse> {
+  createMessage: StreamChannelOptions<M, R>['createMessage'];
+  createResponse: StreamChannelOptions<M, R>['createResponse'];
+}
 
 const createPacketConsumer = new BufferReader()
   .uint8('header').setInternal('header')
@@ -189,12 +194,19 @@ const createPacketConsumer = new BufferReader()
 
   .end();
 
-// TODO: Allow extending IncomingMessage etc
-export class StreamParser extends Writable {
+export class StreamParser<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> extends Writable {
+  readonly #options?: Partial<StreamParserOptions<M, R>>;
+
   // Current state
-  #channels: Record<number, StreamChannel> = {};
-  #currentChannel = this.#getChannel(0);
+  #channels: Record<number, StreamChannel<M, R>> = {};
+  #currentChannel: StreamChannel<M, R>;
   #fastReplyCode = 0;
+
+  public constructor(options?: Partial<StreamParserOptions<M, R>>) {
+    super();
+    this.#options = options;
+    this.#currentChannel = this.#getChannel(0);
+  }
 
   #switchChannel = (channelId: number) => {
     this.#currentChannel = this.#getChannel(channelId);
@@ -288,9 +300,9 @@ export class StreamParser extends Writable {
     fileEnd: this.#endFile,
   }).readMany;
 
-  #getChannel(id: number): StreamChannel {
+  #getChannel(id: number): StreamChannel<M, R> {
     if (this.#channels[id] === undefined) {
-      this.#channels[id] = new StreamChannel();
+      this.#channels[id] = new StreamChannel(this.#options);
     }
     return this.#channels[id];
   }
@@ -305,23 +317,23 @@ export class StreamParser extends Writable {
   }
 }
 
-export interface StreamParser {
-  addListener(event: 'message', listener: (message: RawMessage) => void): this;
-  on(event: 'message', listener: (message: RawMessage) => void): this;
-  once(event: 'message', listener: (message: RawMessage) => void): this;
-  prependListener(event: 'message', listener: (message: RawMessage) => void): this;
-  prependOnceListener(event: 'message', listener: (message: RawMessage) => void): this;
-  removeListener(event: 'message', listener: (message: RawMessage) => void): this;
-  emit(event: 'message', message: RawMessage): boolean;
+export interface StreamParser<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> {
+  addListener(event: 'message', listener: (message: M) => void): this;
+  on(event: 'message', listener: (message: M) => void): this;
+  once(event: 'message', listener: (message: M) => void): this;
+  prependListener(event: 'message', listener: (message: M) => void): this;
+  prependOnceListener(event: 'message', listener: (message: M) => void): this;
+  removeListener(event: 'message', listener: (message: M) => void): this;
+  emit(event: 'message', message: M): boolean;
 
   // TODO: Fix type of response message
-  addListener(event: 'response', listener: (response: RawResponse) => void): this;
-  on(event: 'response', listener: (response: RawResponse) => void): this;
-  once(event: 'response', listener: (response: RawResponse) => void): this;
-  prependListener(event: 'response', listener: (response: RawResponse) => void): this;
-  prependOnceListener(event: 'response', listener: (response: RawResponse) => void): this;
-  removeListener(event: 'response', listener: (response: RawResponse) => void): this;
-  emit(event: 'response', response: RawResponse): boolean;
+  addListener(event: 'response', listener: (response: R) => void): this;
+  on(event: 'response', listener: (response: R) => void): this;
+  once(event: 'response', listener: (response: R) => void): this;
+  prependListener(event: 'response', listener: (response: R) => void): this;
+  prependOnceListener(event: 'response', listener: (response: R) => void): this;
+  removeListener(event: 'response', listener: (response: R) => void): this;
+  emit(event: 'response', response: R): boolean;
 
   addListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
   on(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;

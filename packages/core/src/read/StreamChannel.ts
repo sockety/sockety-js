@@ -19,6 +19,11 @@ import {
 import { RawMessage } from './RawMessage';
 import { RawResponse } from './RawResponse';
 
+export interface StreamChannelOptions<M extends RawMessage, R extends RawResponse> {
+  createMessage: (id: UUID, action: string, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => M;
+  createResponse: (id: UUID, parentId: UUID, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => R;
+}
+
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
 
@@ -113,7 +118,10 @@ const createResponseConsumer = new BufferReader()
 
 // TODO: Add option (callback?) to allow different file size than specified
 // TODO: Extract finalization to separate method
-export class StreamChannel {
+export class StreamChannel<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> {
+  readonly #createMessage: StreamChannelOptions<M, R>['createMessage'];
+  readonly #createResponse: StreamChannelOptions<M, R>['createResponse'];
+
   #consumingMessage = false;
   #consumingResponse = false;
   #consumingStream = false;
@@ -122,7 +130,7 @@ export class StreamChannel {
   #expectsResponse = false;
 
   // TODO: Set optional?
-  #message!: RawMessage | RawResponse;
+  #message!: M | R;
   #parentId!: UUID;
   #id!: UUID;
   #action!: string;
@@ -132,6 +140,11 @@ export class StreamChannel {
   #hasStream!: boolean;
   #fileIndex!: number;
   #filesToProcess = 0;
+
+  public constructor(options: Partial<StreamChannelOptions<M, R>> = {}) {
+    this.#createMessage = options.createMessage ?? ((...args: any) => new (RawMessage as any)(...args));
+    this.#createResponse = options.createResponse ?? ((...args: any) => new (RawResponse as any)(...args));
+  }
 
   #setParentId = (id: UUID) => {
     this.#parentId = id;
@@ -165,7 +178,7 @@ export class StreamChannel {
   #setFilesSize = (filesSize: number) => {
     this.#filesSize = filesSize;
     if (this.#consumingMessage) {
-      this.#message = new RawMessage(
+      this.#message = this.#createMessage(
         this.#id,
         this.#action,
         this.#dataSize,
@@ -175,7 +188,7 @@ export class StreamChannel {
         this.#expectsResponse,
       );
     } else {
-      this.#message = new RawResponse(
+      this.#message = this.#createResponse(
         this.#id,
         this.#parentId,
         this.#dataSize,
@@ -258,7 +271,7 @@ export class StreamChannel {
     this.#expectsResponse = expectsResponse;
   }
 
-  public consumeMessage(buffer: Buffer, offset: number, end: number): RawMessage | null {
+  public consumeMessage(buffer: Buffer, offset: number, end: number): M | null {
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
@@ -271,7 +284,7 @@ export class StreamChannel {
     return result as any;
   }
 
-  public consumeResponse(buffer: Buffer, offset: number, end: number): RawResponse | null {
+  public consumeResponse(buffer: Buffer, offset: number, end: number): R | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
