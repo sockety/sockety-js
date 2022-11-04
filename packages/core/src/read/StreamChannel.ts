@@ -10,14 +10,13 @@ import {
   MessageFilesSizeBits,
 } from '../constants';
 import {
-  Message,
   CONSUME_DATA,
   CONSUME_FILE,
   CONSUME_FILES_HEADER,
   CONSUME_STREAM,
   END_STREAM,
-} from './Message';
-import { END, PUSH } from './MessageStream';
+} from './MessageBase';
+import { Message } from './Message';
 import { Response } from './Response';
 
 const createMessageConsumer = new BufferReader()
