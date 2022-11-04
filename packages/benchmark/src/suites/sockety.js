@@ -1,7 +1,7 @@
 const net = require('node:net');
 const tls = require('node:tls');
 const { UUIDMap } = require('../../../core/src/UuidMap');
-const { ack } = require('../../../core/src/producers/ack');
+const { accept } = require('../../../core/src/producers/accept');
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
 const { createMessage } = require('../../../core/src/createMessage');
 const { Socket } = require('../../../core/src/Socket');
@@ -101,7 +101,7 @@ async function messageListener(connection, message) {
       }));
     }));
   } else if (message.action === 'fast') {
-    await connection.pass(ack(message.id));
+    await connection.pass(accept(message.id));
   }
 }
 
@@ -149,7 +149,7 @@ suite('Sockety', () => {
         });
       });
       socket.on('message', (message) => received(message.id));
-      socket.on('ack', (id) => received(id));
+      socket.on('fast-reply', (id) => received(id));
       socket.on('error', (e) => console.error(e));
       return socket;
     });
@@ -202,7 +202,7 @@ suite('Sockety TLS', () => {
         });
       });
       socket.on('message', (message) => received(message.id));
-      socket.on('ack', (id) => received(id));
+      socket.on('fast-reply', (id) => received(id));
       socket.on('error', (e) => console.error(e));
       return socket;
     });

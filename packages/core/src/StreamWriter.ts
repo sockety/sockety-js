@@ -69,12 +69,8 @@ const switchChannelHighInstruction = (channel: number) => ($: WritableBuffer) =>
   $.writeUint8(PacketTypeBits.ChannelSwitch | (channel >> 8));
   $.writeUint8(channel & 0x00ff);
 };
-const ackInstruction = (id: UUID) => ($: WritableBuffer) => {
-  $.writeUint8(PacketTypeBits.Ack);
-  $.writeUuid(id);
-};
-const revokeInstruction = (id: UUID) => ($: WritableBuffer) => {
-  $.writeUint8(PacketTypeBits.Revoke);
+const fastReplyInstruction = (id: UUID, type: number) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.FastReply | type);
   $.writeUuid(id);
 };
 const bufferInlineInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBufferInline(buffer);
@@ -310,7 +306,9 @@ export class StreamWriter {
     }
     this.#endPacket();
     this.#currentChannel = channel;
-    if (channel <= 0x0f) {
+    if (channel < 0) {
+      throw new Error(`Minimum channel ID is 0.`);
+    } else if (channel <= 0x0f) {
       this.#instruction(switchChannelLowInstruction(channel), 1, sent, written);
     } else if (channel <= 0x0fff) {
       this.#instruction(switchChannelHighInstruction(channel), 2, sent, written);
@@ -319,14 +317,12 @@ export class StreamWriter {
     }
   }
 
-  public ack(id: UUID, sent?: SendCallback, written?: WriteCallback): void {
+  public fastReply(id: UUID, code: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#endPacket();
-    this.#instruction(ackInstruction(id), 17, sent, written);
-  }
-
-  public revoke(id: UUID, sent?: SendCallback, written?: WriteCallback): void {
-    this.#endPacket();
-    this.#instruction(revokeInstruction(id), 17, sent, written);
+    if (code < 0 || code > 0x0f) {
+      throw new Error('Invalid short response code.');
+    }
+    this.#instruction(fastReplyInstruction(id, code), 17, sent, written);
   }
 
   // TODO: Consider disallowing when the previous message is not finished yet (?)

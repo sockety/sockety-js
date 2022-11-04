@@ -1,8 +1,9 @@
 import { UUID } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from '../ContentProducer';
+import { FastReplyCode } from '../constants';
 
-export function ack(uuid: UUID): ContentProducer<void> {
+export function accept(uuid: UUID): ContentProducer<void> {
   return createContentProducer<void>((writer, sent, written) => {
-    writer.ack(uuid, sent, written);
+    writer.fastReply(uuid, FastReplyCode.Accept, sent, written);
   });
 }

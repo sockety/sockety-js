@@ -8,6 +8,7 @@ import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
 import { StreamParser } from './read/StreamParser';
 import { StreamWriter } from './StreamWriter';
+import { FastReplyCode } from './constants';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
@@ -34,8 +35,7 @@ export class Socket extends EventEmitter {
     // TODO: Handle timeout
     socket.pipe(this.#parser);
     this.#parser.on('message', (message) => this.emit('message', message));
-    this.#parser.on('ack', (uuid) => this.emit('ack', uuid));
-    this.#parser.on('revoke', (uuid) => this.emit('revoke', uuid));
+    this.#parser.on('fast-reply', (uuid) => this.emit('fast-reply', uuid));
     this.#socket.once('close', () => this.close(true));
     this.#socket.on('error', (error) => this.emit('error', error));
     this.#socket.once(isTlsSocket(this.#socket) ? 'secureConnect' : 'connect', () => this.emit('connect'));
@@ -87,13 +87,13 @@ export interface Socket {
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
 
-  addListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  on(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  once(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  prependListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  prependOnceListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  removeListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  emit(event: 'ack' | 'revoke', id: UUID): boolean;
+  addListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  on(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  once(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  prependListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  prependOnceListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  removeListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
+  emit(event: 'fast-reply', id: UUID, code: FastReplyCode | number): boolean;
 
   addListener(event: 'connect', listener: () => void): this;
   on(event: 'connect', listener: () => void): this;

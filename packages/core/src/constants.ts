@@ -4,18 +4,22 @@ export enum PacketTypeBits {
   ChannelSwitchLow = 0 << 4,
   ChannelSwitch = 1 << 4,
   Message = 2 << 4,
-  Response = 3 << 4,
-  Continue = 4 << 4,
-  Stream = 5 << 4,
-  StreamEnd = 6 << 4,
-  Ack = 7 << 4,
-  Revoke = 8 << 4,
-  Abort = 9 << 4,
-  Heartbeat = 10 << 4,
-  GoAway = 11 << 4,
-  File = 12 << 4,
-  FileEnd = 13 << 4,
-  Data = 14 << 4,
+  FastReply = 3 << 4,
+  Response = 4 << 4,
+  Continue = 5 << 4,
+  Stream = 6 << 4,
+  StreamEnd = 7 << 4,
+  Abort = 8 << 4,
+  Heartbeat = 9 << 4,
+  GoAway = 10 << 4,
+  File = 11 << 4,
+  FileEnd = 12 << 4,
+  Data = 13 << 4,
+}
+
+export enum FastReplyCode {
+  Accept = 0,
+  Revoke = 1,
 }
 
 // File packet size bucket:

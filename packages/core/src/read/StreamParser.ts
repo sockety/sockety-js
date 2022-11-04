@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
-import { FileIndexBits, FileSizeBits, PacketSizeBits, PacketTypeBits } from '../constants';
+import { FastReplyCode, FileIndexBits, PacketSizeBits, PacketTypeBits } from '../constants';
 import type { Message } from './Message';
 import { StreamChannel } from './StreamChannel';
 
@@ -141,11 +141,9 @@ const createPacketConsumer = new BufferReader()
     .earlyEnd())
 
   // Reply Fast
-  .when('type', PacketTypeBits.Ack, $ => $
-    .uuid('ack')
-    .earlyEnd())
-  .when('type', PacketTypeBits.Revoke, $ => $
-    .uuid('revoke')
+  .when('type', PacketTypeBits.FastReply, $ => $
+    .mask<'fastReply', FastReplyCode | number>('fastReply', 'header', 0b00001111)
+    .uuid('fastReplyUuid')
     .earlyEnd())
 
   // Abort Message
@@ -195,13 +193,16 @@ export class StreamParser extends Writable {
   // Current state
   #channels: Record<number, StreamChannel> = {};
   #currentChannel = this.#getChannel(0);
+  #fastReplyCode = 0;
 
   #switchChannel = (channelId: number) => {
     this.#currentChannel = this.#getChannel(channelId);
   };
 
-  #ack = (uuid: UUID) => this.emit('ack', uuid);
-  #revoke = (uuid: UUID) => this.emit('revoke', uuid);
+  #setFastReplyCode = (code: number) => {
+    this.#fastReplyCode = code;
+  };
+  #setFastReplyUuid = (uuid: UUID) => this.emit('fast-reply', uuid, this.#fastReplyCode);
   #heartbeat = () => this.emit('heartbeat');
   #goAway = () => this.emit('goAway');
 
@@ -246,8 +247,8 @@ export class StreamParser extends Writable {
     data: this.#appendData,
     stream: this.#passStream,
     streamEnd: this.#finishStream,
-    ack: this.#ack,
-    revoke: this.#revoke,
+    fastReply: this.#setFastReplyCode,
+    fastReplyUuid: this.#setFastReplyUuid,
     abort: this.#abort,
     heartbeat: this.#heartbeat,
     goAway: this.#goAway,
@@ -282,13 +283,13 @@ export interface StreamParser {
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
 
-  addListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  on(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  once(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  prependListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  prependOnceListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  removeListener(event: 'ack' | 'revoke', listener: (id: UUID) => void): this;
-  emit(event: 'ack' | 'revoke', id: UUID): boolean;
+  addListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  on(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  once(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  prependListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  prependOnceListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  removeListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
+  emit(event: 'fast-reply', id: UUID, code: number): boolean;
 
   addListener(event: 'goAway' | 'heartbeat', listener: () => void): this;
   on(event: 'goAway' | 'heartbeat', listener: () => void): this;
