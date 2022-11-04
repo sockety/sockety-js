@@ -10,6 +10,7 @@ const { MessageDataSizeBits, MessageFilesSizeBits, MessageFilesCountBits, Messag
 const { certificate, privateKey } = require('../../tls');
 const { kb512, mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
+const { generateUuid } = require('@sockety/uuid');
 const { makePool } = require('../makePool');
 
 function common() {
@@ -88,14 +89,10 @@ async function messageListener(connection, message) {
     await connection.pass(createContentProducer((writer, expectsResponse, callback) => {
       writer.reserveChannel((channelId, release) => writer.drained(async () => {
         writer.channel(channelId);
-        writer.startMessage(false, false);
-        writer.writeUint8(MessageDataSizeBits.None | MessageFilesSizeBits.Uint16 | MessageFilesCountBits.None | MessageActionSizeBits.Uint8);
+        writer.startResponse(false, false);
+        writer.writeUint8(MessageDataSizeBits.None | MessageFilesCountBits.None);
         writer.writeUuid(message.id);
-        writer.writeUint8(4);
-        writer.writeUint8(101);
-        writer.writeUint8(99);
-        writer.writeUint8(104);
-        writer.writeUint8(111);
+        writer.writeUuid(generateUuid());
         release();
         writer.addCallback(callback);
       }));
@@ -148,7 +145,7 @@ suite('Sockety', () => {
           }
         });
       });
-      socket.on('message', (message) => received(message.id));
+      socket.on('response', (message) => received(message.parentId));
       socket.on('fast-reply', (id) => received(id));
       socket.on('error', (e) => console.error(e));
       return socket;
@@ -201,7 +198,7 @@ suite('Sockety TLS', () => {
           }
         });
       });
-      socket.on('message', (message) => received(message.id));
+      socket.on('response', (message) => received(message.parentId));
       socket.on('fast-reply', (id) => received(id));
       socket.on('error', (e) => console.error(e));
       return socket;

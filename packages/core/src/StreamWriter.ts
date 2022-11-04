@@ -353,13 +353,14 @@ export class StreamWriter {
     this.#startPacket(PacketTypeBits.Continue);
   }
 
-  // public startResponse(expectsResponse: boolean, hasStream: boolean, sent?: SendCallback, written?: WriteCallback): void {
-  //
-  // }
-  //
-  // public continueResponse(sent?: SendCallback, written?: WriteCallback): void {
-  //
-  // }
+  public startResponse(expectsResponse: boolean, hasStream: boolean, sent?: SendCallback, written?: WriteCallback): void {
+    const type = PacketTypeBits.Response | (
+      (hasStream ? PacketStreamBits.Yes : PacketStreamBits.No) |
+      (expectsResponse ? PacketResponseBits.Yes : PacketResponseBits.No)
+    );
+    this.#endPacket();
+    this.#startPacket(type, sent, written);
+  }
 
   public stream(sent?: SendCallback, written?: WriteCallback): void {
     if (this.#isPacket(PacketTypeBits.Stream)) {

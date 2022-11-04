@@ -5,6 +5,7 @@ import type { UUID } from '@sockety/uuid';
 import { FastReply, FileIndexBits, PacketSizeBits, PacketTypeBits } from '../constants';
 import type { Message } from './Message';
 import { StreamChannel } from './StreamChannel';
+import { Response } from './Response';
 
 const createPacketConsumer = new BufferReader()
   .uint8('header').setInternal('header')
@@ -213,6 +214,7 @@ export class StreamParser extends Writable {
   #messageContent = (buffer: Buffer, offset: number, end: number) => {
     const message = this.#currentChannel.consumeMessage(buffer, offset, end);
     if (message) {
+      // TODO: Think if next tick should be there
       process.nextTick(() => {
         // TODO: Do it only when the message is not aborted
         this.emit('message', message);
@@ -222,9 +224,38 @@ export class StreamParser extends Writable {
 
   #responseHasStream = (hasStream: boolean) => this.#currentChannel.startResponse(hasStream);
   #responseExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
-  #responseContent = (buffer: Buffer, offset: number, end: number) => this.#currentChannel.consumeResponse(buffer, offset, end);
+  #responseContent = (buffer: Buffer, offset: number, end: number) => {
+    const response = this.#currentChannel.consumeResponse(buffer, offset, end);
+    if (response) {
+      // TODO: Think if next tick should be there
+      process.nextTick(() => {
+        // TODO: Do it only when the response is not aborted
+        this.emit('response', response);
+      });
+    }
+  };
 
-  #continueContent = (buffer: Buffer, offset: number, end: number) => this.#currentChannel.consumeContinue(buffer, offset, end);
+  #continueContent = (buffer: Buffer, offset: number, end: number) => {
+    if (this.#currentChannel.isMessage()) {
+      const message = this.#currentChannel.consumeMessage(buffer, offset, end);
+      if (message) {
+        // TODO: Think if next tick should be there
+        process.nextTick(() => {
+          // TODO: Do it only when the message is not aborted
+          this.emit('message', message);
+        });
+      }
+    } else {
+      const response = this.#currentChannel.consumeResponse(buffer, offset, end);
+      if (response) {
+        // TODO: Think if next tick should be there
+        process.nextTick(() => {
+          // TODO: Do it only when the response is not aborted
+          this.emit('response', response);
+        });
+      }
+    }
+  }
 
   #appendData = (buffer: Buffer) => this.#currentChannel.consumeData(buffer);
 
@@ -282,6 +313,15 @@ export interface StreamParser {
   prependOnceListener(event: 'message', listener: (message: Message) => void): this;
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
+
+  // TODO: Fix type of response message
+  addListener(event: 'response', listener: (response: Response) => void): this;
+  on(event: 'response', listener: (response: Response) => void): this;
+  once(event: 'response', listener: (response: Response) => void): this;
+  prependListener(event: 'response', listener: (response: Response) => void): this;
+  prependOnceListener(event: 'response', listener: (response: Response) => void): this;
+  removeListener(event: 'response', listener: (response: Response) => void): this;
+  emit(event: 'response', response: Response): boolean;
 
   addListener(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;
   on(event: 'fast-reply', listener: (id: UUID, code: number) => void): this;

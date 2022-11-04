@@ -18,6 +18,7 @@ import {
   END_STREAM,
 } from './Message';
 import { END, PUSH } from './MessageStream';
+import { Response } from './Response';
 
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
@@ -28,6 +29,50 @@ const createMessageConsumer = new BufferReader()
   .when('_actionSize', MessageActionSizeBits.Uint8, $ => $.uint8('actionSize').setInternal('actionSize'))
   .when('_actionSize', MessageActionSizeBits.Uint16, $ => $.uint16le('actionSize').setInternal('actionSize'))
   .utf8Dynamic('action', 'actionSize')
+
+  .mask<'_dataSize', MessageDataSizeBits>('_dataSize', 'flags', 0b11000000).setInternal('_dataSize')
+  .when('_dataSize', MessageDataSizeBits.None, $ => $.constant('dataSize', 0))
+  .when('_dataSize', MessageDataSizeBits.Uint8, $ => $.uint8('dataSize'))
+  .when('_dataSize', MessageDataSizeBits.Uint16, $ => $.uint16le('dataSize'))
+  .when('_dataSize', MessageDataSizeBits.Uint48, $ => $.uint48le('dataSize'))
+
+  .mask<'_filesCount', MessageFilesCountBits>('_filesCount', 'flags', 0b00110000).setInternal('_filesCount')
+  .when('_filesCount', MessageFilesCountBits.None, $ => $.constant('filesCount', 0))
+  .when('_filesCount', MessageFilesCountBits.Uint8, $ => $.uint8('filesCount'))
+  .when('_filesCount', MessageFilesCountBits.Uint16, $ => $.uint16le('filesCount'))
+  .when('_filesCount', MessageFilesCountBits.Uint24, $ => $.uint24le('filesCount'))
+
+  .mask<'_filesSize', MessageFilesSizeBits>('_filesSize', 'flags', 0b00001100).setInternal('_filesSize')
+  .compute<'__filesSize', number>('__filesSize', $ => `return ${$.read('_filesCount')} === ${MessageFilesCountBits.None} ? -1 : ${$.read('_filesSize')}`).setInternal('__filesSize')
+  .when('__filesSize', -1, $ => $.constant('filesSize', 0))
+  .when('__filesSize', MessageFilesSizeBits.Uint16, $ => $.uint16le('filesSize'))
+  .when('__filesSize', MessageFilesSizeBits.Uint24, $ => $.uint24le('filesSize'))
+  .when('__filesSize', MessageFilesSizeBits.Uint32, $ => $.uint32le('filesSize'))
+  .when('__filesSize', MessageFilesSizeBits.Uint48, $ => $.uint48le('filesSize'))
+
+  // TODO: Consider ignoring when there is no data
+  .arrayDynamic('filesHeader', 'filesCount', $ => $
+    .uint8('header').setInternal('header')
+
+    .mask<'_size', FileSizeBits>('_size', 'header', 0b00001100).setInternal('_size')
+    .when('_size', FileSizeBits.Uint8, $ => $.uint8('size'))
+    .when('_size', FileSizeBits.Uint16, $ => $.uint16le('size'))
+    .when('_size', FileSizeBits.Uint24, $ => $.uint24le('size'))
+    .when('_size', FileSizeBits.Uint48, $ => $.uint48le('size'))
+
+    .mask<'_nameSize', FileNameSizeBits>('_nameSize', 'header', 0b00000010).setInternal('_nameSize')
+    .when('_nameSize', FileNameSizeBits.Uint8, $ => $.uint8('nameSize').setInternal('nameSize'))
+    .when('_nameSize', FileNameSizeBits.Uint16, $ => $.uint16le('nameSize').setInternal('nameSize'))
+    .utf8Dynamic('name', 'nameSize') // TODO: Validate file name?
+  , true)
+
+  .end();
+
+const createResponseConsumer = new BufferReader()
+  .uint8('flags').setInternal('flags')
+
+  .uuid('parentId')
+  .uuid('id')
 
   .mask<'_dataSize', MessageDataSizeBits>('_dataSize', 'flags', 0b11000000).setInternal('_dataSize')
   .when('_dataSize', MessageDataSizeBits.None, $ => $.constant('dataSize', 0))
@@ -78,7 +123,8 @@ export class StreamChannel {
   #expectsResponse = false;
 
   // TODO: Set optional?
-  #message!: Message;
+  #message!: Message | Response;
+  #parentId!: UUID;
   #id!: UUID;
   #action!: string;
   #dataSize!: number;
@@ -87,6 +133,10 @@ export class StreamChannel {
   #hasStream!: boolean;
   #fileIndex!: number;
   #filesToProcess = 0;
+
+  #setParentId = (id: UUID) => {
+    this.#parentId = id;
+  };
 
   #setId = (id: UUID) => {
     this.#id = id;
@@ -115,17 +165,27 @@ export class StreamChannel {
 
   #setFilesSize = (filesSize: number) => {
     this.#filesSize = filesSize;
-    this.#message = new Message(
-      this.#id,
-      this.#action,
-      this.#dataSize,
-      this.#filesCount,
-      this.#filesSize,
-      this.#hasStream,
-      this.#expectsResponse,
-    );
-    // @ts-ignore: clean memory
-    this.#id = undefined;
+    if (this.#consumingMessage) {
+      this.#message = new Message(
+        this.#id,
+        this.#action,
+        this.#dataSize,
+        this.#filesCount,
+        this.#filesSize,
+        this.#hasStream,
+        this.#expectsResponse,
+      );
+    } else {
+      this.#message = new Response(
+        this.#id,
+        this.#parentId,
+        this.#dataSize,
+        this.#filesCount,
+        this.#filesSize,
+        this.#hasStream,
+        this.#expectsResponse,
+      );
+    }
   };
 
   #addFileHeader = ({ name, size }: { name: string, size: number }) => {
@@ -134,11 +194,22 @@ export class StreamChannel {
 
   #endMessageHeader = () => {
     this.#consumingMessage = false;
+    this.#consumingResponse = false;
   };
 
   #consumeMessage = createMessageConsumer({
     id: this.#setId,
     action: this.#setAction,
+    dataSize: this.#setDataSize,
+    filesCount: this.#setFilesCount,
+    filesSize: this.#setFilesSize,
+    filesHeader: this.#addFileHeader,
+    _end: this.#endMessageHeader,
+  });
+
+  #consumeResponse = createResponseConsumer({
+    parentId: this.#setParentId,
+    id: this.#setId,
     dataSize: this.#setDataSize,
     filesCount: this.#setFilesCount,
     filesSize: this.#setFilesSize,
@@ -158,6 +229,10 @@ export class StreamChannel {
       // @ts-ignore: clean memory
       this.#message = undefined;
     }
+  }
+
+  public isMessage(): boolean {
+    return this.#consumingMessage;
   }
 
   public startMessage(hasStream: boolean): void {
@@ -194,19 +269,23 @@ export class StreamChannel {
     }
     const result = !hadMessage && this.#message || null;
     this.#endMessageIfReady();
-    return result;
+    return result as any;
   }
 
-  public consumeResponse(buffer: Buffer, offset: number, end: number): Message | null {
+  public consumeResponse(buffer: Buffer, offset: number, end: number): Response | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
-    // TODO: Consume response
-    // TODO: Clear consuming* and hasStream after finishing the response
-    return null;
+    const hadMessage = Boolean(this.#message);
+    if (this.#consumeResponse.readOne(buffer, offset, end) !== end) {
+      throw new Error('The response packet size was malformed.');
+    }
+    const result = !hadMessage && this.#message || null;
+    this.#endMessageIfReady();
+    return result as any;
   }
 
-  public consumeContinue(buffer: Buffer, offset: number, end: number): Message | null {
+  public consumeContinue(buffer: Buffer, offset: number, end: number): Message | Response | null {
     if (this.#consumingMessage) {
       return this.consumeMessage(buffer, offset, end);
     } else if (this.#consumingResponse) {

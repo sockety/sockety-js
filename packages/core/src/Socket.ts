@@ -9,6 +9,7 @@ import { Request } from './Request';
 import { StreamParser } from './read/StreamParser';
 import { StreamWriter } from './StreamWriter';
 import { FastReply } from './constants';
+import { Response } from './read/Response';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
@@ -35,6 +36,7 @@ export class Socket extends EventEmitter {
     // TODO: Handle timeout
     socket.pipe(this.#parser);
     this.#parser.on('message', (message) => this.emit('message', message));
+    this.#parser.on('response', (response) => this.emit('response', response));
     this.#parser.on('fast-reply', (uuid) => this.emit('fast-reply', uuid));
     this.#socket.once('close', () => this.close(true));
     this.#socket.on('error', (error) => this.emit('error', error));
@@ -86,6 +88,14 @@ export interface Socket {
   prependOnceListener(event: 'message', listener: (message: Message) => void): this;
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
+
+  addListener(event: 'response', listener: (response: Response) => void): this;
+  on(event: 'response', listener: (response: Response) => void): this;
+  once(event: 'response', listener: (response: Response) => void): this;
+  prependListener(event: 'response', listener: (response: Response) => void): this;
+  prependOnceListener(event: 'response', listener: (response: Response) => void): this;
+  removeListener(event: 'response', listener: (response: Response) => void): this;
+  emit(event: 'response', response: Response): boolean;
 
   addListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
   on(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
