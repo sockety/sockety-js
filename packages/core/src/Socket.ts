@@ -8,7 +8,7 @@ import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
 import { StreamParser } from './read/StreamParser';
 import { StreamWriter } from './StreamWriter';
-import { FastReplyCode } from './constants';
+import { FastReply } from './constants';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
@@ -87,13 +87,13 @@ export interface Socket {
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
 
-  addListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  on(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  once(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  prependListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  prependOnceListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  removeListener(event: 'fast-reply', listener: (id: UUID, code: FastReplyCode | number) => void): this;
-  emit(event: 'fast-reply', id: UUID, code: FastReplyCode | number): boolean;
+  addListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  on(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  once(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  prependListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  prependOnceListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  removeListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
+  emit(event: 'fast-reply', id: UUID, code: FastReply | number): boolean;
 
   addListener(event: 'connect', listener: () => void): this;
   on(event: 'connect', listener: () => void): this;

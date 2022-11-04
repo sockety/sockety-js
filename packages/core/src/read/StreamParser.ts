@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
-import { FastReplyCode, FileIndexBits, PacketSizeBits, PacketTypeBits } from '../constants';
+import { FastReply, FileIndexBits, PacketSizeBits, PacketTypeBits } from '../constants';
 import type { Message } from './Message';
 import { StreamChannel } from './StreamChannel';
 
@@ -142,7 +142,7 @@ const createPacketConsumer = new BufferReader()
 
   // Reply Fast
   .when('type', PacketTypeBits.FastReply, $ => $
-    .mask<'fastReply', FastReplyCode | number>('fastReply', 'header', 0b00001111)
+    .mask<'fastReply', FastReply | number>('fastReply', 'header', 0b00001111)
     .uuid('fastReplyUuid')
     .earlyEnd())
 
@@ -199,7 +199,7 @@ export class StreamParser extends Writable {
     this.#currentChannel = this.#getChannel(channelId);
   };
 
-  #setFastReplyCode = (code: number) => {
+  #setFastReply = (code: number) => {
     this.#fastReplyCode = code;
   };
   #setFastReplyUuid = (uuid: UUID) => this.emit('fast-reply', uuid, this.#fastReplyCode);
@@ -247,7 +247,7 @@ export class StreamParser extends Writable {
     data: this.#appendData,
     stream: this.#passStream,
     streamEnd: this.#finishStream,
-    fastReply: this.#setFastReplyCode,
+    fastReply: this.#setFastReply,
     fastReplyUuid: this.#setFastReplyUuid,
     abort: this.#abort,
     heartbeat: this.#heartbeat,

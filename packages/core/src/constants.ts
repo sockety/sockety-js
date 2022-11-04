@@ -17,7 +17,7 @@ export enum PacketTypeBits {
   Data = 13 << 4,
 }
 
-export enum FastReplyCode {
+export enum FastReply {
   Accept = 0,
   Revoke = 1,
 }
