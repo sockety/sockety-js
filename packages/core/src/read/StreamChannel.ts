@@ -16,8 +16,8 @@ import {
   CONSUME_STREAM,
   END_STREAM,
 } from './MessageBase';
-import { Message } from './Message';
-import { Response } from './Response';
+import { RawMessage } from './RawMessage';
+import { RawResponse } from './RawResponse';
 
 const createMessageConsumer = new BufferReader()
   .uint8('flags').setInternal('flags')
@@ -122,7 +122,7 @@ export class StreamChannel {
   #expectsResponse = false;
 
   // TODO: Set optional?
-  #message!: Message | Response;
+  #message!: RawMessage | RawResponse;
   #parentId!: UUID;
   #id!: UUID;
   #action!: string;
@@ -165,7 +165,7 @@ export class StreamChannel {
   #setFilesSize = (filesSize: number) => {
     this.#filesSize = filesSize;
     if (this.#consumingMessage) {
-      this.#message = new Message(
+      this.#message = new RawMessage(
         this.#id,
         this.#action,
         this.#dataSize,
@@ -175,7 +175,7 @@ export class StreamChannel {
         this.#expectsResponse,
       );
     } else {
-      this.#message = new Response(
+      this.#message = new RawResponse(
         this.#id,
         this.#parentId,
         this.#dataSize,
@@ -258,7 +258,7 @@ export class StreamChannel {
     this.#expectsResponse = expectsResponse;
   }
 
-  public consumeMessage(buffer: Buffer, offset: number, end: number): Message | null {
+  public consumeMessage(buffer: Buffer, offset: number, end: number): RawMessage | null {
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
@@ -271,7 +271,7 @@ export class StreamChannel {
     return result as any;
   }
 
-  public consumeResponse(buffer: Buffer, offset: number, end: number): Response | null {
+  public consumeResponse(buffer: Buffer, offset: number, end: number): RawResponse | null {
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
@@ -282,15 +282,6 @@ export class StreamChannel {
     const result = !hadMessage && this.#message || null;
     this.#endMessageIfReady();
     return result as any;
-  }
-
-  public consumeContinue(buffer: Buffer, offset: number, end: number): Message | Response | null {
-    if (this.#consumingMessage) {
-      return this.consumeMessage(buffer, offset, end);
-    } else if (this.#consumingResponse) {
-      return this.consumeResponse(buffer, offset, end);
-    }
-    throw new Error('There is no packet in process.');
   }
 
   // TODO: Think if it shouldn't be in Message implementation

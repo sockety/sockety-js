@@ -1,12 +1,12 @@
 import { UUID } from '@sockety/uuid';
 import { MessageBase } from './MessageBase';
 
-export class Message extends MessageBase {
-  readonly #action: string;
+export class RawResponse extends MessageBase {
+  readonly #parentId: UUID;
 
   public constructor(
     id: UUID,
-    action: string,
+    parentId: UUID,
     dataSize: number,
     filesCount: number,
     totalFilesSize: number,
@@ -14,10 +14,10 @@ export class Message extends MessageBase {
     expectsResponse: boolean,
   ) {
     super(id, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
-    this.#action = action;
+    this.#parentId = parentId;
   }
 
-  public get action(): string {
-    return this.#action;
+  public get parentId(): UUID {
+    return this.#parentId;
   }
 }

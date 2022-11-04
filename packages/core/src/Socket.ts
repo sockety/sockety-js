@@ -3,13 +3,13 @@ import type * as net from 'node:net';
 import type * as tls from 'node:tls';
 import { UUID } from '@sockety/uuid';
 import { isTlsSocket } from './utils/isTlsSocket';
-import { Message } from './read/Message';
+import { RawMessage } from './read/RawMessage';
 import { ContentProducer } from './ContentProducer';
 import { Request } from './Request';
 import { StreamParser } from './read/StreamParser';
 import { StreamWriter } from './StreamWriter';
 import { FastReply } from './constants';
-import { Response } from './read/Response';
+import { RawResponse } from './read/RawResponse';
 
 type RawSocket = tls.TLSSocket | net.Socket;
 
@@ -81,21 +81,21 @@ export class Socket extends EventEmitter {
 }
 
 export interface Socket {
-  addListener(event: 'message', listener: (message: Message) => void): this;
-  on(event: 'message', listener: (message: Message) => void): this;
-  once(event: 'message', listener: (message: Message) => void): this;
-  prependListener(event: 'message', listener: (message: Message) => void): this;
-  prependOnceListener(event: 'message', listener: (message: Message) => void): this;
-  removeListener(event: 'message', listener: (message: Message) => void): this;
-  emit(event: 'message', message: Message): boolean;
+  addListener(event: 'message', listener: (message: RawMessage) => void): this;
+  on(event: 'message', listener: (message: RawMessage) => void): this;
+  once(event: 'message', listener: (message: RawMessage) => void): this;
+  prependListener(event: 'message', listener: (message: RawMessage) => void): this;
+  prependOnceListener(event: 'message', listener: (message: RawMessage) => void): this;
+  removeListener(event: 'message', listener: (message: RawMessage) => void): this;
+  emit(event: 'message', message: RawMessage): boolean;
 
-  addListener(event: 'response', listener: (response: Response) => void): this;
-  on(event: 'response', listener: (response: Response) => void): this;
-  once(event: 'response', listener: (response: Response) => void): this;
-  prependListener(event: 'response', listener: (response: Response) => void): this;
-  prependOnceListener(event: 'response', listener: (response: Response) => void): this;
-  removeListener(event: 'response', listener: (response: Response) => void): this;
-  emit(event: 'response', response: Response): boolean;
+  addListener(event: 'response', listener: (response: RawResponse) => void): this;
+  on(event: 'response', listener: (response: RawResponse) => void): this;
+  once(event: 'response', listener: (response: RawResponse) => void): this;
+  prependListener(event: 'response', listener: (response: RawResponse) => void): this;
+  prependOnceListener(event: 'response', listener: (response: RawResponse) => void): this;
+  removeListener(event: 'response', listener: (response: RawResponse) => void): this;
+  emit(event: 'response', response: RawResponse): boolean;
 
   addListener(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
   on(event: 'fast-reply', listener: (id: UUID, code: FastReply | number) => void): this;
