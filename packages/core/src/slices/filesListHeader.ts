@@ -13,8 +13,8 @@ export const filesListHeader = (filesCount: number, totalFilesSize: number) => {
   }
   const totalFilesSizeBytes = getTotalFilesSizeBytes(totalFilesSize);
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    writer.channelNoCallback(channel);
-    writer.continueMessageNoCallback();
+    writer.channel(channel);
+    writer.continueMessage();
     writer.writeUint(filesCount, filesCountBytes);
     writer.writeUint(totalFilesSize, totalFilesSizeBytes, sent, written);
     registered?.();

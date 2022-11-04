@@ -1,10 +1,7 @@
 import { UUID } from '@sockety/uuid';
 import { createContentProducerSlice } from '../ContentProducer';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
 import { createNumberBytesMapper } from '../createNumberBytesMapper';
 import {
-  FileNameSizeBits, FileSizeBits,
-  MessageActionSizeBits,
   MessageDataSizeBits,
   MessageFilesCountBits,
   MessageFilesSizeBits
@@ -31,28 +28,24 @@ const getDataFlag = createNumberBytesMapper('data', {
   6: MessageDataSizeBits.Uint48,
 });
 
-const getActionNameFlag = createNumberBytesMapper('action name', {
-  1: MessageActionSizeBits.Uint8,
-  2: MessageActionSizeBits.Uint16,
-});
-
-export const messageStart = (hasStream: boolean, actionLength: number) => {
-  const actionSizeBits = getActionNameFlag(actionLength);
-
+export const responseStart = (hasStream: boolean) => {
   return (dataLength: number, filesCount: number, totalFilesSize: number) => {
     const filesCountBits = getFilesCountFlag(filesCount);
     const filesSizeBits = getTotalFilesSizeFlag(totalFilesSize);
     const dataSizeBits = getDataFlag(dataLength);
-    const flags = filesCountBits | filesSizeBits | dataSizeBits | actionSizeBits;
+    const flags = filesCountBits | filesSizeBits | dataSizeBits;
 
-    return (id: UUID, expectsResponse: boolean) => {
+    return (parentId: UUID) => (id: UUID, expectsResponse: boolean) => {
       return createContentProducerSlice((writer, channel, sent, written, registered) => {
         writer.channel(channel);
-        writer.startMessage(expectsResponse, hasStream);
-        writer.writeUint8(flags);
-        writer.writeUuid(id, sent, written);
+        writer.startResponse(expectsResponse, hasStream);
+        writer.unsafeInstruction((buffer) => {
+          buffer.writeUint8(flags);
+          buffer.writeUuid(parentId);
+          buffer.writeUuid(id);
+        }, 33, sent, written);
         registered?.();
       });
-    }
+    };
   }
 }

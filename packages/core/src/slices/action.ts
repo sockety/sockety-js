@@ -8,8 +8,8 @@ export const action = (name: string) => {
   const length = action.length;
   const bytes = getActionNameBytes(length);
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    writer.channelNoCallback(channel);
-    writer.continueMessageNoCallback();
+    writer.channel(channel);
+    writer.continueMessage();
     writer.writeUint(length, bytes);
     writer.writeBuffer(action, sent, written);
     registered?.();

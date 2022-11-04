@@ -7,7 +7,7 @@ export const fileContent = (index: number) => (content: Buffer | undefined) => {
   }
   // TODO: Support splitting for >4GB
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    writer.channelNoCallback(channel);
+    writer.channel(channel);
     writer.file(index);
     writer.writeBuffer(content, sent, written);
     registered?.();

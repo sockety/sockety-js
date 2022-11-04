@@ -74,8 +74,8 @@ export const filesList = (files?: FileSent[] | null) => {
     offset = writeFileHeader(filesHeaderBuffer, offset, file);
   }
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    writer.channelNoCallback(channel);
-    writer.continueMessageNoCallback();
+    writer.channel(channel);
+    writer.continueMessage();
     writer.writeBuffer(filesHeaderBuffer, sent, written);
     registered?.();
   });

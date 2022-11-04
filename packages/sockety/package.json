@@ -1,0 +1,77 @@
+{
+  "name": "sockety",
+  "description": "Sockety client and server",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Dawid Rusnak",
+    "email": "dawid@drcode.pl",
+    "url": "https://www.drcode.pl"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "socket",
+    "tcp",
+    "tls",
+    "net",
+    "stream",
+    "communication",
+    "protocol",
+    "realtime",
+    "real-time",
+    "events",
+    "client",
+    "server",
+    "ipc",
+    "api",
+    "transfer",
+    "rpc"
+  ],
+  "files": [
+    "src/**/*.js",
+    "src/**/*.d.ts",
+    "index.js",
+    "index.d.ts"
+  ],
+  "homepage": "https://github.com/sockety/sockety-js/tree/master/packages/sockety#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sockety/sockety-js.git",
+    "directory": "packages/sockety"
+  },
+  "bugs": {
+    "url": "https://github.com/sockety/sockety-js/issues"
+  },
+  "scripts": {
+    "clean": "rimraf {src,test}/**/*.{js,d.ts,map} index.{js,d.ts,js.map}",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "ts-check": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache 'src/**/*!(.d).ts' --ignore-pattern 'src/**/*.d.ts'",
+    "test": "jest"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "**/?(*.)ts",
+      "!**/?(*.)d.ts",
+      "!**/fixtures/**/?(*.)ts"
+    ],
+    "collectCoverage": true,
+    "coverageProvider": "v8",
+    "coverageReporters": [],
+    "moduleFileExtensions": [ "ts", "js", "mjs", "cjs", "json", "node" ],
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/test/**/?(*.)spec.ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
+  },
+  "dependencies": {
+    "@sockety/core": "*",
+    "@sockety/uuid": "*"
+  }
+}

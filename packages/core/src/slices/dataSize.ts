@@ -12,8 +12,8 @@ export const dataSize = (dataLength: number) => {
   }
 
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    writer.channelNoCallback(channel);
-    writer.continueMessageNoCallback();
+    writer.channel(channel);
+    writer.continueMessage();
     writer.writeUint(dataLength, dataSizeBytes, sent, written);
     registered?.();
   });

@@ -1,16 +1,9 @@
-const net = require('node:net');
-const tls = require('node:tls');
-const { UUIDMap } = require('../../../core/src/UuidMap');
-const { accept } = require('../../../core/src/producers/accept');
+const { createServer, createSecureServer, connect, secureConnect } = require('../../../sockety');
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
 const { createMessage } = require('../../../core/src/createMessage');
-const { Socket } = require('../../../core/src/Socket');
-const { createContentProducer } = require('../../../core/src/ContentProducer');
-const { MessageDataSizeBits, MessageFilesSizeBits, MessageFilesCountBits, MessageActionSizeBits } = require('../../../core/src/constants');
 const { certificate, privateKey } = require('../../tls');
 const { kb512, mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
-const { generateUuid } = require('@sockety/uuid');
 const { makePool } = require('../makePool');
 
 function common() {
@@ -23,32 +16,12 @@ function common() {
 
   {
     const message = createMessage({ action: 'fast' }, false);
-    benchmark('ACKed message', async ({ getClient, bucket }) => {
-      const outgoing = getClient().send(message);
-      await new Promise((resolve) => {
-        const current = bucket.get(outgoing.id);
-        if (current) {
-          resolve(null);
-        } else {
-          bucket.set(outgoing.id, resolve);
-        }
-      });
-    });
+    benchmark('ACKed message', async ({ getClient }) => getClient().send(message).response());
   }
 
   {
     const message = createMessage({ action: 'echo' }, false);
-    benchmark('Echo message', async ({ getClient, bucket }) => {
-      const outgoing = getClient().send(message);
-      await new Promise((resolve) => {
-        const current = bucket.get(outgoing.id);
-        if (current) {
-          resolve(null);
-        } else {
-          bucket.set(outgoing.id, resolve);
-        }
-      });
-    });
+    benchmark('Echo message', async ({ getClient }) => getClient().send(message).response());
   }
 
   {
@@ -84,31 +57,21 @@ function common() {
   }
 }
 
-async function messageListener(connection, message) {
+async function messageListener(message) {
   if (message.action === 'echo') {
-    await connection.pass(createContentProducer((writer, expectsResponse, callback) => {
-      writer.reserveChannel((channelId, release) => writer.drained(async () => {
-        writer.channel(channelId);
-        writer.startResponse(false, false);
-        writer.writeUint8(MessageDataSizeBits.None | MessageFilesCountBits.None);
-        writer.writeUuid(message.id);
-        writer.writeUuid(generateUuid());
-        release();
-        writer.addCallback(callback);
-      }));
-    }));
+    await message.respond({});
   } else if (message.action === 'fast') {
-    await connection.pass(accept(message.id));
+    await message.accept();
   }
 }
 
 suite('Sockety', () => {
   prepareServer(async ({ config: { port } }) => {
-    const server = net.createServer((socket) => {
-      const connection = new Socket(socket);
-      connection.on('message', (message) => messageListener(connection, message));
-    });
+    const server = createServer();
     server.on('error', () => {});
+    server.on('connection', (connection) => {
+      connection.on('message', messageListener);
+    });
 
     await new Promise((resolve, reject) => {
       server.listen({ port }, (error) => {
@@ -124,29 +87,9 @@ suite('Sockety', () => {
   prepareClient(async (context) => {
     const { connectionsPerWorker, port, remoteHost } = context.config;
     const host = remoteHost || 'localhost';
-    const bucket = context.bucket = new UUIDMap();
-    const noop = () => {};
-    const received = (id) => {
-      const current = bucket.get(id);
-      if (current) {
-        current();
-      } else {
-        bucket.set(id, noop);
-      }
-    };
 
     context.getClient = await makePool(connectionsPerWorker, async () => {
-      const socket = await new Promise((resolve, reject) => {
-        const socket = net.connect({ host, port }, (error) => {
-          if (error == null) {
-            resolve(new Socket(socket));
-          } else {
-            reject(error);
-          }
-        });
-      });
-      socket.on('response', (message) => received(message.parentId));
-      socket.on('fast-reply', (id) => received(id));
+      const socket = await connect({ host, port }).ready();
       socket.on('error', (e) => console.error(e));
       return socket;
     });
@@ -157,11 +100,11 @@ suite('Sockety', () => {
 
 suite('Sockety TLS', () => {
   prepareServer(async ({ config: { port } }) => {
-    const server = tls.createServer({ cert: certificate, key: privateKey }, (socket) => {
-      const connection = new Socket(socket);
-      connection.on('message', (message) => messageListener(connection, message));
-    });
+    const server = createSecureServer({ cert: certificate, key: privateKey });
     server.on('error', () => {});
+    server.on('connection', (connection) => {
+      connection.on('message', messageListener);
+    });
 
     await new Promise((resolve, reject) => {
       server.listen({ port }, (error) => {
@@ -177,29 +120,9 @@ suite('Sockety TLS', () => {
   prepareClient(async (context) => {
     const { connectionsPerWorker, port, remoteHost } = context.config;
     const host = remoteHost || 'localhost';
-    const bucket = context.bucket = new UUIDMap();
-    const noop = () => {};
-    const received = (id) => {
-      const current = bucket.get(id);
-      if (current) {
-        current();
-      } else {
-        bucket.set(id, noop);
-      }
-    };
 
     context.getClient = await makePool(connectionsPerWorker, async () => {
-      const socket = await new Promise((resolve, reject) => {
-        const socket = tls.connect({ ca: certificate, host, port }, (error) => {
-          if (error == null) {
-            resolve(new Socket(socket));
-          } else {
-            reject(error);
-          }
-        });
-      });
-      socket.on('response', (message) => received(message.parentId));
-      socket.on('fast-reply', (id) => received(id));
+      const socket = await secureConnect({ ca: certificate, host, port }).ready();
       socket.on('error', (e) => console.error(e));
       return socket;
     });

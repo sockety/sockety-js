@@ -24,7 +24,7 @@
     "url": "https://github.com/sockety/sockety-js/issues"
   },
   "scripts": {
-    "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build",
+    "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build && npm --prefix ../sockety run build",
     "start": "node index.js"
   },
   "dependencies": {
