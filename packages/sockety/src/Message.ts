@@ -6,7 +6,7 @@ import { Readable } from 'node:stream';
 import { Request } from './Request';
 import { createResponse } from '@sockety/core/src/createResponse';
 import { accept } from '@sockety/core/src/producers/accept';
-import { revoke } from '@sockety/core/src/producers/revoke';
+import { reject } from '@sockety/core/src/producers/reject';
 
 // TODO: Extract type
 type FileBufferSent = { name: string, buffer: Buffer };
@@ -45,7 +45,7 @@ export class Message extends RawMessage {
   }
 
   // TODO: Support other fast replies too
-  public revoke(): Promise<void> {
-    return this.#connection.pass(revoke(this.id));
+  public reject(): Promise<void> {
+    return this.#connection.pass(reject(this.id));
   }
 }
