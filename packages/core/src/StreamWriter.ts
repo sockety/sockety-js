@@ -154,7 +154,6 @@ export class StreamWriter {
     return (this.#currentPacket! & type) === type;
   }
 
-  // TODO: Split it when it's over some size
   #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#instructionsCount++;
     this.#instructionsMaxBytes += maxByteLength;
