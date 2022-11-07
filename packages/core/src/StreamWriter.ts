@@ -77,8 +77,6 @@ const bufferInlineInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.wri
 const bufferWriteInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBuffer(buffer);
 
 // TODO: "Abort" could delete whole packet
-// TODO: It doesn't have to use WritableBuffer,
-//       it could have a pre-allocated buffer without all additional stuff.
 export class StreamWriter {
   readonly #buffer: WritableBuffer;
   readonly #maxChannels: number;
@@ -128,13 +126,11 @@ export class StreamWriter {
     this.#scheduled = false;
     this.#endPacket();
 
-    // TODO: Do it better?
     this.#buffer.arrangeSize(this.#instructionsMaxBytes);
 
     let instruction = this.#firstInstruction;
 
     // TODO: Handle errors?
-    // TODO: Wait for drain? and recalculate max bytes for sent instructions?
     while (instruction) {
       if (this.#buffer.needsDrain) {
         this.#firstInstruction = instruction;
@@ -166,7 +162,6 @@ export class StreamWriter {
       this.#currentPacketBytes += maxByteLength;
     }
 
-    // TODO: benchmark POJO instead
     const item = new StreamWriterInstruction(instruction, maxByteLength, sent, written);
     if (this.#lastInstruction) {
       this.#lastInstruction = this.#lastInstruction.next = item;
@@ -174,8 +169,7 @@ export class StreamWriter {
       this.#firstInstruction = this.#lastInstruction = item;
     }
 
-    // TODO: Consider that
-    // if (this.#currentPacket === null && (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500)) {
+    // TODO: Add configuration
     if (this.#currentPacket === null && this.#instructionsMaxBytes > 65_000) {
       this.#commit();
     } else {
@@ -260,10 +254,8 @@ export class StreamWriter {
     });
     this.#currentPacket = null;
 
-    // TODO: Consider that
-    // FIXME: Flush if the list is big
+    // TODO: Add configuration option
     if (this.#instructionsMaxBytes > 65_000) {
-    // if (this.#instructionsMaxBytes > 65_000 || this.#instructionsCount > 500) {
       this.#commit();
     }
   }

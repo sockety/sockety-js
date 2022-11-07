@@ -106,7 +106,6 @@ export class Connection extends EventEmitter {
 
   public send<T extends boolean>(producer: ContentProducer<RawRequest<T>>): Request<T> {
     // TODO: Avoid sending when the socket is closing
-    // TODO: Return enhanced Request object
     const request = producer(this.#writer, noop, noop, true);
     return new Request<T>(this, request);
   }

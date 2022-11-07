@@ -326,7 +326,6 @@ export interface StreamParser<M extends RawMessage = RawMessage, R extends RawRe
   removeListener(event: 'message', listener: (message: M) => void): this;
   emit(event: 'message', message: M): boolean;
 
-  // TODO: Fix type of response message
   addListener(event: 'response', listener: (response: R) => void): this;
   on(event: 'response', listener: (response: R) => void): this;
   once(event: 'response', listener: (response: R) => void): this;

@@ -54,7 +54,6 @@ const createMessageConsumer = new BufferReader()
   .when('__filesSize', MessageFilesSizeBits.Uint32, $ => $.uint32le('filesSize'))
   .when('__filesSize', MessageFilesSizeBits.Uint48, $ => $.uint48le('filesSize'))
 
-  // TODO: Consider ignoring when there is no data
   .arrayDynamic('filesHeader', 'filesCount', $ => $
     .uint8('header').setInternal('header')
 
@@ -347,7 +346,6 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (!this.#message) {
       throw new Error('There is no message processed.');
     }
-    // console.log(`[FILE ${this.#fileIndex}]`, formatBuffer(content));
     this.#message[CONSUME_FILE](this.#fileIndex, content);
   }
 
@@ -365,10 +363,6 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
         this.#endMessageIfReady();
       }
     }
-
-    // console.log(`[FILE ${index}]`, 'END');
     // TODO: Verify size
-    // TODO: End stream
-    // TODO: End consumingStream if all done
   }
 }

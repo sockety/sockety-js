@@ -33,7 +33,6 @@ function isFileStream(file: FileSent): file is FileStreamSent {
 }
 
 // TODO: Validate provided data? Or on receive?
-// TODO: Lazy compute for better initial performance?
 export function createResponse<T extends boolean>({
   data: rawData,
   files,

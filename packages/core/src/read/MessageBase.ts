@@ -86,15 +86,12 @@ export class MessageBase {
     return true;
   }
 
-  // TODO: Types
-  // TODO: Add handler to read files header
   // TODO: Consider if files should have unique names
   // TODO: Paths in file names are required, for tasks like copying folder
   public [CONSUME_FILES_HEADER](name: string, size: number): void {
     this.#files.push(new MessageFileStream(name, size));
   }
 
-  // TODO: Consider boolean for backpressure?
   public [CONSUME_FILE](index: number, data: Buffer): void {
     const file = this.#files[index];
     if (!file) {
@@ -118,9 +115,5 @@ export class MessageBase {
   public get files(): MessageFileStream[] {
     return this.#files;
   }
-
-  // TODO: Add option to yield files?
-  // TODO: Add helpers for 'finish()'
-  // TODO: Add helpers for ack/revoke
   // TODO: Support GOAWAY/ABORT, and pass that information to inner streams
 }

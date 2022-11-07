@@ -41,7 +41,6 @@ class AggregatedCallback {
 
 // TODO: Handle backpressure?
 // TODO: Consider boolean for all writes
-// TODO: Consider splitting for smaller buffers, so callbacks will be run more often on worse transfer.
 export class WritableBuffer {
   readonly #writable: Writable;
   readonly #drain: DrainListener;
