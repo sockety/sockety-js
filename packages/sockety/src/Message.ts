@@ -35,6 +35,10 @@ export class Message extends RawMessage {
     this.#connection = connection;
   }
 
+  public get connection(): Connection {
+    return this.#connection;
+  }
+
   public respond<T extends true | false | undefined>(options: RespondOptions, hasStream?: T): T extends undefined ? Promise<Request<false>> : Promise<Request<T>> {
     return this.#connection.send(createResponse(options, Boolean(hasStream))(this.id)) as any;
   }
