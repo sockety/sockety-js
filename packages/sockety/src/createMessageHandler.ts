@@ -1,5 +1,6 @@
 import { Message } from './Message';
 
+// TODO: Consider try/catch with internal error returned
 export function createMessageHandler<T extends Record<string, (message: Message) => void>>(handlers: T): (message: Message) => void {
   const keys = Object.keys(handlers);
   if (keys.length === 0) {
