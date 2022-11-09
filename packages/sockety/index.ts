@@ -7,3 +7,4 @@ export * from './src/Draft';
 export type { Connection } from './src/Connection';
 export type { Message } from './src/Message';
 export type { MessageDataStream } from '@sockety/core/src/read/MessageDataStream';
+export type { ContentProducer } from '@sockety/core/src/ContentProducer';
