@@ -6,6 +6,7 @@ import { Connection } from './Connection';
 export class Server extends EventEmitter {
   readonly #server: TcpServer;
   readonly #options: RawServerOptions;
+  readonly clients: Connection[] = [];
 
   public constructor(rawServer: TcpServer, options: RawServerOptions = {}) {
     super();
@@ -22,7 +23,16 @@ export class Server extends EventEmitter {
   }
 
   #handleSocket(rawSocket: TcpSocket): void {
-    this.emit('connection', new Connection(rawSocket, this.#options));
+    // Wrap socket
+    const connection = new Connection(rawSocket, this.#options);
+
+    // Register connection
+    const clients = this.clients;
+    clients.push(connection);
+    connection.once('close', () => clients.splice(clients.indexOf(connection), 1));
+
+    // Emit new client connected
+    this.emit('connection', connection);
   }
 
   #handleClose(): void {
