@@ -1,0 +1,34 @@
+{
+  "name": "@sockety/examples",
+  "description": "Examples of applications based on Sockety",
+  "version": "0.0.0",
+  "license": "MIT",
+  "publishConfig": {
+    "private": true
+  },
+  "author": {
+    "name": "Dawid Rusnak",
+    "email": "dawid@drcode.pl",
+    "url": "https://www.drcode.pl"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "homepage": "https://github.com/sockety/sockety-js/tree/master/packages/examples#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sockety/sockety-js.git",
+    "directory": "packages/examples"
+  },
+  "bugs": {
+    "url": "https://github.com/sockety/sockety-js/issues"
+  },
+  "scripts": {
+    "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build && npm --prefix ../sockety run build"
+  },
+  "dependencies": {
+    "sockety": "*",
+    "chalk": "^4.1.2",
+    "ts-node": "^10.9.1"
+  }
+}

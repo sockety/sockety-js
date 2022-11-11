@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "start-server": "ts-node server",
+    "start-client": "ts-node-client"
+  }
+}

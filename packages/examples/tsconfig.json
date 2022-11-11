@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "types": [
+      "node",
+      "jest"
+    ],
+    "lib": [
+      "es2022"
+    ],
+    "module": "commonjs",
+    "baseUrl": "./",
+    "noEmitOnError": true,
+    "sourceMap": true,
+    "strict": true,
+    "declaration": true,
+    "paths": {
+      "@sockety/!(core)": [
+        "../*",
+        "node_modules/@sockety/*"
+      ],
+      "sockety": [
+        "../sockety",
+        "node_modules/sockety"
+      ],
+      "*": [
+        "*",
+        "node_modules/*"
+      ]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "./*.ts"
+  ],
+  "exclude": [
+    "./node_modules"
+  ]
+}
