@@ -22,9 +22,12 @@ interface RespondOptions {
   files?: FileSent[];
 }
 
+// TODO: Consider event emitter to hook to message lifecycle
 export class Message extends RawMessage {
   readonly #connection: Connection;
   #respond = false;
+  #dataBuffer?: Promise<Buffer>;
+  #msgpack?: Promise<any>;
 
   public constructor(
     connection: Connection,
@@ -48,27 +51,39 @@ export class Message extends RawMessage {
     return this.#connection;
   }
 
-  public async dataBuffer(): Promise<Buffer> {
-    if (!this.data) {
-      return NONE;
-    }
+  async #readDataBuffer(): Promise<Buffer> {
     const buffer = Buffer.allocUnsafe(this.dataSize);
     let offset = 0;
-    this.data.on('data', (data) => {
+    this.data!.on('data', (data) => {
       offset = data.copy(buffer, offset);
     });
     await Promise.race([
-      once(this.data, 'end'),
-      once(this.data, 'error').then(Promise.reject),
+      once(this.data!, 'end'),
+      once(this.data!, 'error').then(Promise.reject),
     ]);
     return buffer;
   }
 
+  public dataBuffer(): Promise<Buffer> {
+    if (!this.data) {
+      return Promise.resolve(NONE);
+    } else if (!this.#dataBuffer) {
+      this.#dataBuffer = this.#readDataBuffer();
+    }
+    return this.#dataBuffer;
+  }
+
+  async #readMsgpack(): Promise<any> {
+    return this.dataBuffer().then(msgpack.decode);
+  }
+
   public msgpack(): Promise<any> {
     if (!this.data) {
-      return Promise.resolve(undefined);
+      return Promise.resolve(NONE);
+    } else if (!this.#msgpack) {
+      this.#msgpack = this.#readMsgpack();
     }
-    return this.dataBuffer().then(msgpack.decode);
+    return this.#msgpack;
   }
 
   public respond<T extends true | false | undefined>(options: RespondOptions, hasStream?: T): T extends undefined ? Promise<Request<false>> : Promise<Request<T>> {
