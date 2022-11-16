@@ -24,6 +24,7 @@ interface RespondOptions {
 
 export class Message extends RawMessage {
   readonly #connection: Connection;
+  #respond = false;
 
   public constructor(
     connection: Connection,
@@ -37,6 +38,10 @@ export class Message extends RawMessage {
   ) {
     super(id, action, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
     this.#connection = connection;
+  }
+
+  public get responded(): boolean {
+    return this.#respond;
   }
 
   public get connection(): Connection {
@@ -67,16 +72,19 @@ export class Message extends RawMessage {
   }
 
   public respond<T extends true | false | undefined>(options: RespondOptions, hasStream?: T): T extends undefined ? Promise<Request<false>> : Promise<Request<T>> {
+    this.#respond = true;
     return this.#connection.send(createResponse(options, Boolean(hasStream))(this.id)) as any;
   }
 
   // TODO: Support other fast replies too
   public accept(): Promise<void> {
+    this.#respond = true;
     return this.#connection.pass(accept(this.id));
   }
 
   // TODO: Support other fast replies too
   public reject(): Promise<void> {
+    this.#respond = true;
     return this.#connection.pass(reject(this.id));
   }
 }
