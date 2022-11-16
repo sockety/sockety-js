@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { ListenOptions } from 'node:net';
+import { ContentProducer } from '@sockety/core/src/ContentProducer';
 import { RawServerOptions, TcpServer, TcpSocket } from './types';
 import { Connection } from './Connection';
 
@@ -65,6 +66,17 @@ export class Server extends EventEmitter {
         }
       });
     });
+  }
+
+  // TODO: Add concurrency option
+  public async broadcast(producer: ContentProducer, filter: (connection: Connection) => boolean = () => true): Promise<void> {
+    const promises = [];
+    for (const connection of this.clients) {
+      if (filter(connection)) {
+        promises.push(connection.pass(producer));
+      }
+    }
+    await Promise.all(promises);
   }
 
   public listen(port: number, hostname?: string, backlog?: number): Promise<this>;
