@@ -5,8 +5,8 @@ import * as msgpack from 'msgpackr';
 import { RawMessage } from '@sockety/core/src/read/RawMessage';
 import { UUID } from '@sockety/uuid';
 import { createResponse } from '@sockety/core/src/createResponse';
-import { accept } from '@sockety/core/src/producers/accept';
-import { reject } from '@sockety/core/src/producers/reject';
+import { FastReply } from '@sockety/core/src/constants';
+import { fastReply } from '@sockety/core/src/producers/fastReply';
 import { Request } from './Request';
 import { Connection } from './Connection';
 
@@ -76,15 +76,16 @@ export class Message extends RawMessage {
     return this.#connection.send(createResponse(options, Boolean(hasStream))(this.id)) as any;
   }
 
-  // TODO: Support other fast replies too
-  public accept(): Promise<void> {
+  public fastReply(code: FastReply | number): Promise<void> {
     this.#respond = true;
-    return this.#connection.pass(accept(this.id));
+    return this.#connection.pass(fastReply(this.id, code));
   }
 
-  // TODO: Support other fast replies too
+  public accept(): Promise<void> {
+    return this.fastReply(FastReply.Accept);
+  }
+
   public reject(): Promise<void> {
-    this.#respond = true;
-    return this.#connection.pass(reject(this.id));
+    return this.fastReply(FastReply.Reject);
   }
 }
