@@ -298,6 +298,7 @@ export class StreamWriter {
     }
   }
 
+  // TODO: Handle fast reply higher than 16
   public fastReply(id: UUID, code: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#endPacket();
     if (code < 0 || code > 0x0f) {

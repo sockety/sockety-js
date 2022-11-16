@@ -20,6 +20,7 @@ export enum PacketTypeBits {
 export enum FastReply {
   Accept = 0,
   Reject = 1,
+  NotImplemented = 2,
 }
 
 // File packet size bucket:
