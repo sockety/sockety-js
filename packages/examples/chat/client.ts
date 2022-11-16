@@ -24,12 +24,15 @@ const rl = readline.createInterface({
   },
 });
 
-function writeChatLine(line: string): void {
+function writeLine(line: string): void {
   process.stdout.clearLine(0);
   process.stdout.cursorTo(0);
   process.stdout.write(`${line}\n`);
   rl.prompt(true);
 }
+
+const writeChatLine = (line: string) => writeLine(line);
+const writeError = (line: string) => writeLine(chalk.red(line));
 
 // Set draft messages
 
@@ -55,7 +58,7 @@ async function start(name: string) {
   });
 
   client.on('message', createMessageHandler({
-    async receiveBroadcast(message) {
+    async main(message) {
       const { date, author, content } = await message.msgpack();
       const time = date.match(/\d{2}:\d{2}:\d{2}/)[0];
       const formattedContent = content
@@ -82,7 +85,6 @@ async function start(name: string) {
   await client.pass(register({ data: name }));
 
   function readMessage() {
-    // TODO: Handle Ctrl+C which is blocking stdin but not closing
     rl.question('> ', async (text) => {
       readline.moveCursor(process.stdout, 0, -1);
       readline.clearLine(process.stdout, 0);
@@ -92,8 +94,13 @@ async function start(name: string) {
 
       readMessage();
 
-      const request = client.send(broadcast({ data: text }));
-      await request.sent();
+      const [ , command, arg ] = text.match(/^\/(name)\s+(.+)$/) || [];
+      if (command === 'name') {
+        name = arg;
+        await client.send(register({ data: arg })).sent();
+      } else {
+        await client.send(broadcast({ data: text })).sent();
+      }
     });
   }
 
