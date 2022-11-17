@@ -23,6 +23,7 @@ interface RespondOptions {
 }
 
 // TODO: Consider event emitter to hook to message lifecycle
+// TODO: Avoid sending responses when it doesn't expect the response
 export class Message extends RawMessage {
   readonly #connection: Connection;
   #respond = false;
