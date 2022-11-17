@@ -1,18 +1,57 @@
 import * as readline from 'node:readline';
 import * as chalk from 'chalk';
-import { connect, createMessageHandler, Draft } from 'sockety';
+import { connect, Draft, Message, MessageHandler } from 'sockety';
 
 // Configuration
 
 const port = 9000;
 
-// Set up interface
+// Prepare structure
+
+const registerMessage = Draft.for('name')
+  .msgpack<string>()
+  .createFactory();
+
+const broadcastMessage = Draft.for('broadcast')
+  .msgpack<string>()
+  .createFactory();
+
+// Prepare message templates
+
+const register = (name: string) => registerMessage({ data: name });
+const broadcast = (content: string) => broadcastMessage({ data: content });
+
+// Set up helpers
+
+const now = () => new Date().toISOString();
+const getPrompt = (name: string) => `${chalk.gray(name)}> `;
+const extractTime = (isoDate: string) => isoDate.match(/\d{2}:\d{2}:\d{2}/)![0];
+const formatTime = (isoDate: string) => chalk.bold.gray(extractTime(isoDate));
+const formatSystem = (content: string) => chalk.italic.cyan(content);
+const formatMention = (mention: string) => chalk.bold(mention);
+const formatOwnMention = (mention: string) => chalk.bold.green(mention);
+const formatAuthor = (name: string, currentUser: string) => (name === currentUser ? formatOwnMention(`${name}:`) : formatMention(`${name}:`));
+const formatMessage = (content: string, users: string[], currentUser: string) => content
+  .replace(/(?:^|\s+)@([a-zA-Z0-9_-]{3,50})(?:\s+|$)/g, (mention, name) => {
+    if (name === currentUser) {
+      return formatOwnMention(mention);
+    } else if (users.includes(name)) {
+      return formatMention(mention);
+    } else {
+      return mention;
+    }
+  });
+
+// Prepare context storage
 
 let usersList: string[] = [];
+
+// Set up interface
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  terminal: false,
+  terminal: true,
   completer: (line: string) => {
     const match = line.match(/@([^@]*)$/);
     if (!match) {
@@ -24,100 +63,125 @@ const rl = readline.createInterface({
   },
 });
 
-function writeLine(line: string): void {
+function clearLine(): void {
   process.stdout.clearLine(0);
   process.stdout.cursorTo(0);
+}
+
+function writeLine(line: string): void {
+  clearLine();
   process.stdout.write(`${line}\n`);
   rl.prompt(true);
 }
 
-const writeChatLine = (line: string) => writeLine(line);
+function redrawLine(): void {
+  clearLine();
+  rl.prompt(true);
+}
+
+const writeChat = (line: string) => writeLine(line);
 const writeError = (line: string) => writeLine(chalk.red(line));
-
-// Set draft messages
-
-const register = Draft.for('name')
-  .msgpack<string>()
-  .createFactory();
-
-const broadcast = Draft.for('broadcast')
-  .msgpack<string>()
-  .createFactory();
 
 // Set up logic
 
-// TODO: Handle disconnect
-async function start(name: string) {
+async function start() {
+  let name: string = '';
+  let logInFinished!: () => void;
+  const loggedIn = new Promise<void>((resolve) => {
+    logInFinished = resolve;
+  });
+
   const client = connect(port);
 
+  const onChatMessage = async (message: Message) => {
+    // Read a message
+    const { date, author, content } = await message.msgpack();
+
+    // Write the message on the screen
+    writeChat(`${formatTime(date)} ${formatAuthor(author, name)} ${formatMessage(content, usersList, name)}`);
+  };
+
+  const onSystemMessage = async (message: Message) => {
+    // Read a message
+    const { date, content } = await message.msgpack();
+
+    // Write the message on the screen
+    writeChat(`${formatTime(date)} ${formatSystem(content)}`);
+  };
+
+  const onUsersList = async (message: Message) => {
+    // Load users list for terminal mention auto-complete
+    usersList = await message.msgpack();
+  };
+
+  const onLogin = async (message: Message) => {
+    // Save information about login
+    name = await message.msgpack();
+    logInFinished();
+  };
+
+  // Build handler (TODO: and optimize for better performance)
+  const handler = MessageHandler.create()
+    .on('login', onLogin)
+    .on('chat', onChatMessage)
+    .on('system', onSystemMessage)
+    .on('users', onUsersList);
+
+  // Set up connection
+  client.on('message', handler);
   client.on('close', () => {
-    process.stdout.clearLine(0);
-    process.stdout.cursorTo(0);
-    process.stdout.write(chalk.red('Connection with server closed.\n'));
+    writeError('Connection with server closed');
     process.exit(0);
   });
 
-  client.on('message', createMessageHandler({
-    async main(message) {
-      const { date, author, content } = await message.msgpack();
-      const time = date.match(/\d{2}:\d{2}:\d{2}/)[0];
-      const formattedContent = content
-        .replace(/@[a-zA-Z\d_-]+/g, (x: string) => (
-          x === `@${name}`
-            ? chalk.bold.green(x)
-            : chalk.bold(x)
-        ))
-      writeChatLine(`${chalk.bold(`${chalk.gray(time)} ${author === name ? chalk.green(author + ':') : author + ':'}`)} ${formattedContent}`);
-    },
-
-    async system(message) {
-      const { date, content } = await message.msgpack();
-      const time = date.match(/\d{2}:\d{2}:\d{2}/)[0];
-      writeChatLine(`${chalk.bold(`${chalk.gray(time)}`)} ${chalk.italic.cyan(content)}`);
-    },
-
-    async users(message) {
-      usersList = await message.msgpack();
-    },
-  }));
-
-  await client.ready();
-  await client.pass(register({ data: name }));
-
   function readMessage() {
-    rl.question('> ', async (text) => {
+    rl.question(getPrompt(name), async (text) => {
+      // Clear written message
       readline.moveCursor(process.stdout, 0, -1);
       readline.clearLine(process.stdout, 0);
-      if (text.trim().length === 0) {
-        return process.nextTick(readMessage);
-      }
 
+      // Start new message reader
       readMessage();
 
-      const [ , command, arg ] = text.match(/^\/(name)\s+(.+)$/) || [];
-      if (command === 'name') {
+      // Ignore when the message was empty
+      if (text.trim().length === 0) {
+        return;
+      }
+
+      // Verify if the message is not a known command
+      // /name ThereIsNewName
+      const [ , command, arg ] = text.match(/^\/(name|users|help)(?:\s+(.+))?$/) || [];
+      if (command === 'name' && arg) {
+        // Request new name (TODO: Handle errors)
         name = arg;
-        await client.send(register({ data: arg })).sent();
+        await client.send(register(name)).sent();
+        rl.setPrompt(getPrompt(name));
+        redrawLine();
+      } else if (command === 'users') {
+        writeChat(`${formatTime(now())} ${formatSystem(`${chalk.bold('/users:')} ${usersList.join(' ')}`)}`);
+      } else if (command === 'help') {
+        writeChat(`${formatTime(now())} ${formatSystem(chalk.bold('Commands:'))}`);
+        writeChat(`         ${formatSystem(`${chalk.bold('/users:          ')} get list of users`)}`);
+        writeChat(`         ${formatSystem(`${chalk.bold('/name <new_name>:')} update own name`)}`);
+        writeChat(`         ${formatSystem(`${chalk.bold('/help:           ')} this help`)}`);
       } else {
-        await client.send(broadcast({ data: text })).sent();
+        // Send chat message (TODO: Handle errors)
+        await client.send(broadcast(text)).sent();
       }
     });
   }
 
+  // Register & start chat
+  await client.ready();
+  await loggedIn;
   readMessage();
 }
 
-// Obtain name
+// Start application
 
-// TODO: Require unique names
-// TODO: Disallow spaces, commas, dots in name - only alphanumeric and _-
-rl.question(chalk.bold('Your name: '), (name) => {
-  if (name.length === 0 || name.length > 50) {
-    throw new Error('Name should be between 1 and 50 characters.');
-  }
+process.stdout.write(chalk.gray(`Type ${chalk.bold('/help')} for available commands.\n`));
 
-  start(name).catch((error) => {
-    process.stderr.write(`${error.message}\n`);
-    process.exit(1);
-  });
+start().catch((error) => {
+  process.stderr.write(`${error.message}\n`);
+  process.exit(1);
 });

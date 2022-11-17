@@ -1,5 +1,4 @@
-import { Connection, createMessageHandler, createServer, Draft } from 'sockety';
-import { series } from '@sockety/core/src/producers/series';
+import { Connection, createServer, Draft, MessageHandler, ActionHandler, FastReply, series } from 'sockety';
 
 // Build server
 
@@ -15,15 +14,20 @@ const usersStatus = Draft.for('users')
   .msgpack<string[]>()
   .createFactory();
 
-const userMessage = Draft.for('main')
+const chatMessage = Draft.for('chat')
   .msgpack<{ date: string, author: string, content: string }>()
   .createFactory();
 
-// Prepare templates
+const loginMessage = Draft.for('login')
+  .msgpack<string>()
+  .createFactory();
+
+// Prepare message templates
 
 const system = (content: string) => systemMessage({ data: { date: now(), content } });
-const user = (author: string, content: string) => userMessage({ data: { date: now(), author, content } });
-const userList = () => usersStatus({ data: getNames() });
+const chat = (author: string, content: string) => chatMessage({ data: { date: now(), author, content } });
+const userList = (data: string[]) => usersStatus({ data });
+const login = (name: string) => loginMessage({ data: name });
 
 // Prepare context storage
 
@@ -32,62 +36,102 @@ const names: WeakMap<Connection, string> = new WeakMap();
 // Prepare helpers
 
 const now = () => new Date().toISOString();
-const except = <T>(x: T) => (y: T) => x !== y;
-const registered = (x: Connection) => names.has(x);
-const both = (...fns: ((x: Connection) => boolean)[]) => (x: Connection) => fns.every((fn) => fn(x));
-const getConnections = () => server.clients.filter(registered);
-const getNames = () => getConnections().map((x) => names.get(x)!);
+const except = <T>(x: T) => (y: T) => (x !== y);
+const getName = (connection: Connection) => names.get(connection)!;
+const getNames = () => server.clients.map(getName);
+const isNameValid = (name: unknown) => (typeof name === 'string' && /^[a-zA-Z0-9_-]{3,50}$/.test(name));
+const isChatValid = (content: unknown) => (typeof content === 'string' && content.trim().length > 0 && !/[\n\r]/.test(content) && !/\\x[19]b/i.test(content));
+const randomString = () => Math.ceil(Math.random() * 1e10).toString(32);
 
 // Prepare logic
 
-// TODO: Consider sending error messages
-const handler = createMessageHandler({
-  async name(message) {
-    if (message.dataSize === 0 || message.dataSize > 51) {
-      return message.reject();
+const onNameChange = ActionHandler.create()
+  .run(async (message) => {
+    // Avoid unnecessary files transfer
+    if (message.filesCount > 0) {
+      return FastReply.BadRequest;
     }
+
+    // Avoid unsupported stream
+    if (message.stream) {
+      return FastReply.BadRequest;
+    }
+
+    // Get and validate data
     const name = await message.msgpack();
-    if (typeof name !== 'string') {
-      return message.reject();
+    if (!isNameValid(name)) {
+      return FastReply.BadRequest;
     }
-    const prevName = names.get(message.connection);
+
+    // Disallow duplicated name
+    if (server.clients.some((connection) => getName(connection) === name)) {
+      return FastReply.BadRequest;
+    }
+
+    // Update name
+    const prevName = getName(message.connection);
     names.set(message.connection, name);
 
-    // Send system message about current state
-    const content = prevName ? `${prevName}: has renamed to "${name}".` : `${name}: connected.`;
-    await server.broadcast(system(content), both(registered, except(message.connection)));
+    // Inform members about update
+    await server.broadcast(system(`${prevName}: has renamed to "${name}"`), except(message.connection));
+    await server.broadcast(userList(getNames()));
 
-    // Send list of all users
-    await server.broadcast(userList(), registered);
-  },
+    return FastReply.Accept;
+  });
 
-  async broadcast(message) {
-    const name = names.get(message.connection);
-    if (!name) {
-      return message.reject();
+const onChatMessage = ActionHandler.create()
+  .run(async (message) => {
+    // Avoid unnecessary files transfer
+    if (message.filesCount > 0) {
+      return FastReply.BadRequest;
     }
-    const text = await message.msgpack();
-    if (typeof text !== 'string') {
-      return message.reject();
-    }
-    await server.broadcast(user(name, text), registered);
-  },
-});
 
-server.on('connection', (connection) => {
+    // Avoid unsupported stream
+    if (message.stream) {
+      return FastReply.BadRequest;
+    }
+
+    // Get and validate data
+    const content = await message.msgpack();
+    if (!isChatValid(content)) {
+      return FastReply.BadRequest;
+    }
+
+    // Inform members about the message
+    await server.broadcast(chat(getName(message.connection), content));
+
+    return FastReply.Accept;
+  });
+
+// Build handler (TODO: and optimize for better performance)
+// TODO: Consider sending error messages
+const handler = MessageHandler.create({ autoAck: true })
+  .on('name', onNameChange)
+  .on('broadcast', onChatMessage);
+
+server.on('connection', async (connection) => {
+  // Apply message handler
   connection.on('message', handler);
+
+  // Show connection errors in console
   connection.on('error', (error) => {
     // TODO: Use UUIDs instead, as indexes are not stable
     process.stderr.write(`#${server.clients.indexOf(connection)}: ${error.message}\n`);
   });
-  connection.on('close', async () => {
-    const name = names.get(connection);
-    if (!name) {
-      return;
-    }
 
-    await server.broadcast(series(system(`${name}: disconnected.`), userList()), registered);
+  // Inform about disconnected user
+  connection.on('close', async () => {
+    const name = getName(connection);
+    await server.broadcast(series(system(`${name}: disconnected.`), userList(getNames())));
   });
+
+  // Set up random name for anonymous user, and inform everybody
+  const name = `anon_${randomString()}`;
+  names.set(connection, name);
+  await Promise.all([
+    connection.pass(series(login(name), userList(getNames()))),
+    server.broadcast(system(`${name}: connected`), except(connection)),
+  ]);
 });
 
 // Start server
