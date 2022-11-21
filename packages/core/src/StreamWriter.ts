@@ -69,8 +69,13 @@ const switchChannelHighInstruction = (channel: number) => ($: WritableBuffer) =>
   $.writeUint8(PacketTypeBits.ChannelSwitch | (channel >> 8));
   $.writeUint8(channel & 0x00ff);
 };
-const fastReplyInstruction = (id: UUID, type: number) => ($: WritableBuffer) => {
-  $.writeUint8(PacketTypeBits.FastReply | type);
+const fastReplyLowInstruction = (id: UUID, type: number) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.FastReplyLow | type);
+  $.writeUuid(id);
+};
+const fastReplyHighInstruction = (id: UUID, type: number) => ($: WritableBuffer) => {
+  $.writeUint8(PacketTypeBits.FastReply | (type >> 8));
+  $.writeUint8(type & 0x00ff);
   $.writeUuid(id);
 };
 const bufferInlineInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writeBufferInline(buffer);
@@ -298,13 +303,17 @@ export class StreamWriter {
     }
   }
 
-  // TODO: Handle fast reply higher than 16
   public fastReply(id: UUID, code: number, sent?: SendCallback, written?: WriteCallback): void {
     this.#endPacket();
-    if (code < 0 || code > 0x0f) {
+    if (code < 0) {
+      throw new Error('Invalid short response code.');
+    } else if (code <= 0x0f) {
+      this.#instruction(fastReplyLowInstruction(id, code), 17, sent, written);
+    } else if (code <= 0x0fff) {
+      this.#instruction(fastReplyHighInstruction(id, code), 18, sent, written);
+    } else {
       throw new Error('Invalid short response code.');
     }
-    this.#instruction(fastReplyInstruction(id, code), 17, sent, written);
   }
 
   // TODO: Consider disallowing when the previous message is not finished yet (?)

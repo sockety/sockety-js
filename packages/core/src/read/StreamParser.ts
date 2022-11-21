@@ -147,8 +147,16 @@ const createPacketConsumer = new BufferReader()
     .earlyEnd())
 
   // Reply Fast
+  // 0x0f
+  .when('type', PacketTypeBits.FastReplyLow, $ => $
+    .mask<'fastReply', FastReply | number>('fastReply', 'header', 0x0f)
+    .uuid('fastReplyUuid')
+    .earlyEnd())
+  // 0x0fff
   .when('type', PacketTypeBits.FastReply, $ => $
-    .mask<'fastReply', FastReply | number>('fastReply', 'header', 0b00001111)
+    .mask('fastReplyHigh', 'header', 0x0f).setInternal('fastReplyHigh')
+    .uint8('fastReplyLow').setInternal('fastReplyLow')
+    .compute<'fastReply', number>('fastReply', $ => `return (${$.read('fastReplyHigh')} << 8) | ${$.read('fastReplyLow')}`)
     .uuid('fastReplyUuid')
     .earlyEnd())
 
