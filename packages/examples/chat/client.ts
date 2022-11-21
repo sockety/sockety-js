@@ -1,6 +1,6 @@
 import * as readline from 'node:readline';
 import * as chalk from 'chalk';
-import { connect, Draft, Message, MessageHandler } from 'sockety';
+import { connect, Draft, FastReply, Message, MessageHandler } from 'sockety';
 
 // Configuration
 
@@ -120,12 +120,13 @@ async function start() {
     logInFinished();
   };
 
-  // Build handler (TODO: and optimize for better performance)
-  const handler = MessageHandler.create()
-    .on('login', onLogin)
-    .on('chat', onChatMessage)
-    .on('system', onSystemMessage)
-    .on('users', onUsersList);
+  // Build handler
+  const handler = new MessageHandler()
+    .action('login', onLogin)
+    .action('chat', onChatMessage)
+    .action('system', onSystemMessage)
+    .action('users', onUsersList)
+    .error(() => FastReply.InternalError);
 
   // Set up connection
   client.on('message', handler);

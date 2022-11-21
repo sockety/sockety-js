@@ -1,4 +1,4 @@
-const { Draft, createServer, createSecureServer, connect, secureConnect } = require('../../../sockety');
+const { MessageHandler, Draft, createServer, createSecureServer, connect, secureConnect, FastReply } = require('../../../sockety');
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
 const { certificate, privateKey } = require('../../tls');
 const { kb512, mb1, mb4 } = require('../../files');
@@ -60,13 +60,11 @@ function common() {
   }
 }
 
-async function messageListener(message) {
-  if (message.action === 'echo') {
-    await message.respond({});
-  } else if (message.action === 'fast') {
-    await message.accept();
-  }
-}
+const messageListener = new MessageHandler()
+  .action('ping', () => undefined)
+  .action('echo', (message) => message.respond({}).sent())
+  .action('fast', () => FastReply.Accept)
+  .optimize();
 
 suite('Sockety', () => {
   prepareServer(async ({ config: { port } }) => {

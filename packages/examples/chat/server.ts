@@ -1,4 +1,4 @@
-import { Connection, createServer, Draft, MessageHandler, ActionHandler, FastReply, series } from 'sockety';
+import { Connection, createServer, Draft, FastReply, Message, MessageHandler, series } from 'sockety';
 
 // Build server
 
@@ -45,69 +45,68 @@ const randomString = () => Math.ceil(Math.random() * 1e10).toString(32);
 
 // Prepare logic
 
-const onNameChange = ActionHandler.create()
-  .run(async (message) => {
-    // Avoid unnecessary files transfer
-    if (message.filesCount > 0) {
-      return FastReply.BadRequest;
-    }
+const onNameChange = async (message: Message) => {
+  // Avoid unnecessary files transfer
+  if (message.filesCount > 0) {
+    return FastReply.BadRequest;
+  }
 
-    // Avoid unsupported stream
-    if (message.stream) {
-      return FastReply.BadRequest;
-    }
+  // Avoid unsupported stream
+  if (message.stream) {
+    return FastReply.BadRequest;
+  }
 
-    // Get and validate data
-    const name = await message.msgpack();
-    if (!isNameValid(name)) {
-      return FastReply.BadRequest;
-    }
+  // Get and validate data
+  const name = await message.msgpack();
+  if (!isNameValid(name)) {
+    return FastReply.BadRequest;
+  }
 
-    // Disallow duplicated name
-    if (server.clients.some((connection) => getName(connection) === name)) {
-      return FastReply.BadRequest;
-    }
+  // Disallow duplicated name
+  if (server.clients.some((connection) => getName(connection) === name)) {
+    return FastReply.BadRequest;
+  }
 
-    // Update name
-    const prevName = getName(message.connection);
-    names.set(message.connection, name);
+  // Update name
+  const prevName = getName(message.connection);
+  names.set(message.connection, name);
 
-    // Inform members about update
-    await server.broadcast(system(`${prevName}: has renamed to "${name}"`), except(message.connection));
-    await server.broadcast(userList(getNames()));
+  // Inform members about update
+  await server.broadcast(system(`${prevName}: has renamed to "${name}"`), except(message.connection));
+  await server.broadcast(userList(getNames()));
 
-    return FastReply.Accept;
-  });
+  return FastReply.Accept;
+};
 
-const onChatMessage = ActionHandler.create()
-  .run(async (message) => {
-    // Avoid unnecessary files transfer
-    if (message.filesCount > 0) {
-      return FastReply.BadRequest;
-    }
+const onChatMessage = async (message: Message) => {
+  // Avoid unnecessary files transfer
+  if (message.filesCount > 0) {
+    return FastReply.BadRequest;
+  }
 
-    // Avoid unsupported stream
-    if (message.stream) {
-      return FastReply.BadRequest;
-    }
+  // Avoid unsupported stream
+  if (message.stream) {
+    return FastReply.BadRequest;
+  }
 
-    // Get and validate data
-    const content = await message.msgpack();
-    if (!isChatValid(content)) {
-      return FastReply.BadRequest;
-    }
+  // Get and validate data
+  const content = await message.msgpack();
+  if (!isChatValid(content)) {
+    return FastReply.BadRequest;
+  }
 
-    // Inform members about the message
-    await server.broadcast(chat(getName(message.connection), content));
+  // Inform members about the message
+  await server.broadcast(chat(getName(message.connection), content));
 
-    return FastReply.Accept;
-  });
+  return FastReply.Accept;
+};
 
-// Build handler (TODO: and optimize for better performance)
+// Build handler
 // TODO: Consider sending error messages
-const handler = MessageHandler.create({ autoAck: true })
-  .on('name', onNameChange)
-  .on('broadcast', onChatMessage);
+const handler = new MessageHandler()
+  .action('name', onNameChange)
+  .action('broadcast', onChatMessage)
+  .error(() => FastReply.InternalError);
 
 server.on('connection', async (connection) => {
   // Apply message handler

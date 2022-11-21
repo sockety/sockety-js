@@ -1,120 +1,144 @@
+import { FunctionMimic } from './FunctionMimic';
 import { Message } from './Message';
 import { FastReply } from '@sockety/core/src/constants';
-import { FunctionMimic } from './FunctionMimic';
+
+const ACTION_NAME = Symbol();
+const ACTION_HANDLER = Symbol();
 
 type RawHandlerResult = void | FastReply | number;
 type HandlerResult = RawHandlerResult | Promise<RawHandlerResult>;
-type BasicHandler = (message: Message) => HandlerResult;
+
+type InputHandler = (message: Message) => Promise<void>;
+type ActionHandler = (message: Message) => HandlerResult;
+type Handler = (message: Message, error: Error | null) => HandlerResult;
 type ErrorHandler = (message: Message, error: Error) => HandlerResult;
-type AfterHandler = (message: Message, error: Error | null) => void;
 
-const noop = () => {};
+type RawActionHandler = Handler & { [ACTION_NAME]: string, [ACTION_HANDLER]: ActionHandler };
 
-interface MessageHandlerOptions {
-  // TODO: Think how it should work in case of lack of response
-  // autoAck: boolean;
+const createActionHandler = (name: string, handler: ActionHandler): RawActionHandler => Object.assign((message: Message, error: Error | null) => {
+  if (message.action == name && error === null) {
+    return handler(message);
+  }
+}, {
+  [ACTION_NAME]: name,
+  [ACTION_HANDLER]: handler,
+});
+
+function isRawActionHandler(handler: unknown): handler is RawActionHandler {
+  return typeof handler === 'function' && ACTION_NAME in handler;
 }
 
-export class MessageHandler extends FunctionMimic<(message: Message) => Promise<void>> {
-  readonly #options: MessageHandlerOptions;
+export class MessageHandler extends FunctionMimic<InputHandler> {
+  #handlers: (Handler | RawActionHandler)[] = [];
+  #cached?: InputHandler;
 
-  readonly #before: BasicHandler[] = [];
-  readonly #run: BasicHandler[] = [];
-  readonly #error: ErrorHandler[] = [];
-  readonly #after: AfterHandler[] = [];
-
-  public constructor(options: Partial<MessageHandlerOptions> = {}) {
-    // Mimic function
+  public constructor() {
     super();
+  }
 
-    // Apply options
-    this.#options = {
-      // autoAck: Boolean(options.autoAck),
+  #revokeCache(): void {
+    this.#cached = undefined;
+  }
+
+  #optimize(): InputHandler {
+    const handlers = this.#handlers.slice();
+
+    // Optimize action handlers
+    for (let i = 0; i < handlers.length; i++) {
+      const handler = handlers[i];
+
+      if (!isRawActionHandler(handler)) {
+        break;
+      }
+
+      // Combine multiple consecutive action handlers to switch instruction
+      const actions = {
+        [handler[ACTION_NAME]]: handler[ACTION_HANDLER],
+      };
+
+      // Search until there is common handler, or there is already such action
+      let j = i + 1;
+      for (; j < handlers.length; j++) {
+        const handler2 = handlers[j];
+
+        if (!isRawActionHandler(handler2) || actions[handler2[ACTION_NAME]]) {
+          break;
+        }
+
+        actions[handler2[ACTION_NAME]] = handler2[ACTION_HANDLER];
+      }
+
+      // There was single action, so ignore optimization
+      if (j - i === 1) {
+        continue;
+      }
+
+      // Combine multiple actions
+      const names = Object.keys(actions);
+      const combined = new Function(...names.map((_, i) => `action_${i}`), `
+        return (message, error) => {
+          if (error === null) {
+            switch (message.action) {
+              ${names.map((name, i) => `case ${JSON.stringify(name)}: return action_${i}(message);`).join('\n')}
+            }
+          }
+        }
+      `)(...names.map((key) => actions[key]));
+
+      // Replace multiple handlers with a single one
+      handlers.splice(i, j - i, combined);
+    }
+
+    // Build handler looping over all handlers
+    const count = handlers.length;
+    return async (message: Message) => {
+      let error: Error | null = null;
+      const expects = message.expectsResponse;
+      for (let i = 0; i < count; i++) {
+        try {
+          const direct = handlers[i](message, error);
+          const result = direct instanceof Promise ? await direct : direct;
+          if (expects && typeof result === 'number' && !message.responded) {
+            await message.fastReply(result);
+          }
+        } catch (e: any) {
+          error = e;
+        }
+      }
     };
   }
 
-  public on(action: string, handler: BasicHandler): this {
-    return this.any((message) => {
-      if (message.action === action) {
-        return handler(message);
-      }
-    });
-  }
-
-  public any(handler: BasicHandler): this {
-    this.#run.push(handler);
+  public use(handler: Handler): this {
+    this.#revokeCache();
+    this.#handlers.push(handler);
     return this;
   }
 
-  public after(handler: AfterHandler): this {
-    this.#after.push(handler);
-    return this;
-  }
-
-  public before(handler: BasicHandler): this {
-    this.#before.push(handler);
+  public action(name: string, handler: ActionHandler): this {
+    this.#revokeCache();
+    this.#handlers.push(createActionHandler(name, handler));
     return this;
   }
 
   public error(handler: ErrorHandler): this {
-    this.#error.push(handler);
+    this.#revokeCache();
+    this.#handlers.push((message, error) => {
+      if (error != null) {
+        return handler(message, error);
+      }
+    });
     return this;
   }
 
-  async #callError(message: Message, error: Error): Promise<void> {
-    // Run all error handlers until the message will have response
-    for (const errorHandler of this.#error) {
-      await Promise.resolve(errorHandler(message, error)).catch(noop);
-      if (message.responded) {
-        break;
-      }
+  // TODO: Auto-optimize sub-handlers?
+  public optimize(): InputHandler {
+    if (!this.#cached) {
+      this.#cached = this.#optimize();
     }
+    return this.#cached;
   }
 
-  async #callAfter(message: Message, error: Error | null = null): Promise<void> {
-    // Run all "after" handlers
-    for (const afterHandler of this.#after) {
-      await Promise.resolve(afterHandler(message, error)).catch(noop);
-    }
-
-    // If there was no response despite error, throw InternalError
-    if (error != null && !message.responded) {
-      await message.fastReply(FastReply.InternalError);
-    }
-  }
-
-  // TODO: Make it nicer
-  protected async __call__(message: Message): Promise<void> {
-    // Run "before/run" handlers, until it will return some response
-    for (const handler of this.#before.concat(this.#run)) {
-      try {
-        // Call the handler
-        const result = await handler(message);
-
-        // Return the result if it may be fast reply
-        if (typeof result === 'number') {
-          await message.fastReply(result);
-        }
-
-        // End, when there was already response
-        if (message.responded) {
-          await this.#callAfter(message);
-          return;
-        }
-      } catch (error: any) {
-        await this.#callError(message, error);
-        await this.#callAfter(message, error);
-      }
-    }
-  }
-
-  public optimize(): (message: Message) => Promise<void> {
-    // TODO: Prepare optimization
-    // TODO: Consider auto-optimization of sub handlers
-    return this.__call__.bind(this);
-  }
-
-  public static create(options: Partial<MessageHandlerOptions> = {}): MessageHandler {
-    return new MessageHandler(options);
+  public __call__(message: Message): Promise<void> {
+    return this.optimize()(message);
   }
 }
