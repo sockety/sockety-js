@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start-server": "ts-node server",
-    "start-client": "ts-node-client"
+    "server": "ts-node server",
+    "client": "ts-node client",
+    "build-sockety": "npm --prefix .. run build-sockety"
   }
 }
