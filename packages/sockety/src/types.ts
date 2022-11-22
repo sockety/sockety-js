@@ -3,8 +3,8 @@ import type * as net from 'node:net';
 import type * as tls from 'node:tls';
 
 export interface RawConnectOptions {
-  maxReceivedChannels?: number; // default: 4095 TODO: handle that
-  maxWritableChannels?: number; // default: 4095
+  maxReceivedChannels?: number; // default: 4096
+  maxWritableChannels?: number; // default: 4096
   connectTimeout?: number; // default: none
   timeout?: number; // default: none
   allowFilesSizeMismatch?: number; // default: false
@@ -14,8 +14,8 @@ export type ConnectOptions = RawConnectOptions & net.NetConnectOpts;
 export type SecureConnectOptions = RawConnectOptions & tls.ConnectionOptions;
 
 export interface RawServerOptions {
-  maxReceivedChannels?: number; // default: 4095 TODO: handle that
-  maxWritableChannels?: number; // default: 4095
+  maxReceivedChannels?: number; // default: 4096
+  maxWritableChannels?: number; // default: 4096
   timeout?: number; // default: none
   allowFilesSizeMismatch?: number; // default: false
 }

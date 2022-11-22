@@ -10,6 +10,7 @@ import { RawResponse } from './RawResponse';
 export interface StreamParserOptions<M extends RawMessage, R extends RawResponse> {
   createMessage: StreamChannelOptions<M, R>['createMessage'];
   createResponse: StreamChannelOptions<M, R>['createResponse'];
+  maxChannels?: number;
 }
 
 const createPacketConsumer = new BufferReader()
@@ -204,6 +205,7 @@ const createPacketConsumer = new BufferReader()
 
 export class StreamParser<M extends RawMessage = RawMessage, R extends RawResponse = RawResponse> extends Writable {
   readonly #options?: Partial<StreamParserOptions<M, R>>;
+  readonly #maxChannels: number;
 
   // Current state
   #channels: Record<number, StreamChannel<M, R>> = {};
@@ -213,6 +215,7 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
   public constructor(options?: Partial<StreamParserOptions<M, R>>) {
     super();
     this.#options = options;
+    this.#maxChannels = options?.maxChannels ?? 4096;
     this.#currentChannel = this.#getChannel(0);
   }
 
@@ -309,7 +312,9 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
   }).readMany;
 
   #getChannel(id: number): StreamChannel<M, R> {
-    if (this.#channels[id] === undefined) {
+    if (id >= this.#maxChannels) {
+      throw new Error('Used over maximum channels');
+    } else if (this.#channels[id] === undefined) {
       this.#channels[id] = new StreamChannel(this.#options);
     }
     return this.#channels[id];

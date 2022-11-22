@@ -46,6 +46,15 @@ export function getResponseDescription(response: FastReply | number | any): stri
     : typeof response === 'number' ? `Custom #${response}` : null;
 }
 
+// Control byte - channel size:
+// Takes last two bits of control byte - 0b000000XX
+export enum ControlChannelBits {
+  Single = 0 << 0,
+  Uint8 = 1 << 0,
+  Uint16 = 2 << 0,
+  Maximum = 3 << 0,
+}
+
 // File packet size bucket:
 // Takes next 2 bits of packet header - 0b000000XX
 // It's ignored for different packet types than File and FileEnd

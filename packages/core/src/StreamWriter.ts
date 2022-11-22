@@ -28,7 +28,7 @@ const getPacketSizeFlag = createNumberBytesMapper('packet size', {
 });
 
 export interface StreamWriterOptions {
-  maxChannels?: number; // default: 4_095
+  maxChannels?: number; // default: 4_096
 }
 
 const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: WritableBuffer) => {
@@ -106,9 +106,9 @@ export class StreamWriter {
 
   public constructor(writable: Writable, options: StreamWriterOptions = {}) {
     // Save information about maximum number of channels
-    this.#maxChannels = options?.maxChannels ?? 4095;
-    if (this.#maxChannels < 1 || this.#maxChannels > 4095) {
-      throw new Error('Number of max concurrent channels must be between 1 and 4095');
+    this.#maxChannels = options?.maxChannels ?? 4096;
+    if (this.#maxChannels < 1 || this.#maxChannels > 4096) {
+      throw new Error('Number of max concurrent channels must be between 1 and 4096');
     }
 
     // Prepare bucket for information about streaming/reserved channels

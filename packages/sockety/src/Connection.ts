@@ -4,37 +4,74 @@ import { Request as RawRequest } from '@sockety/core/src/Request';
 import { ContentProducer } from '@sockety/core/src/ContentProducer';
 import { StreamParser } from '@sockety/core/src/read/StreamParser';
 import { RawConnectOptions, TcpSocket } from './types';
-import { isTlsSocket } from '@sockety/core/src/utils/isTlsSocket';
 import { StreamWriter } from '@sockety/core/src/StreamWriter';
-import { FastReply } from '@sockety/core/src/constants';
+import { ControlChannelBits, FastReply } from '@sockety/core/src/constants';
 import { Message } from './Message';
 import { Response } from './Response';
 import { UUIDHookItem, UUIDHooks } from './UUIDHooks';
 import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
 import { Request } from './Request';
+import { BufferReader } from '@sockety/buffers';
+import { Buffer } from 'node:buffer';
 
 const noop = () => {};
+
+const createControlByteReader = new BufferReader()
+  .uint8('control')
+  .mask<'size', ControlChannelBits>('size', 'control', 0b00000011)
+  .setInternal('size')
+  .when('size', ControlChannelBits.Single, ($) => $.constant('channels', 1))
+  .when('size', ControlChannelBits.Maximum, ($) => $.constant('channels', Infinity))
+  .when('size', ControlChannelBits.Uint8, ($) => $.uint8('channels'))
+  .when('size', ControlChannelBits.Uint16, ($) => $.uint16le('channels'))
+  .end();
+
+function createHeader(channels: number): Buffer {
+  const CONTROL_BYTE = 0b11100000;
+  if (channels < 1 || channels > 4096) {
+    throw new Error('Invalid number of channels');
+  } else if (channels === 1) {
+    return Buffer.from([ CONTROL_BYTE ]);
+  } else if (channels <= 256) {
+    return Buffer.from([ CONTROL_BYTE | 0b00000001, channels ]);
+  } else if (channels < 4096) {
+    const buffer = Buffer.allocUnsafe(3);
+    buffer.writeUint8(CONTROL_BYTE | 0b00000010);
+    buffer.writeUint16LE(channels, 1);
+    return buffer;
+  } else {
+    return Buffer.from([ CONTROL_BYTE | 0b00000011 ]);
+  }
+}
 
 export class Connection extends EventEmitter {
   readonly #hooks = new UUIDHooks<Response | FastReply | number>();
   readonly #parser: StreamParser;
-  readonly #writer: StreamWriter;
+  readonly #maxWritableChannels: number;
+  readonly #readControlByte = createControlByteReader({
+    control: (byte) => this.#verifyControlByte(byte),
+    channels: (channels) => this.#setupWriter(channels),
+  }).readOne;
+  #writer!: StreamWriter;
   #socket: TcpSocket | null;
   #closing = false;
+  #headersSent = false;
 
   public constructor(socket: TcpSocket, options: RawConnectOptions = {}) {
     // TODO: Send connection header
     super();
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
+    this.#maxWritableChannels = options.maxWritableChannels ?? 4096;
+    const maxReceivedChannels = options.maxReceivedChannels ?? 4096;
     // TODO: Support timeout
 
-    // Prepare writer
-    this.#writer = new StreamWriter(this.#socket, { maxChannels: options.maxWritableChannels });
-
     // Prepare reader
-    this.#parser = new StreamParser({ createMessage: this.#createMessage, createResponse: this.#createResponse });
-    this.#socket.pipe(this.#parser);
+    this.#parser = new StreamParser({
+      createMessage: this.#createMessage,
+      createResponse: this.#createResponse,
+      maxChannels: maxReceivedChannels,
+    });
     this.#parser.on('message', this.#handleMessage.bind(this));
     this.#parser.on('response', this.#handleResponse.bind(this));
     this.#parser.on('fast-reply', this.#handleFastReply.bind(this));
@@ -42,15 +79,52 @@ export class Connection extends EventEmitter {
     // Pass down socket events
     this.#socket.once('close', () => this.close(true));
     this.#socket.on('error', this.#handleError.bind(this));
-    // TODO: Fix types
-    this.#socket.once(isTlsSocket(this.#socket as any) ? 'secureConnect' : 'connect', this.#handleConnect.bind(this));
+
+    // Handle control bytes
+    this.#socket.write(createHeader(maxReceivedChannels));
+    this.#socket.on('data', this.#readHeader.bind(this));
   }
 
   #createMessage = (id: UUID, action: string, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => new Message(this, id, action, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
   #createResponse = (id: UUID, parentId: UUID, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => new Response(this, id, parentId, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
 
-  #handleConnect(): void {
-    this.emit('connect');
+  #readHeader(data: Buffer): void {
+    // There should be no read
+    if (!this.#socket || this.#headersSent) {
+      return;
+    }
+
+    // Read control bytes
+    const bytesRead = this.#readControlByte(data);
+
+    // Pass down the rest of stream
+    if (this.#headersSent) {
+      this.emit('connect');
+      this.#socket.removeAllListeners('data');
+      if (data.length > bytesRead) {
+        this.#parser._write(data.subarray(bytesRead), 'buffer', noop);
+      }
+      this.#socket.pipe(this.#parser);
+    }
+  }
+
+  #verifyControlByte(byte: number): void {
+    if ((byte >> 4) !== 0b1110) {
+      console.log(byte);
+      this.emit('error', new Error('Invalid control byte'));
+      this.close(true);
+      return;
+    }
+  }
+
+  #setupWriter(maxChannels: number): void {
+    if (!this.#socket) {
+      return;
+    }
+    this.#writer = new StreamWriter(this.#socket, {
+      maxChannels: Math.min(this.#maxWritableChannels, maxChannels),
+    });
+    this.#headersSent = true;
   }
 
   #handleMessage(message: Message): void {
@@ -105,12 +179,19 @@ export class Connection extends EventEmitter {
   }
 
   public send<T extends boolean>(producer: ContentProducer<RawRequest<T>>): Request<T> {
+    if (!this.#writer) {
+      throw new Error('The connection is not established yet.');
+    }
     // TODO: Avoid sending when the socket is closing
     const request = producer(this.#writer, noop, noop, true);
     return new Request<T>(this, request);
   }
 
   public pass(producer: ContentProducer): Promise<void> {
+    if (!this.#writer) {
+      throw new Error('The connection is not established yet.');
+    }
+
     // TODO: Avoid sending when the socket is closing
     return new Promise<void>((resolve, reject) => producer(this.#writer, (error) => {
       if (error == null) {
