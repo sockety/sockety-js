@@ -26,14 +26,15 @@ export class Server extends EventEmitter {
   #handleSocket(rawSocket: TcpSocket): void {
     // Wrap socket
     const connection = new Connection(rawSocket, this.#options);
+    connection.once('connect', () => {
+      // Register connection
+      const clients = this.clients;
+      clients.push(connection);
+      connection.once('close', () => clients.splice(clients.indexOf(connection), 1));
 
-    // Register connection
-    const clients = this.clients;
-    clients.push(connection);
-    connection.once('close', () => clients.splice(clients.indexOf(connection), 1));
-
-    // Emit new client connected
-    this.emit('connection', connection);
+      // Emit new client connected
+      this.emit('connection', connection);
+    });
   }
 
   #handleClose(): void {
