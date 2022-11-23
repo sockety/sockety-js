@@ -8,7 +8,6 @@ type Callback = (error: Error | null | undefined) => void;
 const NONE = Buffer.allocUnsafeSlow(0);
 
 // TODO: Handle backpressure?
-// TODO: Consider boolean for all writes
 export class WritableBuffer {
   readonly #writable: Writable;
   readonly #drain: DrainListener;
@@ -39,9 +38,9 @@ export class WritableBuffer {
     }
   }
 
-  #write(data: Buffer | string, callback?: Callback): boolean {
+  #write(data: Buffer | string, callback?: Callback): void {
     if (data.length === 0) {
-      return !this.#writable.writableNeedDrain;
+      return;
     }
 
     // Rebuild callback
@@ -51,7 +50,7 @@ export class WritableBuffer {
     this.#empty = true;
 
     // Send
-    return this.#writable.write(data, this.#prevCallback.callback);
+    this.#writable.write(data, this.#prevCallback.callback);
   }
 
   #poolUpdated(): void {
