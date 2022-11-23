@@ -125,8 +125,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
   }
 
   public data(): Draft<UseData<T, DraftDataType.raw>>;
-  public data(content: Buffer): Draft<UseData<T, DraftDataType.none>>;
-  public data(content: string): Draft<UseData<T, DraftDataType.none>>;
+  public data(content: Buffer | string): Draft<UseData<T, DraftDataType.none>>;
   public data(content?: Buffer | string): Draft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
     this.#revokeCache();
     if (content === undefined) {
