@@ -51,7 +51,7 @@ type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
   ? (input?: Input<T>) => ContentProducer<RawRequest<T['stream']>>
   : (input: Input<T>) => ContentProducer<RawRequest<T['stream']>>;
 
-function createRawDataOperation(content: Buffer): [ ContentProducerSlice, ContentProducerSlice, number ] {
+function createRawDataOperation(content: Buffer | string): [ ContentProducerSlice, ContentProducerSlice, number ] {
   const length = content.length;
   return [ data(content), dataSize(length), length ];
 }
@@ -114,10 +114,10 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
     return this as any;
   }
 
-  // TODO: Handle strings
   public data(): Draft<UseData<T, DraftDataType.raw>>;
   public data(content: Buffer): Draft<UseData<T, DraftDataType.none>>;
-  public data(content?: Buffer): Draft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
+  public data(content: string): Draft<UseData<T, DraftDataType.none>>;
+  public data(content?: Buffer | string): Draft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
     if (content === undefined) {
       this.#allowData = DraftDataType.raw;
       this.#data = createRawDataOperation;

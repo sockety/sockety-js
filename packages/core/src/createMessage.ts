@@ -18,7 +18,7 @@ import { CREATE_PRODUCER_SLICE, FileTransfer } from './FileTransfer';
 
 export interface CreateMessageOptions {
   action: string;
-  data?: Buffer;
+  data?: Buffer | string;
   files?: FileTransfer[];
 }
 

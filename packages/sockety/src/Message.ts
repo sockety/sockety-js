@@ -13,7 +13,7 @@ import { Connection } from './Connection';
 const NONE = Buffer.allocUnsafe(0);
 
 interface RespondOptions {
-  data?: Buffer;
+  data?: Buffer | string;
   files?: FileTransfer[];
 }
 

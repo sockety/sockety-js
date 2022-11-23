@@ -16,7 +16,7 @@ import { responseStart } from './slices/responseStart';
 import { CREATE_PRODUCER_SLICE, FileTransfer } from './FileTransfer';
 
 export interface CreateResponseOptions {
-  data?: Buffer;
+  data?: Buffer | string;
   files?: FileTransfer[];
 }
 

@@ -5,10 +5,12 @@ import { pipe } from './pipe';
 // TODO: Extract
 const MAX_DATA_PACKET_SIZE = 4 * 1024 * 1024;
 
-export const data = (buffer: Buffer | undefined): ContentProducerSlice => {
-  if (buffer == null) {
+export const data = (content: Buffer | string | undefined): ContentProducerSlice => {
+  if (content == null) {
     return none;
   }
+
+  const buffer = typeof content === 'string' ? Buffer.from(content) : content;
 
   const size = buffer.length;
   if (size > MAX_DATA_PACKET_SIZE) {
