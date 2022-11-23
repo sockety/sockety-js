@@ -10,29 +10,29 @@ function common() {
   benchmark('HEARTBEAT frame', ({ getClient }) => getClient().pass(heartbeat));
 
   {
-    const message = Draft.for('ping').createFactory()();
+    const message = Draft.for('ping').optimize()();
     benchmark('One-way message', ({ getClient }) => getClient().pass(message));
   }
 
   {
-    const message = Draft.for('fast').createFactory()();
+    const message = Draft.for('fast').optimize()();
     benchmark('ACKed message', async ({ getClient }) => getClient().send(message).response());
   }
 
   {
-    const message = Draft.for('echo').createFactory()();
+    const message = Draft.for('echo').optimize()();
     benchmark('Echo message', async ({ getClient }) => getClient().send(message).response());
   }
 
   {
     const message = Draft.for('ping')
       .files([ FileTransfer.buffer(mb1.content, 'file-1.txt') ])
-      .createFactory()();
+      .optimize()();
     benchmark('1MB file', async ({ getClient }) => getClient().pass(message));
   }
 
   {
-    const factory = Draft.for('ping').files().createFactory();
+    const factory = Draft.for('ping').files().optimize();
     benchmark('1MB file from FS', async ({ getClient }) => {
       const message = factory({ files: [ FileTransfer.stream(mb1.stream(), mb1.content.length, 'file-1.txt') ] });
       return getClient().pass(message);
@@ -40,7 +40,7 @@ function common() {
   }
 
   {
-    const factory = Draft.for('ping').files().createFactory();
+    const factory = Draft.for('ping').files().optimize();
     benchmark('2x 0.5MB file from FS', async ({ getClient }) => {
       const message = factory({ files: [
         FileTransfer.stream(kb512.stream(), kb512.content.length, 'file-1.txt'),
@@ -51,12 +51,12 @@ function common() {
   }
 
   {
-    const message = Draft.for('ping').data(mb1.content).createFactory()();
+    const message = Draft.for('ping').data(mb1.content).optimize()();
     benchmark('1MB data', async ({ getClient }) => getClient().pass(message));
   }
 
   {
-    const message = Draft.for('ping').data(mb4.content).createFactory()();
+    const message = Draft.for('ping').data(mb4.content).optimize()();
     benchmark('4MB data', async ({ getClient }) => getClient().pass(message));
   }
 }

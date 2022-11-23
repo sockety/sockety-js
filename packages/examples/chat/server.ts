@@ -6,21 +6,10 @@ const server = createServer();
 
 // Prepare structure
 
-const systemMessage = Draft.for('system')
-  .msgpack<{ date: string, content: string }>()
-  .createFactory();
-
-const usersStatus = Draft.for('users')
-  .msgpack<string[]>()
-  .createFactory();
-
-const chatMessage = Draft.for('chat')
-  .msgpack<{ date: string, author: string, content: string }>()
-  .createFactory();
-
-const loginMessage = Draft.for('login')
-  .msgpack<string>()
-  .createFactory();
+const systemMessage = Draft.for('system').msgpack<{ date: string, content: string }>();
+const usersStatus = Draft.for('users').msgpack<string[]>();
+const chatMessage = Draft.for('chat').msgpack<{ date: string, author: string, content: string }>();
+const loginMessage = Draft.for('login').msgpack<string>();
 
 // Prepare message templates
 

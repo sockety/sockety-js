@@ -16,6 +16,7 @@ import { attachStream } from '@sockety/core/src/slices/attachStream';
 import { filesListHeader } from '@sockety/core/src/slices/filesListHeader';
 import { filesList } from '@sockety/core/src/slices/filesList';
 import { CREATE_PRODUCER_SLICE, FileTransfer } from '@sockety/core/src/FileTransfer';
+import { FunctionMimic } from './FunctionMimic';
 
 enum DraftDataType {
   none = 0,
@@ -76,8 +77,7 @@ function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, Co
   return [ filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize ];
 }
 
-// Use FunctionMimic for the factory
-export class Draft<T extends DraftConfig = DraftConfigDefaults> {
+export class Draft<T extends DraftConfig = DraftConfigDefaults> extends FunctionMimic<ProducerFactory<T>> {
   #stream: boolean = false;
   #allowFiles: boolean = false;
   #allowData: DraftDataType = DraftDataType.none;
@@ -90,12 +90,21 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   // TODO: Think if such tuple is fine
   #data: (data: Buffer) => [ ContentProducerSlice, ContentProducerSlice, number ] = () => [ none, none, 0 ];
 
+  // Keep cached optimized draft
+  #cached?: ProducerFactory<T>;
+
   public constructor(name: string) {
+    super();
     this.#action = action(name);
     this.#actionLength = Buffer.byteLength(name);
   }
 
+  #revokeCache(): void {
+    this.#cached = undefined;
+  }
+
   public stream(): Draft<UseStream<T, true>> {
+    this.#revokeCache();
     this.#stream = true;
     return this as any;
   }
@@ -103,6 +112,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   public files(): Draft<UseFiles<T, true>>;
   public files(files: FileTransfer[]): Draft<UseFiles<T, false>>;
   public files(files?: FileTransfer[]): Draft<UseFiles<T, boolean>> {
+    this.#revokeCache();
     if (files === undefined) {
       this.#allowFiles = true;
       this.#files = createFilesOperation;
@@ -118,6 +128,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   public data(content: Buffer): Draft<UseData<T, DraftDataType.none>>;
   public data(content: string): Draft<UseData<T, DraftDataType.none>>;
   public data(content?: Buffer | string): Draft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
+    this.#revokeCache();
     if (content === undefined) {
       this.#allowData = DraftDataType.raw;
       this.#data = createRawDataOperation;
@@ -132,6 +143,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   public msgpack<U>(): Draft<UseData<T, DraftDataType.msgpack, U>>;
   public msgpack<U>(content: U): Draft<UseData<T, DraftDataType.none>>;
   public msgpack<U>(content?: U): Draft<UseData<T, DraftDataType.msgpack | DraftDataType.none, U>> {
+    this.#revokeCache();
     if (content === undefined) {
       this.#allowData = DraftDataType.msgpack;
       this.#data = createMessagePackDataOperation;
@@ -143,8 +155,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
     return this as any;
   }
 
-  // FIXME: It should be create() with args instead
-  public createFactory(): ProducerFactory<T> {
+  #optimize(): ProducerFactory<T> {
     // Extract already known information
     const hasStream = this.#stream;
     const actionSlice = this.#action;
@@ -200,6 +211,17 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
         return request;
       });
     }) as any;
+  }
+
+  public optimize(): ProducerFactory<T> {
+    if (!this.#cached) {
+      this.#cached = this.#optimize();
+    }
+    return this.#cached;
+  }
+
+  public __call__(input?: Input<T>): ReturnType<ProducerFactory<T>> {
+    return this.optimize()(input as any) as any;
   }
 
   public static for(name: string): Draft {

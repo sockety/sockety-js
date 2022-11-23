@@ -133,8 +133,8 @@ To connect to server, use `connect` or `secureConnect` functions.
 import { connect, Draft, FastReply } from 'sockety';
 
 // Prepare draft messages structure
-const log = Draft.for('log').msgpack<string>().createFactory();
-const ping = Draft.for('ping').createFactory();
+const log = Draft.for('log').msgpack<string>();
+const ping = Draft.for('ping');
 
 // Initialize connection
 const client = connect(9000);
@@ -175,7 +175,7 @@ As an example, you may send a message that will echo data in response:
 import { createReadStream } from 'node:fs';
 import { createServer } from 'sockety';
 
-const draft = Draft.for('something').stream().createFactory();
+const draft = Draft.for('something').stream();
 
 const server = createServer();
 server.on('connection', async connection => {
@@ -231,7 +231,7 @@ As an example, you may pass some files in a message, and write them immediately 
 import { readFileSync, createReadStream, statSync } from 'node:fs';
 import { createServer, FileTransfer } from 'sockety';
 
-const draft = Draft.for('something').files().createFactory();
+const draft = Draft.for('something').files();
 const file1 = Buffer.from('there is some text');
 
 const server = createServer();

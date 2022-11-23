@@ -8,13 +8,8 @@ const port = 9000;
 
 // Prepare structure
 
-const registerMessage = Draft.for('name')
-  .msgpack<string>()
-  .createFactory();
-
-const broadcastMessage = Draft.for('broadcast')
-  .msgpack<string>()
-  .createFactory();
+const registerMessage = Draft.for('name').msgpack<string>();
+const broadcastMessage = Draft.for('broadcast').msgpack<string>();
 
 // Prepare message templates
 
