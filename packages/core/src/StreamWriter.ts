@@ -86,8 +86,8 @@ export class StreamWriter {
   readonly #buffer: WritableBuffer;
   readonly #maxChannels: number;
 
-  readonly #streamingChannels: boolean[]; // TODO: Consider Record<number, boolean>?
-  readonly #reservedChannels: boolean[]; // TODO: Consider Record<number, boolean>?
+  readonly #streamingChannels: Record<number, boolean> = {};
+  readonly #reservedChannels: Record<number, boolean> = {};
   readonly #waitingForIdle: ((channel: number, release: () => void) => void)[] = [];
 
   #currentPacket: number | null = null;
@@ -112,8 +112,8 @@ export class StreamWriter {
     }
 
     // Prepare bucket for information about streaming/reserved channels
-    this.#streamingChannels = new Array(this.#maxChannels).fill(false);
-    this.#reservedChannels = new Array(this.#maxChannels).fill(false);
+    this.#streamingChannels = {};
+    this.#reservedChannels = {};
 
     // Build buffered writable (?)
     this.#buffer = new WritableBuffer(writable);
