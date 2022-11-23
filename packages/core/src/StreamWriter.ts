@@ -186,11 +186,6 @@ export class StreamWriter {
     return this.#instruction(instruction, maxByteLength, sent, written);
   }
 
-  // TODO: Think how to use it
-  public unsafeClosePacket(): void {
-    return this.#endPacket();
-  }
-
   #callback(sent?: SendCallback, written?: WriteCallback): void {
     if (sent || written) {
       if (this.#lastInstruction) {
