@@ -1,13 +1,12 @@
 import { Writable } from 'node:stream';
 
-// TODO: Destroy
 export class DrainListener {
   readonly #writable: Writable;
-  readonly #listeners: (() => void)[] = [];
+  #listeners: (() => void)[] = [];
 
   public constructor(writable: Writable) {
     this.#writable = writable;
-    writable.on('drain', this.#drained.bind(this));
+    writable.on('drain', this.#drained);
   }
 
   get #isWritable(): boolean {
@@ -18,7 +17,12 @@ export class DrainListener {
     this.#listeners.push(fn);
   }
 
-  #drained() {
+  public destroy(): void {
+    this.#listeners = [];
+    this.#writable.removeListener('drain', this.#drained);
+  }
+
+  #drained = () => {
     if (this.#listeners.length === 0) {
       return;
     }

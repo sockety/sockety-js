@@ -471,4 +471,12 @@ export class StreamWriter {
     // TODO: Add option (AbortController?) to stop waiting for idle channel?
     this.#waitingForIdle.push(callback);
   }
+
+  public destroy(): void {
+    this.#buffer.destroy();
+    this.#currentPacket = null;
+    this.#firstInstruction = undefined;
+    this.#lastInstruction = undefined;
+    this.#instructionsPacketPlaceholder = undefined;
+  }
 }

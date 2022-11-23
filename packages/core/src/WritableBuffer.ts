@@ -204,4 +204,11 @@ export class WritableBuffer {
     this.#poolOffset += 16;
     this.#poolUpdated();
   }
+
+  public destroy(): void {
+    this.#pool = NONE;
+    this.#poolStart = 0;
+    this.#poolOffset = 0;
+    this.#drain.destroy();
+  }
 }
