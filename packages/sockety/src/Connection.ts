@@ -58,7 +58,6 @@ export class Connection extends EventEmitter {
   #headersSent = false;
 
   public constructor(socket: TcpSocket, options: RawConnectOptions = {}) {
-    // TODO: Send connection header
     super();
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
