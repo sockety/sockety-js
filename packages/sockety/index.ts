@@ -9,5 +9,6 @@ export type { Message } from './src/Message';
 export type { MessageDataStream } from '@sockety/core/src/read/MessageDataStream';
 export type { ContentProducer } from '@sockety/core/src/ContentProducer';
 export { FastReply } from '@sockety/core/src/constants';
+export { FileTransfer } from '@sockety/core/src/FileTransfer';
 export { series } from '@sockety/core/src/producers/series';
 // TODO: Think about separating barrels

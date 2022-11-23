@@ -1,25 +1,20 @@
 import { once } from 'node:events';
 import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import * as msgpack from 'msgpackr';
 import { RawMessage } from '@sockety/core/src/read/RawMessage';
 import { UUID } from '@sockety/uuid';
 import { createResponse } from '@sockety/core/src/createResponse';
 import { FastReply } from '@sockety/core/src/constants';
 import { fastReply } from '@sockety/core/src/producers/fastReply';
+import { FileTransfer } from '@sockety/core/src/FileTransfer';
 import { Request } from './Request';
 import { Connection } from './Connection';
-
-// TODO: Extract type
-type FileBufferSent = { name: string, buffer: Buffer };
-type FileStreamSent = { name: string, size: number, stream: Readable };
-type FileSent = FileBufferSent | FileStreamSent;
 
 const NONE = Buffer.allocUnsafe(0);
 
 interface RespondOptions {
   data?: Buffer;
-  files?: FileSent[];
+  files?: FileTransfer[];
 }
 
 // TODO: Consider event emitter to hook to message lifecycle

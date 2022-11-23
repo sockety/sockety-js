@@ -1,13 +1,10 @@
 import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import { createContentProducerSlice } from '../ContentProducer';
 import { createNumberBytesGetter } from '../createNumberBytesGetter';
 import { none } from './none';
 import { createNumberBytesMapper } from '../createNumberBytesMapper';
 import { FileNameSizeBits, FileSizeBits } from '../constants';
-
-// TODO: Extract type
-type FileSent = { name: string, buffer: Buffer } | { name: string, size: number, stream: Readable };
+import { FileTransfer } from '../FileTransfer';
 
 const getFileHeaderNameBytes = createNumberBytesGetter('file name', [ 1, 2 ]);
 const getFileHeaderNameFlag = createNumberBytesMapper('file name', {
@@ -24,7 +21,7 @@ const getFileHeaderSizeFlag = createNumberBytesMapper('file size', {
 });
 
 // TODO: Extract type
-function getFileHeaderSize(file: FileSent): number {
+function getFileHeaderSize(file: FileTransfer): number {
   const nameLength = Buffer.byteLength(file.name);
   const nameSize = getFileHeaderNameBytes(nameLength);
   // @ts-ignore: ignore types for optimization
@@ -33,7 +30,7 @@ function getFileHeaderSize(file: FileSent): number {
   return 1 + sizeSize + nameSize + nameLength;
 }
 
-function writeFileHeader(buffer: Buffer, offset: number, file: FileSent): number {
+function writeFileHeader(buffer: Buffer, offset: number, file: FileTransfer): number {
   const name = file.name;
   const nameLength = Buffer.byteLength(name);
   const nameSize = getFileHeaderNameBytes(nameLength);
@@ -61,7 +58,7 @@ function writeFileHeader(buffer: Buffer, offset: number, file: FileSent): number
 }
 
 // TODO: Optimize
-export const filesList = (files?: FileSent[] | null) => {
+export const filesList = (files?: FileTransfer[] | null) => {
   if (!files || files.length === 0) {
     return none;
   }

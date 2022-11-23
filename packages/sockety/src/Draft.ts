@@ -1,5 +1,4 @@
 import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import * as msgpack from 'msgpackr';
 import { ContentProducer, ContentProducerSlice, createContentProducer } from '@sockety/core/src/ContentProducer';
 import { Request as RawRequest, REQUEST_DONE } from '@sockety/core/src/Request';
@@ -14,20 +13,9 @@ import { dataSize } from '@sockety/core/src/slices/dataSize';
 import { endStream } from '@sockety/core/src/slices/endStream';
 import { parallel } from '@sockety/core/src/slices/parallel';
 import { attachStream } from '@sockety/core/src/slices/attachStream';
-import { fileStream } from '@sockety/core/src/slices/fileStream';
-import { fileContent } from '@sockety/core/src/slices/fileContent';
-import { fileEnd } from '@sockety/core/src/slices/fileEnd';
 import { filesListHeader } from '@sockety/core/src/slices/filesListHeader';
 import { filesList } from '@sockety/core/src/slices/filesList';
-
-// TODO: Extract type
-type FileBufferSent = { name: string, buffer: Buffer };
-type FileStreamSent = { name: string, size: number, stream: Readable };
-type FileSent = FileBufferSent | FileStreamSent;
-
-function isFileStream(file: FileSent): file is FileStreamSent {
-  return (file as any).stream;
-}
+import { CREATE_PRODUCER_SLICE, FileTransfer } from '@sockety/core/src/FileTransfer';
 
 enum DraftDataType {
   none = 0,
@@ -57,7 +45,7 @@ type Input<T extends DraftConfig> =
   (T['data'] extends DraftDataType.msgpack
     ? { data: T['dataType'] }
     : T['data'] extends DraftDataType.raw ? { data: Buffer } : {}) &
-  (T['files'] extends true ? { files: FileSent[] } : {});
+  (T['files'] extends true ? { files: FileTransfer[] } : {});
 
 type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
   ? (input?: Input<T>) => ContentProducer<RawRequest<T['stream']>>
@@ -72,17 +60,9 @@ function createMessagePackDataOperation(content: any): [ ContentProducerSlice, C
   return createRawDataOperation(msgpack.encode(content));
 }
 
-function createFilesOperation(files: FileSent[]): [ ContentProducerSlice, ContentProducerSlice, number, number ] {
+function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, ContentProducerSlice, number, number ] {
   // Build slices for files transfer
-  const filesSlice = parallel(files.map((file, index) => {
-    if (isFileStream(file)) {
-      return fileStream(index, file.stream);
-    }
-    return pipe([
-      fileContent(index)(file.buffer),
-      fileEnd(index),
-    ]);
-  }));
+  const filesSlice = parallel(files.map((file, index) => file[CREATE_PRODUCER_SLICE](index)));
 
   // Compute files details
   const filesCount = files?.length || 0;
@@ -106,7 +86,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   readonly #action: ContentProducerSlice;
   readonly #actionLength: number;
   // TODO: Think if such tuple is fine
-  #files: (files: FileSent[]) => [ ContentProducerSlice, ContentProducerSlice, number, number ] = () => [ none, none, 0, 0 ];
+  #files: (files: FileTransfer[]) => [ ContentProducerSlice, ContentProducerSlice, number, number ] = () => [ none, none, 0, 0 ];
   // TODO: Think if such tuple is fine
   #data: (data: Buffer) => [ ContentProducerSlice, ContentProducerSlice, number ] = () => [ none, none, 0 ];
 
@@ -121,8 +101,8 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   }
 
   public files(): Draft<UseFiles<T, true>>;
-  public files(files: FileSent[]): Draft<UseFiles<T, false>>;
-  public files(files?: FileSent[]): Draft<UseFiles<T, boolean>> {
+  public files(files: FileTransfer[]): Draft<UseFiles<T, false>>;
+  public files(files?: FileTransfer[]): Draft<UseFiles<T, boolean>> {
     if (files === undefined) {
       this.#allowFiles = true;
       this.#files = createFilesOperation;

@@ -1,13 +1,9 @@
 import { Buffer } from 'node:buffer';
-import { Readable } from 'node:stream';
 import { generateUuid, UUID } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from './ContentProducer';
 import { Request, REQUEST_DONE } from './Request';
 import { RequestStream } from './RequestStream';
 import { data } from './slices/data';
-import { fileContent } from './slices/fileContent';
-import { fileEnd } from './slices/fileEnd';
-import { fileStream } from './slices/fileStream';
 import { dataSize } from './slices/dataSize';
 import { attachStream } from './slices/attachStream';
 import { filesListHeader } from './slices/filesListHeader';
@@ -17,19 +13,11 @@ import { endStream } from './slices/endStream';
 import { parallel } from './slices/parallel';
 import { none } from './slices/none';
 import { responseStart } from './slices/responseStart';
-
-// TODO: Extract type
-type FileBufferSent = { name: string, buffer: Buffer };
-type FileStreamSent = { name: string, size: number, stream: Readable };
-type FileSent = FileBufferSent | FileStreamSent;
+import { CREATE_PRODUCER_SLICE, FileTransfer } from './FileTransfer';
 
 export interface CreateResponseOptions {
   data?: Buffer;
-  files?: FileSent[];
-}
-
-function isFileStream(file: FileSent): file is FileStreamSent {
-  return (file as any).stream;
+  files?: FileTransfer[];
 }
 
 // TODO: Validate provided data? Or on receive?
@@ -56,15 +44,7 @@ export function createResponse<T extends boolean>({
   // Write/schedule files
   // TODO: For 0-size, it should be optional
   // TODO: Max concurrency?
-  const filesSlices = files ? files.map((file, index) => {
-    if (isFileStream(file)) {
-      return fileStream(index, file.stream);
-    }
-    return pipe([
-      fileContent(index)(file.buffer),
-      fileEnd(index),
-    ]);
-  }) : [];
+  const filesSlices = files ? files.map((file, index) => file[CREATE_PRODUCER_SLICE](index)) : [];
 
   // Build response producer
   return (parentId) => {

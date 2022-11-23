@@ -1,5 +1,6 @@
 const { MessageHandler, Draft, createServer, createSecureServer, connect, secureConnect, FastReply } = require('../../../sockety');
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
+const { FileTransfer } = require('../../../core/src/FileTransfer');
 const { certificate, privateKey } = require('../../tls');
 const { kb512, mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
@@ -25,7 +26,7 @@ function common() {
 
   {
     const message = Draft.for('ping')
-      .files([ { name: 'file-1.txt', buffer: mb1.content } ])
+      .files([ FileTransfer.buffer(mb1.content, 'file-1.txt') ])
       .createFactory()();
     benchmark('1MB file', async ({ getClient }) => getClient().pass(message));
   }
@@ -33,7 +34,7 @@ function common() {
   {
     const factory = Draft.for('ping').files().createFactory();
     benchmark('1MB file from FS', async ({ getClient }) => {
-      const message = factory({ files: [ { name: 'file-1.txt', size: mb1.content.length, stream: mb1.stream() } ] });
+      const message = factory({ files: [ FileTransfer.stream(mb1.stream(), mb1.content.length, 'file-1.txt') ] });
       return getClient().pass(message);
     });
   }
@@ -42,8 +43,8 @@ function common() {
     const factory = Draft.for('ping').files().createFactory();
     benchmark('2x 0.5MB file from FS', async ({ getClient }) => {
       const message = factory({ files: [
-        { name: 'file-1.txt', size: kb512.content.length, stream: kb512.stream() },
-        { name: 'file-2.txt', size: kb512.content.length, stream: kb512.stream() },
+        FileTransfer.stream(kb512.stream(), kb512.content.length, 'file-1.txt'),
+        FileTransfer.stream(kb512.stream(), kb512.content.length, 'file-2.txt'),
       ] });
       return getClient().pass(message);
     });

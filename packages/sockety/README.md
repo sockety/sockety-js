@@ -229,25 +229,20 @@ As an example, you may pass some files in a message, and write them immediately 
  * ***** Server ******
  */
 import { readFileSync, createReadStream, statSync } from 'node:fs';
-import { createServer } from 'sockety';
+import { createServer, FileTransfer } from 'sockety';
 
 const draft = Draft.for('something').files().createFactory();
 const file1 = Buffer.from('there is some text');
 
 const server = createServer();
-server.on('connection', connection => {
+server.on('connection', async connection => {
   // If the "files" are always the same, files() in draft could take that
-  // TODO: Add wrappers for files
   connection.pass(draft({
     files: [
       // Static file
-      { name: 'file-1.txt', buffer: file1 },
+      FileTransfer.buffer(file1, 'file-1.txt'),
       // File streamed from FS
-      {
-        name: 'file-2.txt',
-        stream: createReadStream('/etc/hosts'),
-        size: statSync('/etc/hosts').size,
-      },
+      await FileTransfer.fs('/etc/hosts'),
     ],
   }));
 });
