@@ -165,7 +165,14 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     const createFilesSlices = this.#files;
     const createMessageStartSliceFactory = messageStart(hasStream, actionLength);
 
-    return ((input?: Input<T>) => {
+    return ((input?: Input<T>, argThatIsNotExpected?: number) => {
+      // Handle common developer's mistake,
+      // that Draft was passed for sending without building draft.
+      // `send(Draft.for('ping'))` instead of `send(Draft.for('ping')())`
+      if (argThatIsNotExpected !== undefined) {
+        throw new Error('Raw Draft\'s factory should be called to build the producer.');
+      }
+
       // Extract input
       // @ts-ignore: simpler for better performance
       const inputData = input?.data;
@@ -219,8 +226,8 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     return this.#cached;
   }
 
-  public __call__(input?: Input<T>): ReturnType<ProducerFactory<T>> {
-    return this.optimize()(input as any) as any;
+  public __call__(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ProducerFactory<T>> {
+    return (this.optimize() as any)(input, argThatIsNotExpected);
   }
 
   public static for(name: string): Draft {
