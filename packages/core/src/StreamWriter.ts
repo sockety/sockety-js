@@ -259,11 +259,6 @@ export class StreamWriter {
     }
   }
 
-  // TODO: Think if "immediate" information is required
-  public drained(fn: (immediate: boolean) => void): void {
-    this.#buffer.drained(fn);
-  }
-
   // Packets
 
   public heartbeat(sent?: SendCallback, written?: WriteCallback): void {

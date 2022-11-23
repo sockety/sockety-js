@@ -63,11 +63,11 @@ export class WritableBuffer {
     return this.#writable.writableNeedDrain;
   }
 
-  public drained(fn: (immediate: boolean) => void): void {
+  public drained(fn: () => void): void {
     if (this.needsDrain) {
-      this.#drain.listen(() => fn(false));
+      this.#drain.listen(fn);
     } else {
-      fn(true);
+      fn();
     }
   }
 
