@@ -164,6 +164,112 @@ client.ready().then(async () => {
 });
 ```
 
+### Streams
+
+As an example, you may send a message that will echo data in response:
+
+```ts
+/**
+ * ***** Server ******
+ */
+import { createReadStream } from 'node:fs';
+import { createServer } from 'sockety';
+
+const draft = Draft.for('something').stream().createFactory();
+
+const server = createServer();
+server.on('connection', async connection => {
+  const request = connection.send(draft());
+  const response = await request.response();
+  
+  // Log all data sent from the client
+  response.stream.on('data', (x) => console.log(`[Server] Received: ${x}`));
+  response.stream.on('finish', () => console.log(`[Server] Stream from the other side ended!`));
+  request.stream.on('finish', () => console.log(`[Server] Own stream ended!`));
+  
+  // Send data to the client
+  request.stream.write('some-text');
+  request.stream.write('other-text');
+  request.stream.write('anything-else');
+  createReadStream('/etc/hosts').pipe(request.stream);
+  // Fs.ReadStream will end the whole stream with piping.
+  // If this is not desired, you may pass 2nd argument to pipe - { end: false }
+});
+server.listen(9000);
+
+/**
+ * ***** Client ******
+ */
+import { connect } from 'sockety';
+
+const client = connect(9000);
+client.on('message', async message => {
+  const response = request.respond({}, true);
+  await response.sent();
+
+  // Log all data sent from the client
+  message.stream.on('data', (x) => console.log(`[Client] Received: ${x}`));
+  message.stream.on('finish', () => console.log(`[Client] Stream from the other side ended!`));
+  response.stream.on('finish', () => console.log(`[Client] Own stream ended!`));
+
+  // Send data to the client
+  response.stream.write('some-text-from-client');
+  response.stream.write('other-text-from-client');
+  response.stream.write('anything-else-from-client');
+  response.stream.end();
+});
+```
+
+### Files
+
+As an example, you may pass some files in a message, and write them immediately to the file system:
+
+```ts
+/**
+ * ***** Server ******
+ */
+import { readFileSync, createReadStream, statSync } from 'node:fs';
+import { createServer } from 'sockety';
+
+const draft = Draft.for('something').files().createFactory();
+const file1 = Buffer.from('there is some text');
+
+const server = createServer();
+server.on('connection', connection => {
+  // If the "files" are always the same, files() in draft could take that
+  // TODO: Add wrappers for files
+  connection.pass(draft({
+    files: [
+      // Static file
+      { name: 'file-1.txt', buffer: file1 },
+      // File streamed from FS
+      {
+        name: 'file-2.txt',
+        stream: createReadStream('/etc/hosts'),
+        size: statSync('/etc/hosts').size,
+      },
+    ],
+  }));
+});
+server.listen(9000);
+
+/**
+ * ***** Client ******
+ */
+import { createWriteStream } from 'node:fs';
+import { join } from 'node:path';
+import { connect } from 'sockety';
+
+const uploadPath = '/tmp';
+const client = connect(9000);
+client.on('message', message => {
+  for (const file of message.files()) {
+    const outputPath = join(uploadPath, file.name);
+    file.pipe(createWriteStream(outputPath));
+  }
+});
+```
+
 ### Examples
 
 You may look at examples in this repository in [`packages/examples`](https://github.com/sockety/sockety-js/tree/main/packages/examples) directory.
