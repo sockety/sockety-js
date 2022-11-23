@@ -96,6 +96,7 @@ function createFilesOperation(files: FileSent[]): [ ContentProducerSlice, Conten
   return [ filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize ];
 }
 
+// Use FunctionMimic for the factory
 export class Draft<T extends DraftConfig = DraftConfigDefaults> {
   #stream: boolean = false;
   #allowFiles: boolean = false;
