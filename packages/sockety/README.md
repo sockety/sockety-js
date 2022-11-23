@@ -99,7 +99,7 @@ const handle = new MessageHandler()
 
 // Handle connections
 server.on('connection', connection => {
-  connection.on('message', handleMessage);
+  connection.on('message', handle);
   connection.on('error', error => {
       console.error(`Error: ${error}`);
   });
