@@ -87,6 +87,7 @@ export class Message extends RawMessage {
     return this.#msgpack;
   }
 
+  // TODO: Support msgpack responses
   public respond<T extends true | false | undefined>(options: RespondOptions, hasStream?: T): T extends undefined ? Promise<Request<false>> : Promise<Request<T>> {
     this.#respond = true;
     return this.#connection.send(createResponse(options, Boolean(hasStream))(this.id)) as any;
