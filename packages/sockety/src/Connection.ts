@@ -180,8 +180,9 @@ export class Connection extends EventEmitter {
   public send<T extends boolean>(producer: ContentProducer<RawRequest<T>>): Request<T> {
     if (!this.#writer) {
       throw new Error('The connection is not established yet.');
+    } if (this.#closing) {
+      throw new Error('The connection is closed.');
     }
-    // TODO: Avoid sending when the socket is closing
     const request = producer(this.#writer, noop, noop, true);
     return new Request<T>(this, request);
   }
@@ -189,9 +190,9 @@ export class Connection extends EventEmitter {
   public pass(producer: ContentProducer): Promise<void> {
     if (!this.#writer) {
       throw new Error('The connection is not established yet.');
+    } else if (this.#closing) {
+      throw new Error('The connection is closed.');
     }
-
-    // TODO: Avoid sending when the socket is closing
     return new Promise<void>((resolve, reject) => producer(this.#writer, (error) => {
       if (error == null) {
         resolve();
