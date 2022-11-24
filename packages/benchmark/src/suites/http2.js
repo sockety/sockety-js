@@ -16,9 +16,16 @@ function common() {
     });
   }));
 
-  benchmark('Request / empty response', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('Request / no response', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/fast' });
     req.on('finish', resolve);
+    req.on('error', reject);
+    req.end();
+  }));
+
+  benchmark('Request / empty response', async ({ getClient }) => new Promise((resolve, reject) => {
+    const req = getClient().request({ ':path': '/fast' });
+    req.on('response', resolve);
     req.on('error', reject);
     req.end();
   }));
