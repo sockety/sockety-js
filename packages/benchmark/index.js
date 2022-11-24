@@ -139,7 +139,7 @@ async function runServerOnly(name) {
 async function runSuite(name) {
   const suite = getSuite(name);
 
-  printHeader(name);
+  printHeader(name, config.serverWorkers > 1);
 
   for (const benchmark of suite.benchmarks) {
     let server;

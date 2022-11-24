@@ -147,13 +147,13 @@ function aggregateBenchmarks(results) {
   };
 }
 
-function printHeader(name) {
+function printHeader(name, hasMultipleServers = false) {
   process.stdout.write(
     '\n' + chalk.bgAnsi256(30)(' ' +
       chalk.bold(name.padEnd(30)) + chalk.black(
         ' '.repeat(14) +
         ' '.repeat(9) +
-        'queries per second' +
+        (hasMultipleServers ? 'queries per second' : ''.padStart(4)) +
         ' '.repeat(1) +
         ' '.repeat(13) +
         ' '.repeat(13) +
@@ -169,8 +169,8 @@ function printHeader(name) {
     '\n' + chalk.bgAnsi256(30)(' ' +
       ' '.repeat(30) + chalk.black(
         'success'.padStart(14) +
-        'total'.padStart(14) +
-        'each server'.padStart(14) +
+        (hasMultipleServers ? 'total' : 'QPS').padStart(14) +
+        (hasMultipleServers ? 'each server'.padStart(14) : '') +
         'min'.padStart(13) +
         'avg'.padStart(13) +
         'max'.padStart(13) +
@@ -215,7 +215,7 @@ function printResult(name, result, config) {
   const cpuServerSystem = formatCpu(result.cpu.servers?.system, config.serverWorkers);
   const cpuServer = formatCpuGroup(cpuServerUser, cpuServerSystem, cpuServerTotal);
   const state = result.errors === 0 ? chalk.green : result.success > 0.9 ? chalk.yellow : chalk.red;
-  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${chalk.bold(qpss.padStart(14))}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}   ${cpuClient}   ${cpuServer}\n`.padEnd(60, ' '));
+  process.stdout.write(` ${chalk.bold(name.padEnd(37))}${state(success.padStart(7))}${chalk.bold(qps.padStart(14))}${config.serverWorkers > 1 ? chalk.bold(qpss.padStart(14)) : ''}${min.padStart(13)}${avg.padStart(13)}${max.padStart(13)}   ${cpuClient}   ${cpuServer}\n`.padEnd(60, ' '));
   if (result.errors) {
     process.stdout.write(chalk.red.bold(`  Failed ${result.errors} times`) + '\n');
   }
