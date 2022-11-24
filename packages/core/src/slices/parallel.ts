@@ -42,6 +42,8 @@ export const parallel = (slices: ContentProducerSlice[], concurrency = Infinity)
   const total = slices.length;
   if (total === 0 || !slices.some((x) => x !== none)) {
     return none;
+  } else if (total === 1) {
+    return slices[0];
   }
   if (concurrency >= total) {
     return createContentProducerSlice((writer, channel, sent, written, registered) => {

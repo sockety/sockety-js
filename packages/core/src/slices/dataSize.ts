@@ -4,7 +4,7 @@ import { createNumberBytesGetter } from '../createNumberBytesGetter';
 
 const getDataBytes = createNumberBytesGetter('data', [ 0, 1, 2, 6 ]);
 
-export const dataSize = (dataLength: number) => {
+function buildDataSize(dataLength: number) {
   const dataSizeBytes = getDataBytes(dataLength);
 
   if (dataSizeBytes === 0) {
@@ -18,3 +18,8 @@ export const dataSize = (dataLength: number) => {
     registered?.();
   });
 }
+
+
+export const dataSize = Object.assign(buildDataSize, {
+  empty: buildDataSize(0),
+});

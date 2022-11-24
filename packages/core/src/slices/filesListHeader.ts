@@ -6,7 +6,7 @@ const getTotalFilesSizeBytes = createNumberBytesGetter('total files size', [ 2, 
 
 const getFilesCountBytes = createNumberBytesGetter('files count', [ 0, 1, 2, 3 ]);
 
-export const filesListHeader = (filesCount: number, totalFilesSize: number) => {
+function buildFilesListHeader(filesCount: number, totalFilesSize: number) {
   const filesCountBytes = getFilesCountBytes(filesCount);
   if (filesCountBytes === 0) {
     return none;
@@ -20,3 +20,7 @@ export const filesListHeader = (filesCount: number, totalFilesSize: number) => {
     registered?.();
   });
 }
+
+export const filesListHeader = Object.assign(buildFilesListHeader, {
+  empty: buildFilesListHeader(0, 0),
+});

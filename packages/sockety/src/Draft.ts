@@ -52,8 +52,12 @@ type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
   ? (input?: Input<T>) => ContentProducer<RawRequest<T['stream']>>
   : (input: Input<T>) => ContentProducer<RawRequest<T['stream']>>;
 
+const noDataOperation: [ ContentProducerSlice, ContentProducerSlice, number ] = [ none, dataSize.empty, 0 ];
 function createRawDataOperation(content: Buffer | string): [ ContentProducerSlice, ContentProducerSlice, number ] {
   const length = Buffer.byteLength(content);
+  if (length === 0) {
+    return noDataOperation;
+  }
   return [ data(content), dataSize(length), length ];
 }
 
@@ -61,12 +65,20 @@ function createMessagePackDataOperation(content: any): [ ContentProducerSlice, C
   return createRawDataOperation(msgpack.encode(content));
 }
 
+const noFilesOperation: [ ContentProducerSlice, ContentProducerSlice, number, number ] = [ none, filesListHeader.empty, 0, 0 ];
 function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, ContentProducerSlice, number, number ] {
+  // Count files
+  const filesCount = files?.length || 0;
+
+  // Fast-track when there are no files
+  if (filesCount === 0) {
+    return noFilesOperation;
+  }
+
   // Build slices for files transfer
   const filesSlice = parallel(files.map((file, index) => file[CREATE_PRODUCER_SLICE](index)));
 
-  // Compute files details
-  const filesCount = files?.length || 0;
+  // Compute size
   // @ts-ignore: avoid checks for better performance
   const totalFilesSize = files?.reduce((acc, file) => acc + (file.size ?? file.buffer.length), 0) || 0;
 
