@@ -241,7 +241,7 @@ export class Connection extends EventEmitter {
 
     // Destroy socket
     // TODO: Abort current streams
-    this.#writer.destroy();
+    this.#writer?.destroy();
     this.#socket.removeAllListeners();
     this.#socket.destroy();
     this.#socket = null;

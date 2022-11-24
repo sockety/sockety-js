@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { ListenOptions } from 'node:net';
 import { ContentProducer } from '@sockety/core/src/ContentProducer';
+import { isTlsServer } from '@sockety/core/src/utils/isTlsServer';
 import { RawServerOptions, TcpServer, TcpSocket } from './types';
 import { Connection } from './Connection';
 
@@ -13,8 +14,8 @@ export class Server extends EventEmitter {
     super();
     this.#server = rawServer;
     this.#options = options;
-    this.#server.on('connection', this.#handleSocket.bind(this));
-    this.#server.on('secureConnection', this.#handleSocket.bind(this));
+    // @ts-ignore: fix types
+    this.#server.on(isTlsServer(this.#server) ? 'secureConnection' : 'connection', this.#handleSocket.bind(this));
     this.#server.on('error', this.#handleError.bind(this));
     this.#server.on('close', this.#handleClose.bind(this));
   }
