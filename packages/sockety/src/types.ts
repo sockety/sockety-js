@@ -16,7 +16,7 @@ export type SecureConnectOptions = RawConnectOptions & tls.ConnectionOptions;
 export interface RawServerOptions {
   maxReceivedChannels?: number; // default: 4096
   maxWritableChannels?: number; // default: 4096
-  timeout?: number; // default: none
+  timeout?: number; // default: 60000
   allowFilesSizeMismatch?: number; // default: false
 }
 

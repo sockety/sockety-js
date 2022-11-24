@@ -13,6 +13,7 @@ import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
 import { Request } from './Request';
 import { BufferReader } from '@sockety/buffers';
 import { Buffer } from 'node:buffer';
+import { clearInterval } from 'timers';
 
 const noop = () => {};
 
@@ -52,6 +53,7 @@ export class Connection extends EventEmitter {
     control: (byte) => this.#verifyControlByte(byte),
     channels: (channels) => this.#setupWriter(channels),
   }).readOne;
+  readonly #heartbeatInterval: any;
   #writer!: StreamWriter;
   #socket: TcpSocket | null;
   #closing = false;
@@ -63,7 +65,15 @@ export class Connection extends EventEmitter {
     this.#socket.setKeepAlive(true);
     this.#maxWritableChannels = options.maxWritableChannels ?? 4096;
     const maxReceivedChannels = options.maxReceivedChannels ?? 4096;
-    // TODO: Support timeout
+
+    // Handle timeout
+    const timeout = options.timeout ?? 60000;
+    this.#socket.setTimeout(timeout);
+    this.#heartbeatInterval = setInterval(() => this.#writer?.heartbeat(), timeout * 0.75);
+    this.#socket.on('timeout', () => {
+      this.emit('timeout');
+      this.close(true);
+    });
 
     // Prepare reader
     this.#parser = new StreamParser({
@@ -211,6 +221,9 @@ export class Connection extends EventEmitter {
     // Mark as closing
     this.#closing = true;
 
+    // Stop sending heartbeats
+    clearInterval(this.#heartbeatInterval);
+
     // Wait until current messages will be sent if not force
     if (!force) {
       // TODO: Wait for empty stream
@@ -254,6 +267,14 @@ export interface Connection {
   prependOnceListener(event: 'connect', listener: () => void): this;
   removeListener(event: 'connect', listener: () => void): this;
   emit(event: 'connect'): boolean;
+
+  addListener(event: 'timeout', listener: () => void): this;
+  on(event: 'timeout', listener: () => void): this;
+  once(event: 'timeout', listener: () => void): this;
+  prependListener(event: 'timeout', listener: () => void): this;
+  prependOnceListener(event: 'timeout', listener: () => void): this;
+  removeListener(event: 'timeout', listener: () => void): this;
+  emit(event: 'timeout'): boolean;
 
   addListener(event: 'close', listener: () => void): this;
   on(event: 'close', listener: () => void): this;
