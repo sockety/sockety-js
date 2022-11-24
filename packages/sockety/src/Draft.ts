@@ -53,7 +53,7 @@ type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
   : (input: Input<T>) => ContentProducer<RawRequest<T['stream']>>;
 
 function createRawDataOperation(content: Buffer | string): [ ContentProducerSlice, ContentProducerSlice, number ] {
-  const length = content.length;
+  const length = Buffer.byteLength(content);
   return [ data(content), dataSize(length), length ];
 }
 
