@@ -72,7 +72,9 @@ export class Connection extends EventEmitter {
     this.#heartbeatInterval = setInterval(() => this.#writer?.heartbeat(), timeout * 0.75);
     this.#socket.on('timeout', () => {
       this.emit('timeout');
-      this.close(true);
+      if (!this.#closing) {
+        this.close(true);
+      }
     });
 
     // Prepare reader
@@ -86,7 +88,11 @@ export class Connection extends EventEmitter {
     this.#parser.on('fast-reply', this.#handleFastReply.bind(this));
 
     // Pass down socket events
-    this.#socket.once('close', () => this.close(true));
+    this.#socket.once('close', () => {
+      if (!this.#closing) {
+        this.close(true);
+      }
+    });
     this.#socket.on('error', this.#handleError.bind(this));
 
     // Handle control bytes
@@ -119,9 +125,10 @@ export class Connection extends EventEmitter {
 
   #verifyControlByte(byte: number): void {
     if ((byte >> 4) !== 0b1110) {
-      console.log(byte);
       this.emit('error', new Error('Invalid control byte'));
-      this.close(true);
+      if (this.#closing) {
+        this.close(true);
+      }
       return;
     }
   }
