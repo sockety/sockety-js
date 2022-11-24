@@ -7,57 +7,46 @@ const { suite, benchmark, prepareClient, prepareServer } = require('../declare')
 const { makePool } = require('../makePool');
 
 function common() {
-  benchmark('HEARTBEAT frame', ({ getClient }) => getClient().pass(heartbeat));
+  benchmark('Heartbeat', ({ getClient }) => getClient().pass(heartbeat));
 
   {
     const message = Draft.for('ping').optimize()();
-    benchmark('One-way message', ({ getClient }) => getClient().pass(message));
+    benchmark('No response', ({ getClient }) => getClient().pass(message));
   }
 
   {
     const message = Draft.for('fast').optimize()();
-    benchmark('ACKed message', async ({ getClient }) => getClient().send(message).response());
+    benchmark('Short response (code)', async ({ getClient }) => getClient().send(message).response());
   }
 
   {
     const message = Draft.for('echo').optimize()();
-    benchmark('Echo message', async ({ getClient }) => getClient().send(message).response());
+    benchmark('Regular response', async ({ getClient }) => getClient().send(message).response());
+  }
+
+  {
+    const message = Draft.for('ping').data(mb1.content).optimize()();
+    benchmark('1MB data (memory)', async ({ getClient }) => getClient().pass(message));
+  }
+
+  {
+    const message = Draft.for('ping').data(mb4.content).optimize()();
+    benchmark('4MB data (memory)', async ({ getClient }) => getClient().pass(message));
   }
 
   {
     const message = Draft.for('ping')
       .files([ FileTransfer.buffer(mb1.content, 'file-1.txt') ])
       .optimize()();
-    benchmark('1MB file', async ({ getClient }) => getClient().pass(message));
+    benchmark('1MB file (memory)', async ({ getClient }) => getClient().pass(message));
   }
 
   {
     const factory = Draft.for('ping').files().optimize();
-    benchmark('1MB file from FS', async ({ getClient }) => {
+    benchmark('1MB file (FS)', async ({ getClient }) => {
       const message = factory({ files: [ FileTransfer.stream(mb1.stream(), mb1.content.length, 'file-1.txt') ] });
       return getClient().pass(message);
     });
-  }
-
-  {
-    const factory = Draft.for('ping').files().optimize();
-    benchmark('2x 0.5MB file from FS', async ({ getClient }) => {
-      const message = factory({ files: [
-        FileTransfer.stream(kb512.stream(), kb512.content.length, 'file-1.txt'),
-        FileTransfer.stream(kb512.stream(), kb512.content.length, 'file-2.txt'),
-      ] });
-      return getClient().pass(message);
-    });
-  }
-
-  {
-    const message = Draft.for('ping').data(mb1.content).optimize()();
-    benchmark('1MB data', async ({ getClient }) => getClient().pass(message));
-  }
-
-  {
-    const message = Draft.for('ping').data(mb4.content).optimize()();
-    benchmark('4MB data', async ({ getClient }) => getClient().pass(message));
   }
 }
 

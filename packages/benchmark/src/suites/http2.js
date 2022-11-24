@@ -6,7 +6,7 @@ const { suite, benchmark, prepareClient, prepareServer } = require('../declare')
 const { makePool } = require('../makePool');
 
 function common() {
-  benchmark('PING frame', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('Heartbeat (PING frame)', async ({ getClient }) => new Promise((resolve, reject) => {
     getClient().ping((error) => {
       if (error == null) {
         resolve();
@@ -16,53 +16,46 @@ function common() {
     });
   }));
 
-  benchmark('Request / no response', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('No response (no waiting)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/fast' });
     req.on('finish', resolve);
     req.on('error', reject);
     req.end();
   }));
 
-  benchmark('Request / empty response', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('Short response (status code)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/fast' });
     req.on('response', resolve);
     req.on('error', reject);
     req.end();
   }));
 
-  benchmark('Request / short response', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('Regular response (tiny data)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/ping' });
     req.on('data', resolve);
     req.on('error', reject);
     req.end();
   }));
 
-  benchmark('1MB data', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('1MB data (memory)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb1.content.length });
     req.on('finish', resolve);
     req.on('error', reject);
     stream.Readable.from(mb1.content).pipe(req);
   }));
 
-  benchmark('1MB data from FS', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('1MB data (FS)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb1.content.length });
     req.on('finish', resolve);
     req.on('error', reject);
     mb1.stream().pipe(req);
   }));
 
-  benchmark('4MB data', async ({ getClient }) => new Promise((resolve, reject) => {
+  benchmark('4MB data (memory)', async ({ getClient }) => new Promise((resolve, reject) => {
     const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb4.content.length });
     req.on('finish', resolve);
     req.on('error', reject);
     stream.Readable.from(mb4.content).pipe(req);
-  }));
-
-  benchmark('4MB data from FS', async ({ getClient }) => new Promise((resolve, reject) => {
-    const req = getClient().request({ ':path': '/data', ':method': 'POST', 'Content-Length': mb4.content.length });
-    req.on('finish', resolve);
-    req.on('error', reject);
-    mb4.stream().pipe(req);
   }));
 }
 

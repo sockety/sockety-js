@@ -6,17 +6,15 @@ const { mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 
 function common() {
-  benchmark('Request / empty response', async ({ call }) => call('/fast'));
+  benchmark('Short response (status code)', async ({ call }) => call('/fast'));
 
-  benchmark('Request / short response', async ({ call }) => call('/ping'));
+  benchmark('Regular response', async ({ call }) => call('/ping'));
 
-  benchmark('1MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, Readable.from(mb1.content)));
+  benchmark('1MB data (memory)', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, Readable.from(mb1.content)));
 
-  benchmark('1MB data from FS', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, mb1.stream()));
+  benchmark('1MB data (FS)', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb1.content.length } }, mb1.stream()));
 
-  benchmark('4MB data', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.content.length } }, Readable.from(mb4.content)));
-
-  benchmark('4MB data from FS', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.content.length } }, mb4.stream()));
+  benchmark('4MB data (memory)', async ({ call }) => call('/data', { method: 'POST', headers: { 'Content-Length': mb4.content.length } }, Readable.from(mb4.content)));
 }
 
 async function requestListener(req, res) {
