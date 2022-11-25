@@ -26,7 +26,8 @@
   "scripts": {
     "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build && npm --prefix ../sockety run build",
     "start": "node index.js",
-    "lint": "echo 'No linting enabled for benchmark module'"
+    "build": "",
+    "lint": ""
   },
   "dependencies": {
     "@bestest/math": "^1.0.2",
