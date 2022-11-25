@@ -6,7 +6,7 @@ import { Request as RawRequest, ContentProducer, StreamParser, StreamWriter, Con
 import { RawConnectOptions, TcpSocket } from './types';
 import { Message } from './Message';
 import { Response } from './Response';
-import { UUIDHookItem, UUIDHooks } from './UUIDHooks';
+import { UUIDHookItem, UUIDHookPointer, UUIDHooks } from './UUIDHooks';
 import { AddResponseHook, DeleteResponseHook } from './symbols';
 import { Request } from './Request';
 
@@ -244,12 +244,12 @@ export class Connection extends EventEmitter {
   }
 
   // TODO: Consider AbortSignal
-  public [AddResponseHook](id: UUID, fn: (response: Response | FastReply | number) => void): UUIDHookItem {
+  public [AddResponseHook](id: UUID, fn: (response: Response | FastReply | number) => void): UUIDHookPointer {
     return this.#hooks.hook(id, fn);
   }
 
-  public [DeleteResponseHook](hook: UUIDHookItem): void {
-    return this.#hooks.cancel(hook);
+  public [DeleteResponseHook](pointer: UUIDHookPointer): void {
+    return this.#hooks.cancel(pointer);
   }
 }
 

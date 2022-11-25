@@ -25,8 +25,8 @@ export class Request<Stream = true | false> {
   public response(): Promise<Response | FastReply | number> {
     return new Promise((resolve, reject) => {
       // TODO: Hook to send error / connection error as well?
-      const hook = this.#connection[AddResponseHook](this.id, (response) => {
-        this.#connection[DeleteResponseHook](hook);
+      const pointer = this.#connection[AddResponseHook](this.id, (response) => {
+        this.#connection[DeleteResponseHook](pointer);
         resolve(response);
       });
     });

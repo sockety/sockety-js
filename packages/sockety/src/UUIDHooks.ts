@@ -1,27 +1,44 @@
 import { UUID } from '@sockety/uuid';
 import { UuidValue } from '@sockety/uuid/src/internal/symbols';
 
+const noop = () => {};
+
+declare const HookPointerOpaqueSymbol: unique symbol;
+export type UUIDHookPointer<T = any> = [ UUIDHookItem<T>, number ] & { [HookPointerOpaqueSymbol]: true };
+
 export class UUIDHookItem<T = any> {
   public next: UUIDHookItem<T> | undefined;
   public prev: UUIDHookItem<T> | undefined;
   public id: UUID;
-  public hook: (value: T) => void;
+  public hooks: ((value: T) => void)[];
+  public activeHooksCount = 1;
 
   public constructor(id: UUID, hook: (value: T) => void, next: UUIDHookItem<T> | undefined) {
     this.id = id;
-    this.hook = hook;
+    this.hooks = [ hook ];
     this.next = next;
     if (next) {
       next.prev = this;
     }
   }
 
-  public extend(hook: (value: T) => void): void {
-    const prev = this.hook;
-    this.hook = (value: T) => {
-      prev(value);
-      hook(value);
-    };
+  public hook(value: T): void {
+    for (let i = 0; i < this.hooks.length; i++) {
+      this.hooks[i](value);
+    }
+  }
+
+  public extend(hook: (value: T) => void): number {
+    this.activeHooksCount++;
+    return this.hooks.push(hook) - 1;
+  }
+
+  public cancel(index: number): boolean {
+    if (this.hooks[index] !== noop) {
+      this.hooks[index] = noop;
+      this.activeHooksCount--;
+    }
+    return this.activeHooksCount === 0;
   }
 }
 
@@ -41,22 +58,19 @@ export class UUIDHooks<T = any> {
   }
 
   // TODO: Consider abort signal
-  public hook(id: UUID, hook: (value: T) => void): UUIDHookItem<T> {
-    // TODO: It should return something to allow to cancel hook
+  public hook(id: UUID, hook: (value: T) => void): UUIDHookPointer<T> {
     const previous = this.#get(id);
     if (previous) {
-      previous.extend(hook);
-      return previous;
+      return [ previous, previous.extend(hook) ] as UUIDHookPointer<T>;
     } else {
       const bucket = this.#bucket(id);
       const item = new UUIDHookItem<T>(id, hook, this.#buckets[bucket]);
       this.#buckets[bucket] = item;
-      return item;
+      return [ item, 0 ] as UUIDHookPointer<T>;
     }
   }
 
-  public cancel(item: UUIDHookItem<T>): void {
-    // TODO: It should cancel only single hook
+  public cancelAll(item: UUIDHookItem<T>): void {
     if (item.prev) {
       item.prev.next = item.next;
       if (item.next) {
@@ -68,6 +82,12 @@ export class UUIDHooks<T = any> {
       if (item.next) {
         item.next.prev = undefined;
       }
+    }
+  }
+
+  public cancel([ item, index ]: UUIDHookPointer<T>): void {
+    if (item.cancel(index)) {
+      this.cancelAll(item);
     }
   }
 
