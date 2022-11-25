@@ -23,7 +23,7 @@ import { arrayDynamicContinuousDeclaration, arrayDynamicDeclaration } from './de
 import { passDynamicDeclaration } from './declarations/passDynamicDeclaration';
 
 // Special types
-const _BufferPointer: unique symbol = Symbol();
+declare const _BufferPointer: unique symbol;
 type BufferPointer = typeof _BufferPointer;
 
 /* eslint-disable quotes */
