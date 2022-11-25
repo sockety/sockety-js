@@ -1,8 +1,7 @@
-import { Request as RawRequest } from '@sockety/core/src/Request';
+import { Request as RawRequest, FastReply } from '@sockety/core';
 import { UUID } from '@sockety/uuid';
 import { Connection } from './Connection';
 import { Response } from './Response';
-import { FastReply } from '@sockety/core/src/constants';
 import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
 
 // TODO: Rename original Request class

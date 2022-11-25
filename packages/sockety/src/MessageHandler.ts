@@ -1,6 +1,6 @@
 import { FunctionMimic } from './FunctionMimic';
 import { Message } from './Message';
-import { FastReply } from '@sockety/core/src/constants';
+import { FastReply } from '@sockety/core';
 
 const ACTION_NAME = Symbol();
 const ACTION_HANDLER = Symbol();

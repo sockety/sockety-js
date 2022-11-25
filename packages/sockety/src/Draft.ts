@@ -1,21 +1,8 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
-import { ContentProducer, ContentProducerSlice, createContentProducer } from '@sockety/core/src/ContentProducer';
-import { Request as RawRequest, REQUEST_DONE } from '@sockety/core/src/Request';
-import { action } from '@sockety/core/src/slices/action';
-import { none } from '@sockety/core/src/slices/none';
-import { data } from '@sockety/core/src/slices/data';
-import { messageStart } from '@sockety/core/src/slices/messageStart';
 import { generateUuid } from '@sockety/uuid';
-import { RequestStream } from '@sockety/core/src/RequestStream';
-import { pipe } from '@sockety/core/src/slices/pipe';
-import { dataSize } from '@sockety/core/src/slices/dataSize';
-import { endStream } from '@sockety/core/src/slices/endStream';
-import { parallel } from '@sockety/core/src/slices/parallel';
-import { attachStream } from '@sockety/core/src/slices/attachStream';
-import { filesListHeader } from '@sockety/core/src/slices/filesListHeader';
-import { filesList } from '@sockety/core/src/slices/filesList';
-import { CREATE_PRODUCER_SLICE, FileTransfer } from '@sockety/core/src/FileTransfer';
+import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, CREATE_PRODUCER_SLICE, Request as RawRequest, REQUEST_DONE } from '@sockety/core';
+import { action, none, data, messageStart, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList } from '@sockety/core/slices';
 import { FunctionMimic } from './FunctionMimic';
 
 enum DraftDataType {

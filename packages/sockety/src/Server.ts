@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { ListenOptions } from 'node:net';
-import { ContentProducer } from '@sockety/core/src/ContentProducer';
+import { ContentProducer } from '@sockety/core';
 import { isTlsServer } from '@sockety/core/src/utils/isTlsServer';
 import { RawServerOptions, TcpServer, TcpSocket } from './types';
 import { Connection } from './Connection';

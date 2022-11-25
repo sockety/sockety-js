@@ -4,3 +4,5 @@ export const ON_ABORT = Symbol();
 export const ON_INCOMING_PAYLOAD = Symbol();
 export const ON_INCOMING_FILES_DATA = Symbol();
 export const ON_INCOMING_FILES_HEADER = Symbol();
+
+export const CLOSE = Symbol();

@@ -1,5 +1,7 @@
 import { StreamWriter } from './StreamWriter';
 
+// TODO: Try to unify ContentProducer and ContentProducerSlice
+
 declare const ContentProducerSymbol: unique symbol;
 
 export type SendCallback = (error: Error | null | undefined) => void;

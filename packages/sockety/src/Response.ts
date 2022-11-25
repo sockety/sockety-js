@@ -1,4 +1,4 @@
-import { RawResponse } from '@sockety/core/src/read/RawResponse';
+import { RawResponse } from '@sockety/core';
 import { UUID } from '@sockety/uuid';
 import { Connection } from './Connection';
 

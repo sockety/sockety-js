@@ -1,12 +1,9 @@
 import { once } from 'node:events';
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
-import { RawMessage } from '@sockety/core/src/read/RawMessage';
 import { UUID } from '@sockety/uuid';
-import { createResponse } from '@sockety/core/src/createResponse';
-import { FastReply } from '@sockety/core/src/constants';
-import { fastReply } from '@sockety/core/src/producers/fastReply';
-import { FileTransfer } from '@sockety/core/src/FileTransfer';
+import { RawMessage, FastReply, FileTransfer } from '@sockety/core';
+import { createResponse, fastReply } from '@sockety/core/producers';
 import { Request } from './Request';
 import { Connection } from './Connection';
 

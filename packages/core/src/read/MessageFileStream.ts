@@ -1,6 +1,5 @@
 import { ENDED, MessageStream } from './MessageStream';
-
-export const CLOSE = Symbol();
+import { CLOSE } from '../symbols';
 
 export class MessageFileStream extends MessageStream {
   public readonly name: string;

@@ -1,19 +1,14 @@
+import { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import { UUID } from '@sockety/uuid';
-import { Request as RawRequest } from '@sockety/core/src/Request';
-import { ContentProducer } from '@sockety/core/src/ContentProducer';
-import { StreamParser } from '@sockety/core/src/read/StreamParser';
+import { BufferReader } from '@sockety/buffers';
+import { Request as RawRequest, ContentProducer, StreamParser, StreamWriter, ControlChannelBits, FastReply } from '@sockety/core';
 import { RawConnectOptions, TcpSocket } from './types';
-import { StreamWriter } from '@sockety/core/src/StreamWriter';
-import { ControlChannelBits, FastReply } from '@sockety/core/src/constants';
 import { Message } from './Message';
 import { Response } from './Response';
 import { UUIDHookItem, UUIDHooks } from './UUIDHooks';
 import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
 import { Request } from './Request';
-import { BufferReader } from '@sockety/buffers';
-import { Buffer } from 'node:buffer';
-import { clearInterval } from 'timers';
 
 const noop = () => {};
 
