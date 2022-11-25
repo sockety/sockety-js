@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { generateUuid } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from './ContentProducer';
-import { Request, REQUEST_DONE } from './Request';
+import { Request } from './Request';
 import { RequestStream } from './RequestStream';
 import { action } from './slices/action';
 import { data } from './slices/data';
@@ -14,7 +14,8 @@ import { pipe } from './slices/pipe';
 import { endStream } from './slices/endStream';
 import { parallel } from './slices/parallel';
 import { none } from './slices/none';
-import { CREATE_PRODUCER_SLICE, FileTransfer } from './FileTransfer';
+import { FileTransfer } from './FileTransfer';
+import { CreateProducerSlice, RequestDone } from './symbols';
 
 export interface CreateMessageOptions {
   action: string;
@@ -51,7 +52,7 @@ export function createMessage<T extends boolean>({
   // Write/schedule files
   // TODO: For 0-size, it should be optional
   // TODO: Max concurrency?
-  const filesSlices = files ? files.map((file, index) => file[CREATE_PRODUCER_SLICE](index)) : [];
+  const filesSlices = files ? files.map((file, index) => file[CreateProducerSlice](index)) : [];
 
   // Build message producer
   return createContentProducer((writer, sent, written, expectsResponse) => {
@@ -75,7 +76,7 @@ export function createMessage<T extends boolean>({
         ]),
       ])(writer, channelId, (error: Error | null | undefined) => {
         sent(error);
-        request[REQUEST_DONE](error);
+        request[RequestDone](error);
       }, written, release);
     });
 

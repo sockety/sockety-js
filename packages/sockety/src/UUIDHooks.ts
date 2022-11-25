@@ -1,5 +1,5 @@
 import { UUID } from '@sockety/uuid';
-import { UUID_VALUE } from '@sockety/uuid/src/UUID';
+import { UuidValue } from '@sockety/uuid/src/internal/symbols';
 
 export class UUIDHookItem<T = any> {
   public next: UUIDHookItem<T> | undefined;
@@ -29,7 +29,7 @@ export class UUIDHooks<T = any> {
   readonly #buckets: (UUIDHookItem<T> | undefined)[] = new Array(255);
 
   #bucket(id: UUID): number {
-    return id[UUID_VALUE][0];
+    return id[UuidValue][0];
   }
 
   #get(id: UUID): UUIDHookItem<T> | undefined {

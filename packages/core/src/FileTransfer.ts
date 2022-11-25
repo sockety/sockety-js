@@ -8,8 +8,7 @@ import { fileStream } from './slices/fileStream';
 import { pipe } from './slices/pipe';
 import { fileContent } from './slices/fileContent';
 import { fileEnd } from './slices/fileEnd';
-
-export const CREATE_PRODUCER_SLICE = Symbol();
+import { CreateProducerSlice } from './symbols';
 
 export class FileTransfer {
   readonly #slice: (index: number) => ContentProducerSlice;
@@ -25,7 +24,7 @@ export class FileTransfer {
     this.name = name;
   }
 
-  public [CREATE_PRODUCER_SLICE](index: number): ContentProducerSlice {
+  public [CreateProducerSlice](index: number): ContentProducerSlice {
     if (!this.#readable) {
       throw new Error('FileTransfer with stream may be used only once.');
     } else if (this.#readOnlyOnce) {

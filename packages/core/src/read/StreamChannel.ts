@@ -9,13 +9,7 @@ import {
   MessageFilesCountBits,
   MessageFilesSizeBits,
 } from '../constants';
-import {
-  CONSUME_DATA,
-  CONSUME_FILE,
-  CONSUME_FILES_HEADER,
-  CONSUME_STREAM,
-  END_STREAM,
-} from './MessageBase';
+import { ConsumeData, ConsumeFile, ConsumeFilesHeader, ConsumeStream, EndStream } from '../symbols';
 import { RawMessage } from './RawMessage';
 import { RawResponse } from './RawResponse';
 
@@ -200,7 +194,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
   };
 
   #addFileHeader = ({ name, size }: { name: string, size: number }) => {
-    this.#message[CONSUME_FILES_HEADER](name, size);
+    this.#message[ConsumeFilesHeader](name, size);
   };
 
   #endMessageHeader = () => {
@@ -302,7 +296,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
       throw new Error('There is no data expected.');
     }
 
-    if (!this.#message[CONSUME_DATA](buffer)) {
+    if (!this.#message[ConsumeData](buffer)) {
       this.#consumingData = false;
       this.#endMessageIfReady();
     }
@@ -312,7 +306,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (!this.#consumingStream) {
       throw new Error('There is no stream in process.');
     }
-    this.#message[CONSUME_STREAM](buffer);
+    this.#message[ConsumeStream](buffer);
   }
 
   public finishStream(): void {
@@ -321,7 +315,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     }
     this.#consumingStream = false;
     if (this.#message) {
-      this.#message[END_STREAM]();
+      this.#message[EndStream]();
       this.#endMessageIfReady();
     }
   }
@@ -346,7 +340,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (!this.#message) {
       throw new Error('There is no message processed.');
     }
-    this.#message[CONSUME_FILE](this.#fileIndex, content);
+    this.#message[ConsumeFile](this.#fileIndex, content);
   }
 
   public endFile(index: number): void {

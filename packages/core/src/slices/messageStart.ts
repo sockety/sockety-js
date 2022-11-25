@@ -1,9 +1,7 @@
 import { UUID } from '@sockety/uuid';
 import { createContentProducerSlice } from '../ContentProducer';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
 import { createNumberBytesMapper } from '../createNumberBytesMapper';
 import {
-  FileNameSizeBits, FileSizeBits,
   MessageActionSizeBits,
   MessageDataSizeBits,
   MessageFilesCountBits,

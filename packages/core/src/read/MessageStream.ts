@@ -1,14 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { Readable } from 'node:stream';
-
-export const ABORT = Symbol();
-export const PUSH = Symbol();
-export const END = Symbol();
-export const ENDED = Symbol();
+import { Ended, End, Push, Abort } from '../symbols';
 
 // TODO: Handle backpressure
 export class MessageStream extends Readable {
-  [ENDED] = false;
+  [Ended] = false;
   #size = 0;
   #buffer: Buffer[] = [];
   #waiting = true;
@@ -22,7 +18,7 @@ export class MessageStream extends Readable {
       return;
     } else if (this.#buffer.length > 0) {
       this.push(this.#buffer.shift());
-    } else if (this[ENDED]) {
+    } else if (this[Ended]) {
       this.push(null);
     } else {
       this.#waiting = true;
@@ -33,7 +29,7 @@ export class MessageStream extends Readable {
     return this.#size;
   }
 
-  public [PUSH](data: Buffer): void {
+  public [Push](data: Buffer): void {
     this.#size += data.length;
     if (this.#waiting) {
       this.#waiting = false;
@@ -44,15 +40,15 @@ export class MessageStream extends Readable {
     }
   }
 
-  public [END](): void {
-    this[ENDED] = true;
+  public [End](): void {
+    this[Ended] = true;
     if (this.#waiting) {
       this.#waiting = false;
     }
     this.push(null);
   }
 
-  public [ABORT](): void {
+  public [Abort](): void {
     this.#buffer = [];
     this.emit('error', 'The incoming message was aborted');
   }

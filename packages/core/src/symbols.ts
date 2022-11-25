@@ -1,8 +1,23 @@
-export const ON_STREAM_END = Symbol();
-export const ON_CONNECTION_ERROR = Symbol();
-export const ON_ABORT = Symbol();
-export const ON_INCOMING_PAYLOAD = Symbol();
-export const ON_INCOMING_FILES_DATA = Symbol();
-export const ON_INCOMING_FILES_HEADER = Symbol();
+// Common symbols
+export const Push = Symbol();
+export const Close = Symbol();
+export const End = Symbol();
+export const Ended = Symbol();
+export const Abort = Symbol();
+export const CreateProducerSlice = Symbol();
 
-export const CLOSE = Symbol();
+// Stream-related
+export const EndStream = Symbol();
+export const ConsumeStream = Symbol();
+export const AttachStream = Symbol();
+
+// Data-related
+export const ConsumeData = Symbol();
+
+// Files-related
+export const ConsumeFilesHeader = Symbol();
+export const ConsumeFile = Symbol();
+export const EndFile = Symbol();
+
+// Request-related
+export const RequestDone = Symbol();

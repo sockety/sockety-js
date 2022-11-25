@@ -1,9 +1,7 @@
 import { FunctionMimic } from './FunctionMimic';
 import { Message } from './Message';
 import { FastReply } from '@sockety/core';
-
-const ACTION_NAME = Symbol();
-const ACTION_HANDLER = Symbol();
+import { ActionHandler, ActionName } from './symbols';
 
 type RawHandlerResult = void | FastReply | number;
 type HandlerResult = RawHandlerResult | Promise<RawHandlerResult>;
@@ -13,19 +11,19 @@ type ActionHandler = (message: Message) => HandlerResult;
 type Handler = (message: Message, error: Error | null) => HandlerResult;
 type ErrorHandler = (message: Message, error: Error) => HandlerResult;
 
-type RawActionHandler = Handler & { [ACTION_NAME]: string, [ACTION_HANDLER]: ActionHandler };
+type RawActionHandler = Handler & { [ActionName]: string, [ActionHandler]: ActionHandler };
 
 const createActionHandler = (name: string, handler: ActionHandler): RawActionHandler => Object.assign((message: Message, error: Error | null) => {
   if (message.action == name && error === null) {
     return handler(message);
   }
 }, {
-  [ACTION_NAME]: name,
-  [ACTION_HANDLER]: handler,
+  [ActionName]: name,
+  [ActionHandler]: handler,
 });
 
 function isRawActionHandler(handler: unknown): handler is RawActionHandler {
-  return typeof handler === 'function' && ACTION_NAME in handler;
+  return typeof handler === 'function' && ActionName in handler;
 }
 
 export class MessageHandler extends FunctionMimic<InputHandler> {
@@ -53,7 +51,7 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
 
       // Combine multiple consecutive action handlers to switch instruction
       const actions = {
-        [handler[ACTION_NAME]]: handler[ACTION_HANDLER],
+        [handler[ActionName]]: handler[ActionHandler],
       };
 
       // Search until there is common handler, or there is already such action
@@ -61,11 +59,11 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
       for (; j < handlers.length; j++) {
         const handler2 = handlers[j];
 
-        if (!isRawActionHandler(handler2) || actions[handler2[ACTION_NAME]]) {
+        if (!isRawActionHandler(handler2) || actions[handler2[ActionName]]) {
           break;
         }
 
-        actions[handler2[ACTION_NAME]] = handler2[ACTION_HANDLER];
+        actions[handler2[ActionName]] = handler2[ActionHandler];
       }
 
       // There was single action, so ignore optimization

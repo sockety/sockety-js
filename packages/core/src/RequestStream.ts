@@ -1,10 +1,9 @@
 import { Writable } from 'node:stream';
 import { StreamWriter } from './StreamWriter';
+import { AttachStream } from './symbols';
 
 type SendCallback = (error: Error | null | undefined) => void;
 type WriteCallback = () => void;
-
-export const ATTACH_STREAM = Symbol();
 
 const noop = () => {};
 
@@ -55,7 +54,7 @@ export class RequestStream extends Writable {
     }
   }
 
-  public [ATTACH_STREAM](channel: number, sent: SendCallback = noop, written?: WriteCallback): void {
+  public [AttachStream](channel: number, sent: SendCallback = noop, written?: WriteCallback): void {
     this.#written = written;
     this.#sent = sent;
     this.#attached = true;

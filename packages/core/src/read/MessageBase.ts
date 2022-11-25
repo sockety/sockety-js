@@ -1,15 +1,9 @@
 import { Buffer } from 'node:buffer';
 import { UUID } from '@sockety/uuid';
-import { END, MessageStream, PUSH } from './MessageStream';
+import { End, Push, EndStream, ConsumeStream, ConsumeData, ConsumeFilesHeader, ConsumeFile, EndFile } from '../symbols';
+import { MessageStream } from './MessageStream';
 import { MessageFileStream } from './MessageFileStream';
 import { MessageDataStream } from './MessageDataStream';
-
-export const END_STREAM = Symbol();
-export const CONSUME_STREAM = Symbol();
-export const CONSUME_DATA = Symbol();
-export const CONSUME_FILE = Symbol();
-export const END_FILE = Symbol();
-export const CONSUME_FILES_HEADER = Symbol();
 
 export class MessageBase {
   readonly #id: UUID;
@@ -58,18 +52,18 @@ export class MessageBase {
     return this.#expectsResponse;
   }
 
-  public [CONSUME_STREAM](data: Buffer): void {
+  public [ConsumeStream](data: Buffer): void {
     if (!this.stream) {
       throw new Error('There is no stream expected.');
     }
-    this.stream[PUSH](data);
+    this.stream[Push](data);
   }
 
-  public [END_STREAM](): void {
-    this.stream?.[END]();
+  public [EndStream](): void {
+    this.stream?.[End]();
   }
 
-  public [CONSUME_DATA](data: Buffer): boolean {
+  public [ConsumeData](data: Buffer): boolean {
     if (!this.data) {
       throw new Error('There is no data expected.');
     }
@@ -78,9 +72,9 @@ export class MessageBase {
     if (size > this.#dataSize) {
       throw new Error('Data sent over expected size.');
     }
-    this.data[PUSH](data);
+    this.data[Push](data);
     if (size === this.#dataSize) {
-      this.data[END]();
+      this.data[End]();
       return false;
     }
     return true;
@@ -88,20 +82,20 @@ export class MessageBase {
 
   // TODO: Consider if files should have unique names
   // TODO: Paths in file names are required, for tasks like copying folder
-  public [CONSUME_FILES_HEADER](name: string, size: number): void {
+  public [ConsumeFilesHeader](name: string, size: number): void {
     this.#files.push(new MessageFileStream(name, size));
   }
 
-  public [CONSUME_FILE](index: number, data: Buffer): void {
+  public [ConsumeFile](index: number, data: Buffer): void {
     const file = this.#files[index];
     if (!file) {
       throw new Error(`There is no file ${index} available yet.`);
     }
     // TODO: Verify size (disallow if it's over the expected, and it's not allowed)
-    file[PUSH](data);
+    file[Push](data);
   }
 
-  public [END_FILE](index: number): void {
+  public [EndFile](index: number): void {
     const file = this.#files[index];
     if (!file) {
       throw new Error(`There is no file ${index} available yet.`);
@@ -109,7 +103,7 @@ export class MessageBase {
       throw new Error(`File has been already finished.`);
     }
     // TODO: Verify size (disallow if it's less than expected, and it's not allowed)
-    file[END]();
+    file[End]();
   }
 
   public get files(): MessageFileStream[] {

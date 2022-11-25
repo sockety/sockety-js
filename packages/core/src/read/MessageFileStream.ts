@@ -1,5 +1,5 @@
-import { ENDED, MessageStream } from './MessageStream';
-import { CLOSE } from '../symbols';
+import { MessageStream } from './MessageStream';
+import { Ended, Close } from '../symbols';
 
 export class MessageFileStream extends MessageStream {
   public readonly name: string;
@@ -16,10 +16,10 @@ export class MessageFileStream extends MessageStream {
   }
 
   public get loaded(): boolean {
-    return this[ENDED];
+    return this[Ended];
   }
 
-  public [CLOSE](): void {
+  public [Close](): void {
     if (!this.loaded) {
       this.emit('error', new Error('Message has been closed before file loaded'));
     }

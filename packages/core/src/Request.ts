@@ -1,11 +1,7 @@
 import { UUID } from '@sockety/uuid';
 import { RequestStream } from './RequestStream';
+import { RequestDone } from './symbols';
 
-type Callback = (error: Error | null | undefined) => void;
-
-export const REQUEST_DONE = Symbol();
-
-// Consider lack of EventEmitter
 export class Request<Stream = true | false> {
   public readonly id: UUID;
   public readonly stream: Stream extends true ? RequestStream : null;
@@ -41,7 +37,7 @@ export class Request<Stream = true | false> {
     }
   }
 
-  public [REQUEST_DONE](error: Error | null | undefined): void {
+  public [RequestDone](error: Error | null | undefined): void {
     this.#done = true;
     if (error) {
       this.#error = error;

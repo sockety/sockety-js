@@ -1,8 +1,9 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
 import { generateUuid } from '@sockety/uuid';
-import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, CREATE_PRODUCER_SLICE, Request as RawRequest, REQUEST_DONE } from '@sockety/core';
+import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, Request as RawRequest } from '@sockety/core';
 import { action, none, data, messageStart, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList } from '@sockety/core/slices';
+import { CreateProducerSlice, RequestDone } from '@sockety/core/src/symbols';
 import { FunctionMimic } from './FunctionMimic';
 
 enum DraftDataType {
@@ -63,7 +64,7 @@ function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, Co
   }
 
   // Build slices for files transfer
-  const filesSlice = parallel(files.map((file, index) => file[CREATE_PRODUCER_SLICE](index)));
+  const filesSlice = parallel(files.map((file, index) => file[CreateProducerSlice](index)));
 
   // Compute size
   // @ts-ignore: avoid checks for better performance
@@ -209,7 +210,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
             ]),
           ])(writer, channel, (error: Error | null | undefined) => {
             sent(error);
-            request[REQUEST_DONE](error);
+            request[RequestDone](error);
           }, written, release);
         });
 

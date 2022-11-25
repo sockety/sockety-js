@@ -2,7 +2,7 @@ import { Request as RawRequest, FastReply } from '@sockety/core';
 import { UUID } from '@sockety/uuid';
 import { Connection } from './Connection';
 import { Response } from './Response';
-import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
+import { AddResponseHook, DeleteResponseHook } from './symbols';
 
 // TODO: Rename original Request class
 export class Request<Stream = true | false> {
@@ -25,8 +25,8 @@ export class Request<Stream = true | false> {
   public response(): Promise<Response | FastReply | number> {
     return new Promise((resolve, reject) => {
       // TODO: Hook to send error / connection error as well?
-      const hook = this.#connection[ADD_RESPONSE_HOOK](this.id, (response) => {
-        this.#connection[DELETE_RESPONSE_HOOK](hook);
+      const hook = this.#connection[AddResponseHook](this.id, (response) => {
+        this.#connection[DeleteResponseHook](hook);
         resolve(response);
       });
     });

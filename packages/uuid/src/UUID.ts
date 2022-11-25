@@ -1,16 +1,15 @@
 import { Buffer } from 'node:buffer';
 import { hexBytes } from './internal/hexBytes';
-
-export const UUID_VALUE = Symbol();
+import { UuidValue } from './internal/symbols';
 
 export class UUID {
-  public readonly [UUID_VALUE]: number[];
+  public readonly [UuidValue]: number[];
 
   public constructor(buffer: Uint8Array | number[], offset = 0) {
     if (typeof buffer[offset + 15] === 'undefined') {
       throw new Error('Out of bounds: can not read UUID.');
     }
-    this[UUID_VALUE] = [
+    this[UuidValue] = [
       buffer[offset],
       buffer[offset + 1],
       buffer[offset + 2],
@@ -34,7 +33,7 @@ export class UUID {
    * Build a string representation of UUID.
    */
   public toString(): string {
-    const value = this[UUID_VALUE];
+    const value = this[UuidValue];
     return (
       hexBytes[value[0]] + hexBytes[value[1]] +
       hexBytes[value[2]] + hexBytes[value[3]] + '-' +
@@ -59,7 +58,7 @@ export class UUID {
    */
   public write(buffer: Uint8Array, offset = 0): void {
     for (let i = 0; i < 16; i++) {
-      buffer[offset + i] = this[UUID_VALUE][i];
+      buffer[offset + i] = this[UuidValue][i];
     }
   }
 
@@ -77,7 +76,7 @@ export class UUID {
    */
   public equals(id: UUID): boolean {
     for (let i = 0; i < 16; i++) {
-      if (this[UUID_VALUE][i] !== id[UUID_VALUE][i]) {
+      if (this[UuidValue][i] !== id[UuidValue][i]) {
         return false;
       }
     }

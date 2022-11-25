@@ -13,4 +13,3 @@ export * from './src/slices/none';
 export * from './src/slices/parallel';
 export * from './src/slices/pipe';
 export * from './src/slices/responseStart';
-export * from './src/slices/step';

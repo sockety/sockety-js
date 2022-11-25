@@ -19,7 +19,6 @@ function buildDataSize(dataLength: number) {
   });
 }
 
-
 export const dataSize = Object.assign(buildDataSize, {
   empty: buildDataSize(0),
 });

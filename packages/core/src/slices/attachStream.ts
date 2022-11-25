@@ -1,6 +1,7 @@
 import { createContentProducerSlice } from '../ContentProducer';
-import { ATTACH_STREAM, RequestStream } from '../RequestStream';
+import { RequestStream } from '../RequestStream';
 import { none } from './none';
+import { AttachStream } from '../symbols';
 
 // TODO: Abort when it's aborted/closed
 export const attachStream = (stream?: RequestStream | null) => {
@@ -8,7 +9,7 @@ export const attachStream = (stream?: RequestStream | null) => {
     return none;
   }
   return createContentProducerSlice((writer, channel, sent, written, registered) => {
-    stream[ATTACH_STREAM](channel, sent, written);
+    stream[AttachStream](channel, sent, written);
     registered?.();
   });
 }

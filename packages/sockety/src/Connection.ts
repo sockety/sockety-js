@@ -7,7 +7,7 @@ import { RawConnectOptions, TcpSocket } from './types';
 import { Message } from './Message';
 import { Response } from './Response';
 import { UUIDHookItem, UUIDHooks } from './UUIDHooks';
-import { ADD_RESPONSE_HOOK, DELETE_RESPONSE_HOOK } from './constants';
+import { AddResponseHook, DeleteResponseHook } from './symbols';
 import { Request } from './Request';
 
 const noop = () => {};
@@ -244,11 +244,11 @@ export class Connection extends EventEmitter {
   }
 
   // TODO: Consider AbortSignal
-  public [ADD_RESPONSE_HOOK](id: UUID, fn: (response: Response | FastReply | number) => void): UUIDHookItem {
+  public [AddResponseHook](id: UUID, fn: (response: Response | FastReply | number) => void): UUIDHookItem {
     return this.#hooks.hook(id, fn);
   }
 
-  public [DELETE_RESPONSE_HOOK](hook: UUIDHookItem): void {
+  public [DeleteResponseHook](hook: UUIDHookItem): void {
     return this.#hooks.cancel(hook);
   }
 }
