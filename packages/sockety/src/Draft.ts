@@ -77,6 +77,8 @@ function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, Co
   return [ filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize ];
 }
 
+// TODO: Clean up code
+// TODO: Create ResponseDraft too
 export class Draft<T extends DraftConfig = DraftConfigDefaults> extends FunctionMimic<ProducerFactory<T>> {
   #stream: boolean = false;
   #allowFiles: boolean = false;
