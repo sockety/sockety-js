@@ -7,5 +7,5 @@ export * from './src/Draft';
 export type { Connection } from './src/Connection';
 export type { Message } from './src/Message';
 
-export type { MessageDataStream, ContentProducer, FastReply, FileTransfer } from '@sockety/core';
+export { MessageDataStream, ContentProducer, FastReply, FileTransfer } from '@sockety/core';
 export { series } from '@sockety/core/producers';
