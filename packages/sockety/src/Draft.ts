@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
 import { generateUuid } from '@sockety/uuid';
-import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, Request as RawRequest } from '@sockety/core';
+import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, RequestBase as RawRequest } from '@sockety/core';
 import { action, none, data, messageStart, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList } from '@sockety/core/slices';
 import { CreateProducerSlice, RequestDone } from '@sockety/core/src/symbols';
 import { FunctionMimic } from './FunctionMimic';

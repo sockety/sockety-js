@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { generateUuid, UUID } from '@sockety/uuid';
 import { createContentProducer, ContentProducer } from './ContentProducer';
-import { Request } from './Request';
+import { RequestBase } from './RequestBase';
 import { RequestStream } from './RequestStream';
 import { data } from './slices/data';
 import { dataSize } from './slices/dataSize';
@@ -25,7 +25,7 @@ export interface CreateResponseOptions {
 export function createResponse<T extends boolean>({
   data: rawData,
   files,
-}: CreateResponseOptions, hasStream: T): (parentId: UUID) => ContentProducer<Request<T>> {
+}: CreateResponseOptions, hasStream: T): (parentId: UUID) => ContentProducer<RequestBase<T>> {
   // Compute data details
   const dataLength = rawData?.length || 0;
   const dataSlice = data(rawData);
@@ -53,7 +53,7 @@ export function createResponse<T extends boolean>({
     return createContentProducer((writer, sent, written, expectsResponse) => {
       const id = generateUuid();
       const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
-      const request = new Request(id, stream);
+      const request = new RequestBase(id, stream);
 
       // TODO: Think about "Abort" on "Revoke"
       writer.reserveChannel((channelId, release) => {

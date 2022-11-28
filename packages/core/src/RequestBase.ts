@@ -2,7 +2,7 @@ import { UUID } from '@sockety/uuid';
 import { RequestStream } from './RequestStream';
 import { RequestDone } from './symbols';
 
-export class Request<Stream = true | false> {
+export class RequestBase<Stream = true | false> {
   public readonly id: UUID;
   public readonly stream: Stream extends true ? RequestStream : null;
 

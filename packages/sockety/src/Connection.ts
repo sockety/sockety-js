@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import { UUID, UUIDHooks, UUIDHookPointer } from '@sockety/uuid';
 import { BufferReader } from '@sockety/buffers';
-import { Request as RawRequest, ContentProducer, StreamParser, StreamWriter, ControlChannelBits, FastReply } from '@sockety/core';
+import { RequestBase, ContentProducer, StreamParser, StreamWriter, ControlChannelBits, FastReply } from '@sockety/core';
 import { RawConnectOptions, TcpSocket } from './types';
 import { Message } from './Message';
 import { Response } from './Response';
@@ -188,7 +188,7 @@ export class Connection extends EventEmitter {
     return Promise.resolve(this);
   }
 
-  public send<T extends boolean>(producer: ContentProducer<RawRequest<T>>): Request<T> {
+  public send<T extends boolean>(producer: ContentProducer<RequestBase<T>>): Request<T> {
     if (!this.#writer) {
       throw new Error('The connection is not established yet.');
     } if (this.#closing) {

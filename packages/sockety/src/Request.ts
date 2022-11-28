@@ -1,4 +1,4 @@
-import { Request as RawRequest, FastReply } from '@sockety/core';
+import { RequestBase as RawRequest, FastReply } from '@sockety/core';
 import { UUID } from '@sockety/uuid';
 import { Connection } from './Connection';
 import { Response } from './Response';
