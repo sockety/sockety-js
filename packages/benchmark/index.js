@@ -13,7 +13,6 @@ const { setUpClientWorker, setUpServerWorker, setUpServerPrimary, setPriority } 
 
 // Extract fork data
 
-const argv = Array.from(process.argv).slice();
 const forkData = process.argv[process.argv.length - 2] === '--fork'
   ? JSON.parse(process.argv[process.argv.length - 1])
   : null;
