@@ -6,8 +6,7 @@ import { FileIndexBits, PacketResponseBits, PacketSizeBits, PacketStreamBits, Pa
 import { createNumberBytesGetter } from './createNumberBytesGetter';
 import { createNumberBytesMapper } from './createNumberBytesMapper';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
-
-const noop = () => {};
+import { noop } from './noop';
 
 type SendCallback = (error: Error | null | undefined) => void;
 

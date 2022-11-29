@@ -1,11 +1,10 @@
 import { Writable } from 'node:stream';
 import { StreamWriter } from './StreamWriter';
 import { AttachStream } from './symbols';
+import { noop } from './noop';
 
 type SendCallback = (error: Error | null | undefined) => void;
 type WriteCallback = () => void;
-
-const noop = () => {};
 
 export class RequestStream extends Writable {
   readonly #writer: StreamWriter;

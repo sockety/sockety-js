@@ -1,7 +1,6 @@
 import { ContentProducer, createContentProducer } from '../ContentProducer';
 import { none } from './none';
-
-const noop = () => {};
+import { noop } from '../noop';
 
 export function series(...producers: ContentProducer[]): ContentProducer<void> {
   const total = producers.length;

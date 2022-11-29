@@ -1,6 +1,5 @@
 import { WritableBuffer } from './WritableBuffer';
-
-const noop = () => {};
+import { noop } from './noop';
 
 type ExecuteWrite = (buffer: WritableBuffer) => void;
 type SendCallback = (error: Error | null | undefined) => void;

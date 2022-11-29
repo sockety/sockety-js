@@ -1,10 +1,9 @@
 import { ContentProducerSlice, createContentProducerSlice } from '../ContentProducer';
+import { noop } from '../noop';
 import { none } from './none';
 
 type Callback = () => void;
 type ErrorCallback = (error: Error | null | undefined) => void;
-
-const noop = () => {};
 
 function createSentCallback(left: number, callback: ErrorCallback | undefined): ErrorCallback {
   if (callback == null) {
