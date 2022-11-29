@@ -21,10 +21,10 @@ export const fileContent = (index: number) => {
       return pipe(slices);
     }
 
-    return createContentProducerSlice((writer, channel, sent, written, registered) => {
+    return createContentProducerSlice((writer, channel, sent, registered) => {
       writer.channel(channel);
       writer.file(index);
-      writer.writeBuffer(content, sent, written);
+      writer.writeBuffer(content, sent);
       registered?.();
     });
   };

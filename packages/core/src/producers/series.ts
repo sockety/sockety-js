@@ -1,13 +1,15 @@
 import { ContentProducer, createContentProducer } from '../ContentProducer';
 import { none } from './none';
 
+const noop = () => {};
+
 export function series(...producers: ContentProducer[]): ContentProducer<void> {
   const total = producers.length;
   if (total === 0) {
     return none;
   }
 
-  return createContentProducer<void>((writer, sent, written) => {
+  return createContentProducer<void>((writer, sent, registered, ) => {
     let index = 0;
     let finished = false;
     let left = total;
@@ -38,8 +40,9 @@ export function series(...producers: ContentProducer[]): ContentProducer<void> {
         return;
       }
 
-      const callback = index === total ? written : next;
-      producer(writer, finish, callback, false);
+      const sentCallback = index === total ? finish : noop;
+      const registeredCallback = index === total ? registered : next;
+      producer(writer, sentCallback, registeredCallback, false);
     };
 
     // Start

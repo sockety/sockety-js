@@ -44,11 +44,11 @@ export const messageStart = (hasStream: boolean, actionLength: number) => {
     const flags = filesCountBits | filesSizeBits | dataSizeBits | actionSizeBits;
 
     return (id: UUID, expectsResponse: boolean) => {
-      return createContentProducerSlice((writer, channel, sent, written, registered) => {
+      return createContentProducerSlice((writer, channel, sent, registered) => {
         writer.channel(channel);
         writer.startMessage(expectsResponse, hasStream);
         writer.writeUint8(flags);
-        writer.writeUuid(id, sent, written);
+        writer.writeUuid(id, sent);
         registered?.();
       });
     }

@@ -1,5 +1,6 @@
 import { createContentProducer } from '../ContentProducer';
 
-export const heartbeat = createContentProducer<void>((writer, sent, written) => {
-  writer.heartbeat(sent, written);
+export const heartbeat = createContentProducer<void>((writer, sent, registered) => {
+  writer.heartbeat(sent);
+  registered();
 });

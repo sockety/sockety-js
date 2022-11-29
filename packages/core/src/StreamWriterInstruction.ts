@@ -4,22 +4,14 @@ const noop = () => {};
 
 type ExecuteWrite = (buffer: WritableBuffer) => void;
 type SendCallback = (error: Error | null | undefined) => void;
-type WriteCallback = () => void;
 
-// TODO: Consider flattening "written" calls
-function createRunner(run: ExecuteWrite, sent: SendCallback, written: WriteCallback): ExecuteWrite {
-  if (sent === noop && written == noop) {
+function createRunner(run: ExecuteWrite, sent: SendCallback): ExecuteWrite {
+  if (sent === noop) {
     return run;
-  } else if (sent === noop) {
-    return (buffer) => {
-      run(buffer);
-      process.nextTick(written);
-    };
   }
   return (buffer) => {
     run(buffer);
     buffer.addCallback(sent);
-    process.nextTick(written);
   };
 }
 
@@ -29,9 +21,9 @@ export class StreamWriterInstruction {
   public bytes: number;
   public next: StreamWriterInstruction | undefined;
 
-  public constructor(run: ExecuteWrite, bytes: number, sent: SendCallback = noop, written: WriteCallback = noop) {
+  public constructor(run: ExecuteWrite, bytes: number, sent: SendCallback = noop) {
     this.bytes = bytes;
-    this.#run = createRunner(run, sent, written);
+    this.#run = createRunner(run, sent);
   }
 
   public decrementBytes(bytes: number): void {
@@ -47,21 +39,21 @@ export class StreamWriterInstruction {
     this.bytes = 0;
   }
 
-  public replace(run: ExecuteWrite, bytes = this.bytes, sent: SendCallback = noop, written: WriteCallback = noop): void {
+  public replace(run: ExecuteWrite, bytes = this.bytes, sent: SendCallback = noop): void {
     this.bytes = bytes;
-    this.#run = createRunner(run, sent, written);
+    this.#run = createRunner(run, sent);
   }
 
-  public include(run: ExecuteWrite, bytes: number, sent: SendCallback = noop, written: WriteCallback = noop): void {
+  public include(run: ExecuteWrite, bytes: number, sent: SendCallback = noop): void {
     const prev = this.#run;
     this.#run = createRunner((buffer) => {
       prev(buffer);
       run(buffer);
-    }, sent, written);
+    }, sent);
   }
 
-  public callback(sent: SendCallback = noop, written: WriteCallback = noop): void {
-    this.#run = createRunner(this.#run, sent, written);
+  public callback(sent: SendCallback = noop): void {
+    this.#run = createRunner(this.#run, sent);
   }
 
   public run(buffer: WritableBuffer): void {

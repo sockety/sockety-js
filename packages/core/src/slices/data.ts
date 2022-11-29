@@ -22,10 +22,10 @@ export const data = (content: Buffer | string | undefined): ContentProducerSlice
     return pipe(slices);
   }
 
-  return createContentProducerSlice((writer, channel, sent, written, registered) => {
+  return createContentProducerSlice((writer, channel, sent, registered) => {
     writer.channel(channel);
     writer.data();
-    writer.writeBuffer(buffer, sent, written);
+    writer.writeBuffer(buffer, sent);
     registered?.();
   });
 }

@@ -55,13 +55,23 @@ export function createMessage<T extends boolean>({
   const filesSlices = files ? files.map((file, index) => file[CreateProducerSlice](index)) : [];
 
   // Build message producer
-  return createContentProducer((writer, sent, written, expectsResponse) => {
+  return createContentProducer((writer, sent, registered, expectsResponse) => {
     const id = generateUuid();
     const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
     const request = new RequestBase(id, stream);
 
     // TODO: Think about "Abort" on "Revoke"
     writer.reserveChannel((channelId, release) => {
+      const finalSent = (error: Error | null | undefined) => {
+        sent(error);
+        request[RequestDone](error);
+      };
+
+      const finalRegistered = () => {
+        release();
+        registered();
+      };
+
       pipe([
         messageStartSlice(id, expectsResponse),
         actionSlice,
@@ -74,10 +84,7 @@ export function createMessage<T extends boolean>({
           attachStream(stream),
           ...filesSlices,
         ]),
-      ])(writer, channelId, (error: Error | null | undefined) => {
-        sent(error);
-        request[RequestDone](error);
-      }, written, release);
+      ])(writer, channelId, finalSent, finalRegistered);
     });
 
     return request;

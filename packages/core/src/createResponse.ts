@@ -50,13 +50,23 @@ export function createResponse<T extends boolean>({
   // Build response producer
   return (parentId) => {
     const responseStartSlice = responseStartSliceInitial(parentId);
-    return createContentProducer((writer, sent, written, expectsResponse) => {
+    return createContentProducer((writer, sent, registered, expectsResponse) => {
       const id = generateUuid();
       const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
       const request = new RequestBase(id, stream);
 
       // TODO: Think about "Abort" on "Revoke"
       writer.reserveChannel((channelId, release) => {
+        const finalSent = (error: Error | null | undefined) => {
+          sent(error);
+          request[RequestDone](error);
+        };
+
+        const finalRegistered = () => {
+          release();
+          registered();
+        };
+
         pipe([
           responseStartSlice(id, expectsResponse),
           dataSizeSlice,
@@ -68,10 +78,7 @@ export function createResponse<T extends boolean>({
             attachStream(stream),
             ...filesSlices,
           ]),
-        ])(writer, channelId, (error: Error | null | undefined) => {
-          sent(error);
-          request[RequestDone](error);
-        }, written, release);
+        ])(writer, channelId, finalSent, finalRegistered);
       });
 
       return request;

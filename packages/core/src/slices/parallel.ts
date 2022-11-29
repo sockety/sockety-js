@@ -46,13 +46,12 @@ export const parallel = (slices: ContentProducerSlice[], concurrency = Infinity)
     return slices[0];
   }
   if (concurrency >= total) {
-    return createContentProducerSlice((writer, channel, sent, written, registered) => {
+    return createContentProducerSlice((writer, channel, sent, registered) => {
       const sentOne = createSentCallback(total, sent);
-      const writtenOne = createCallback(total, written);
       const registeredOne = createCallback(total, registered);
 
       for (let i = 0; i < total; i++) {
-        slices[i](writer, channel, sentOne, writtenOne, registeredOne);
+        slices[i](writer, channel, sentOne, registeredOne);
       }
     });
   } else {

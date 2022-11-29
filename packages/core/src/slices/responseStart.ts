@@ -36,14 +36,14 @@ export const responseStart = (hasStream: boolean) => {
     const flags = filesCountBits | filesSizeBits | dataSizeBits;
 
     return (parentId: UUID) => (id: UUID, expectsResponse: boolean) => {
-      return createContentProducerSlice((writer, channel, sent, written, registered) => {
+      return createContentProducerSlice((writer, channel, sent, registered) => {
         writer.channel(channel);
         writer.startResponse(expectsResponse, hasStream);
         writer.unsafeInstruction((buffer) => {
           buffer.writeUint8(flags);
           buffer.writeUuid(parentId);
           buffer.writeUuid(id);
-        }, 33, sent, written);
+        }, 33, sent);
         registered?.();
       });
     };

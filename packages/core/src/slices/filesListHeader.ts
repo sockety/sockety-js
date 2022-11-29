@@ -12,11 +12,11 @@ function buildFilesListHeader(filesCount: number, totalFilesSize: number) {
     return none;
   }
   const totalFilesSizeBytes = getTotalFilesSizeBytes(totalFilesSize);
-  return createContentProducerSlice((writer, channel, sent, written, registered) => {
+  return createContentProducerSlice((writer, channel, sent, registered) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeUint(filesCount, filesCountBytes);
-    writer.writeUint(totalFilesSize, totalFilesSizeBytes, sent, written);
+    writer.writeUint(totalFilesSize, totalFilesSizeBytes, sent);
     registered?.();
   });
 }

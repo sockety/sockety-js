@@ -193,12 +193,22 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
       const [ filesSlice, filesHeaderSlice, filesCount, totalFilesSize ] = createFilesSlices(inputFiles);
       const createMessageStartSlice = createMessageStartSliceFactory(dataSize, filesCount, totalFilesSize);
 
-      return createContentProducer((writer, sent, written, expectsResponse) => {
+      return createContentProducer((writer, sent, registered, expectsResponse) => {
         const id = generateUuid();
         const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
         const request = new RawRequest(id, stream);
 
         writer.reserveChannel((channel, release) => {
+          const finalSent = (error: Error | null | undefined) => {
+            sent(error);
+            request[RequestDone](error);
+          };
+
+          const finalRegistered = () => {
+            release();
+            registered();
+          };
+
           pipe([
             createMessageStartSlice(id, expectsResponse),
             actionSlice,
@@ -210,10 +220,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
               attachStream(stream),
               filesSlice,
             ]),
-          ])(writer, channel, (error: Error | null | undefined) => {
-            sent(error);
-            request[RequestDone](error);
-          }, written, release);
+          ])(writer, channel, finalSent, finalRegistered);
         });
 
         return request;

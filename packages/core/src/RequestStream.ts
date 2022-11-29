@@ -35,7 +35,8 @@ export class RequestStream extends Writable {
     this.#writer.endStream((error) => {
       this.#sent?.(error);
       callback(error);
-    }, this.#written);
+    });
+    this.#written?.();
   }
 
   public _write(chunk: any, encoding: BufferEncoding, sent: SendCallback): void {

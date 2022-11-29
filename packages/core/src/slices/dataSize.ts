@@ -11,10 +11,10 @@ function buildDataSize(dataLength: number) {
     return none;
   }
 
-  return createContentProducerSlice((writer, channel, sent, written, registered) => {
+  return createContentProducerSlice((writer, channel, sent, registered) => {
     writer.channel(channel);
     writer.continueMessage();
-    writer.writeUint(dataLength, dataSizeBytes, sent, written);
+    writer.writeUint(dataLength, dataSizeBytes, sent);
     registered?.();
   });
 }

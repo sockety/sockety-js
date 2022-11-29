@@ -10,7 +10,6 @@ import { StreamWriterInstruction } from './StreamWriterInstruction';
 const noop = () => {};
 
 type SendCallback = (error: Error | null | undefined) => void;
-type WriteCallback = () => void;
 
 const getFileIndexBytes = createNumberBytesGetter('file index', [ 1, 2, 3, 6 ]);
 const getFileIndexFlag = createNumberBytesMapper('file index', {
@@ -159,14 +158,14 @@ export class StreamWriter {
     return (this.#currentPacket! & type) === type;
   }
 
-  #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback, written?: WriteCallback): void {
+  #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
     this.#instructionsCount++;
     this.#instructionsMaxBytes += maxByteLength;
     if (this.#currentPacket !== null) {
       this.#currentPacketBytes += maxByteLength;
     }
 
-    const item = new StreamWriterInstruction(instruction, maxByteLength, sent, written);
+    const item = new StreamWriterInstruction(instruction, maxByteLength, sent);
     if (this.#lastInstruction) {
       this.#lastInstruction = this.#lastInstruction.next = item;
     } else {
@@ -182,29 +181,26 @@ export class StreamWriter {
   }
 
   // TODO: Think how to use it
-  public unsafeInstruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback, written?: WriteCallback): void {
-    return this.#instruction(instruction, maxByteLength, sent, written);
+  public unsafeInstruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
+    return this.#instruction(instruction, maxByteLength, sent);
   }
 
-  #callback(sent?: SendCallback, written?: WriteCallback): void {
-    if (sent || written) {
+  #callback(sent?: SendCallback): void {
+    if (sent) {
       if (this.#lastInstruction) {
-        this.#lastInstruction.callback(sent, written);
+        this.#lastInstruction.callback(sent);
       } else if (this.#instructionsCount === 0) {
-        if (written) {
-          process.nextTick(written);
-        }
         if (sent) {
           this.#buffer.addCallback(sent);
         }
       } else {
-        this.#instruction(noop, 0, sent, written);
+        this.#instruction(noop, 0, sent);
       }
     }
   }
 
-  addCallback(sent?: SendCallback, written?: WriteCallback): void {
-    this.#callback(sent, written);
+  addCallback(sent?: SendCallback): void {
+    this.#callback(sent);
   }
 
   // It assumes that the previous packet is flushed
@@ -261,19 +257,19 @@ export class StreamWriter {
 
   // Packets
 
-  public heartbeat(sent?: SendCallback, written?: WriteCallback): void {
+  public heartbeat(sent?: SendCallback): void {
     this.#endPacket();
-    this.#instruction(heartbeatInstruction, 1, sent, written);
+    this.#instruction(heartbeatInstruction, 1, sent);
   }
 
-  public goAway(sent?: SendCallback, written?: WriteCallback): void {
+  public goAway(sent?: SendCallback): void {
     this.#endPacket();
-    this.#instruction(goAwayInstruction, 1, sent, written);
+    this.#instruction(goAwayInstruction, 1, sent);
   }
 
-  public abort(sent?: SendCallback, written?: WriteCallback): void {
+  public abort(sent?: SendCallback): void {
     this.#endPacket();
-    this.#instruction(abortInstruction, 1, sent, written);
+    this.#instruction(abortInstruction, 1, sent);
   }
 
   public channel(channel: number): void {
@@ -293,14 +289,14 @@ export class StreamWriter {
     }
   }
 
-  public fastReply(id: UUID, code: number, sent?: SendCallback, written?: WriteCallback): void {
+  public fastReply(id: UUID, code: number, sent?: SendCallback): void {
     this.#endPacket();
     if (code < 0) {
       throw new Error('Invalid short response code.');
     } else if (code <= 0x0f) {
-      this.#instruction(fastReplyLowInstruction(id, code), 17, sent, written);
+      this.#instruction(fastReplyLowInstruction(id, code), 17, sent);
     } else if (code <= 0x0fff) {
-      this.#instruction(fastReplyHighInstruction(id, code), 18, sent, written);
+      this.#instruction(fastReplyHighInstruction(id, code), 18, sent);
     } else {
       throw new Error('Invalid short response code.');
     }
@@ -342,10 +338,10 @@ export class StreamWriter {
     this.#startPacket(PacketTypeBits.Stream);
   }
 
-  public endStream(sent?: SendCallback, written?: WriteCallback): void {
+  public endStream(sent?: SendCallback): void {
     this.#streamingChannels[this.#currentChannel] = false;
     this.#endPacket();
-    this.#instruction(streamEndInstruction, 1, sent, written);
+    this.#instruction(streamEndInstruction, 1, sent);
   }
 
   public data(): void {
@@ -373,62 +369,62 @@ export class StreamWriter {
     }
   }
 
-  public endFile(index: number, sent?: SendCallback, written?: WriteCallback): void {
+  public endFile(index: number, sent?: SendCallback): void {
     this.#endPacket();
 
     const flags = index === 0 ? FileIndexBits.First : getFileIndexFlag(index);
     const bytes = index === 0 ? 0 : getFileIndexBytes(index);
-    this.#instruction(fileEndInstruction(flags, index, bytes), bytes + 1, sent, written);
+    this.#instruction(fileEndInstruction(flags, index, bytes), bytes + 1, sent);
   }
 
   // Instructions
 
-  public writeUuid(uuid: UUID, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uuidInstruction(uuid), 16, sent, written);
+  public writeUuid(uuid: UUID, sent?: SendCallback): void {
+    this.#instruction(uuidInstruction(uuid), 16, sent);
   }
 
-  public writeUtf8(text: string, sent?: SendCallback, written?: WriteCallback): void {
+  public writeUtf8(text: string, sent?: SendCallback): void {
     const length = text.length;
     if (length > 60_000) {
-      this.#instruction(utf8WriteInstruction(text), 0, sent, written);
+      this.#instruction(utf8WriteInstruction(text), 0, sent);
       this.#currentPacketBytes += length; // FIXME: Hacky way
     } else {
-      this.#instruction(utf8InlineInstruction(text), Buffer.byteLength(text), sent, written);
+      this.#instruction(utf8InlineInstruction(text), Buffer.byteLength(text), sent);
     }
   }
 
-  public writeBuffer(buffer: Buffer, sent?: SendCallback, written?: WriteCallback): void {
+  public writeBuffer(buffer: Buffer, sent?: SendCallback): void {
     const length = buffer.length;
     if (length > 30_000) {
-      this.#instruction(bufferWriteInstruction(buffer), 0, sent, written);
+      this.#instruction(bufferWriteInstruction(buffer), 0, sent);
       this.#currentPacketBytes += length; // FIXME: Hacky way
     } else {
-      this.#instruction(bufferInlineInstruction(buffer), length, sent, written);
+      this.#instruction(bufferInlineInstruction(buffer), length, sent);
     }
   }
 
-  public writeUint8(uint: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uint8Instruction(uint), 1, sent, written);
+  public writeUint8(uint: number, sent?: SendCallback): void {
+    this.#instruction(uint8Instruction(uint), 1, sent);
   }
 
-  public writeUint16(uint: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uint16Instruction(uint), 2, sent, written);
+  public writeUint16(uint: number, sent?: SendCallback): void {
+    this.#instruction(uint16Instruction(uint), 2, sent);
   }
 
-  public writeUint24(uint: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uint24Instruction(uint), 3, sent, written);
+  public writeUint24(uint: number, sent?: SendCallback): void {
+    this.#instruction(uint24Instruction(uint), 3, sent);
   }
 
-  public writeUint32(uint: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uint32Instruction(uint), 4, sent, written);
+  public writeUint32(uint: number, sent?: SendCallback): void {
+    this.#instruction(uint32Instruction(uint), 4, sent);
   }
 
-  public writeUint48(uint: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uint48Instruction(uint), 6, sent, written);
+  public writeUint48(uint: number, sent?: SendCallback): void {
+    this.#instruction(uint48Instruction(uint), 6, sent);
   }
 
-  public writeUint(uint: number, byteLength: number, sent?: SendCallback, written?: WriteCallback): void {
-    this.#instruction(uintInstruction(uint, byteLength), byteLength, sent, written);
+  public writeUint(uint: number, byteLength: number, sent?: SendCallback): void {
+    this.#instruction(uintInstruction(uint, byteLength), byteLength, sent);
   }
 
   // Reserving channels
