@@ -29,6 +29,7 @@ suite('Moleculer', () => {
       nodeID: `server-${serverIndex}`,
       logger: false,
       metrics: false,
+      tracing: false,
       requestTimeout: 120000,
       transporter: {
         type: 'TCP',
@@ -68,6 +69,7 @@ suite('Moleculer', () => {
         nodeID: `client-${Math.random()}`,
         logger: false,
         metrics: false,
+        tracing: false,
         requestTimeout: 120000,
         transporter: {
           type: 'TCP',
