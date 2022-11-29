@@ -2,7 +2,7 @@ const { MessageHandler, Draft, createServer, createSecureServer, connect, secure
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
 const { FileTransfer } = require('../../../core/src/FileTransfer');
 const { certificate, privateKey } = require('../../tls');
-const { kb512, mb1, mb4 } = require('../../files');
+const { mb1, mb4 } = require('../../files');
 const { suite, benchmark, prepareClient, prepareServer } = require('../declare');
 const { makePool } = require('../makePool');
 
