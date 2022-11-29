@@ -68,8 +68,8 @@ function setUpServerPrimary(config) {
   });
 }
 
-function setUpServerWorker(config) {
-  const worker = cluster.fork({ SERVER_WORKER_CONFIG: JSON.stringify(config) });
+function setUpServerWorker(config, serverIndex) {
+  const worker = cluster.fork({ SERVER_WORKER_CONFIG: JSON.stringify({ ...config, serverIndex }) });
 
   function kill() {
     return worker.terminate();

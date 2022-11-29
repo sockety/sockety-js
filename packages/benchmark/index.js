@@ -46,7 +46,7 @@ async function handleServerPrimary() {
   setPriority(-20);
   const workers = [];
   for (let i = 0; i < config.serverWorkers; i++) {
-    workers.push(await setUpServerWorker(config));
+    workers.push(await setUpServerWorker(config, i));
   }
   process.on('message', async (message) => {
     if (message?.type === 'prepare') {
@@ -129,6 +129,7 @@ async function runServerOnly(name) {
 
   printToast(name, 'Starting server workers...');
   const server = await setUpServerPrimary(config);
+  process.once('exit', () => server.kill());
   printToast(name, 'Preparing server workers...');
   await server.prepare(suite.name);
 
@@ -145,6 +146,7 @@ async function runSuite(name) {
     if (!config.remoteHost) {
       printToast(benchmark.name, 'Starting server workers...');
       server = await setUpServerPrimary(config);
+      process.once('exit', () => server.kill());
       printToast(benchmark.name, 'Preparing server workers...');
       await server.prepare(suite.name);
     }
