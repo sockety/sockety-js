@@ -17,7 +17,7 @@ function buildFilesListHeader(filesCount: number, totalFilesSize: number) {
     writer.continueMessage();
     writer.writeUint(filesCount, filesCountBytes);
     writer.writeUint(totalFilesSize, totalFilesSizeBytes, sent);
-    registered?.();
+    registered();
   });
 }
 

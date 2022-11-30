@@ -74,6 +74,6 @@ export const filesList = (files?: FileTransfer[] | null) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeBuffer(filesHeaderBuffer, sent);
-    registered?.();
+    registered();
   });
 }

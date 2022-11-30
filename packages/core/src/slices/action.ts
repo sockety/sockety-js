@@ -12,6 +12,6 @@ export const action = (name: string) => {
     writer.continueMessage();
     writer.writeUint(length, bytes);
     writer.writeBuffer(action, sent);
-    registered?.();
+    registered();
   });
 }

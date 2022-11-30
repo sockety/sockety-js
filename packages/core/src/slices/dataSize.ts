@@ -15,7 +15,7 @@ function buildDataSize(dataLength: number) {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeUint(dataLength, dataSizeBytes, sent);
-    registered?.();
+    registered();
   });
 }
 

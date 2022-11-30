@@ -26,6 +26,6 @@ export const data = (content: Buffer | string | undefined): ContentProducerSlice
     writer.channel(channel);
     writer.data();
     writer.writeBuffer(buffer, sent);
-    registered?.();
+    registered();
   });
 }

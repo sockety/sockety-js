@@ -1,4 +1,5 @@
 import { ContentProducerSlice, createContentProducerSlice } from '../ContentProducer';
+import { noop } from '../noop';
 import { none } from './none';
 
 // TODO: Consider storing them as LinkedList
@@ -20,7 +21,7 @@ export const pipe = (slices: ContentProducerSlice[]) => {
         slice(writer, channel, sent, registered);
       } else {
         index++;
-        slice(writer, channel, undefined, next);
+        slice(writer, channel, noop, next);
       }
     };
     next();

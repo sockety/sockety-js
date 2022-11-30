@@ -1,11 +1,7 @@
 import { UUID } from '@sockety/uuid';
 import { createContentProducerSlice } from '../ContentProducer';
 import { createNumberBytesMapper } from '../createNumberBytesMapper';
-import {
-  MessageDataSizeBits,
-  MessageFilesCountBits,
-  MessageFilesSizeBits
-} from '../constants';
+import { MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../constants';
 
 const getTotalFilesSizeFlag = createNumberBytesMapper('total files size', {
   2: MessageFilesSizeBits.Uint16,
@@ -44,7 +40,7 @@ export const responseStart = (hasStream: boolean) => {
           buffer.writeUuid(parentId);
           buffer.writeUuid(id);
         }, 33, sent);
-        registered?.();
+        registered();
       });
     };
   }

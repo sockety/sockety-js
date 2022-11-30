@@ -4,5 +4,5 @@ import { createContentProducerSlice } from '../ContentProducer';
 export const endStream = createContentProducerSlice((writer, channel, sent, registered) => {
   writer.channel(channel);
   writer.endStream(sent);
-  registered?.();
+  registered();
 });

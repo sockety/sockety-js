@@ -1,14 +1,10 @@
 import { ContentProducerSlice, createContentProducerSlice } from '../ContentProducer';
-import { noop } from '../noop';
 import { none } from './none';
 
 type Callback = () => void;
 type ErrorCallback = (error: Error | null | undefined) => void;
 
-function createSentCallback(left: number, callback: ErrorCallback | undefined): ErrorCallback {
-  if (callback == null) {
-    return noop;
-  }
+function createSentCallback(left: number, callback: ErrorCallback): ErrorCallback {
   return (error: Error | null | undefined) => {
     if (error == null) {
       left--;
@@ -22,10 +18,7 @@ function createSentCallback(left: number, callback: ErrorCallback | undefined): 
   };
 }
 
-function createCallback(left: number, callback: Callback | undefined): Callback {
-  if (callback == null) {
-    return noop;
-  }
+function createCallback(left: number, callback: Callback): Callback {
   return () => {
     left--;
     if (left === 0) {

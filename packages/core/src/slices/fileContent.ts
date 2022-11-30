@@ -25,7 +25,7 @@ export const fileContent = (index: number) => {
       writer.channel(channel);
       writer.file(index);
       writer.writeBuffer(content, sent);
-      registered?.();
+      registered();
     });
   };
 

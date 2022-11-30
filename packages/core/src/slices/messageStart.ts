@@ -49,7 +49,7 @@ export const messageStart = (hasStream: boolean, actionLength: number) => {
         writer.startMessage(expectsResponse, hasStream);
         writer.writeUint8(flags);
         writer.writeUuid(id, sent);
-        registered?.();
+        registered();
       });
     }
   }

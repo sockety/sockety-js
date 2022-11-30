@@ -15,7 +15,7 @@ export function createContentProducer<T>(fn: RawContentProducer<T>): ContentProd
 declare const ContentProducerSliceSymbol: unique symbol;
 
 export type RegisterCallback = () => void;
-export type RawContentProducerSlice = (writer: StreamWriter, channel: number, sent?: SendCallback, registered?: RegisterCallback) => void;
+export type RawContentProducerSlice = (writer: StreamWriter, channel: number, sent: SendCallback, registered: RegisterCallback) => void;
 export type ContentProducerSlice = RawContentProducerSlice & { [ContentProducerSliceSymbol]: true };
 export function createContentProducerSlice<T>(fn: RawContentProducerSlice): ContentProducerSlice {
   return fn as ContentProducerSlice;
