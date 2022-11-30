@@ -40,21 +40,42 @@ type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
   ? (input?: Input<T>) => ContentProducer<RawRequest<T['stream']>>
   : (input: Input<T>) => ContentProducer<RawRequest<T['stream']>>;
 
-const noDataOperation: [ ContentProducerSlice, ContentProducerSlice, number ] = [ none, dataSize.empty, 0 ];
-function createRawDataOperation(content: Buffer | string): [ ContentProducerSlice, ContentProducerSlice, number ] {
+interface DataOperation {
+  dataSlice: ContentProducerSlice;
+  dataSizeSlice: ContentProducerSlice;
+  dataLength: number;
+}
+
+function createDataOperationObject(dataSlice: ContentProducerSlice, dataSizeSlice: ContentProducerSlice, dataLength: number): DataOperation {
+  return { dataSlice, dataSizeSlice, dataLength };
+}
+
+const noDataOperation = createDataOperationObject(none, dataSize.empty, 0);
+function createRawDataOperation(content: Buffer | string): DataOperation {
   const length = Buffer.byteLength(content);
   if (length === 0) {
     return noDataOperation;
   }
-  return [ data(content), dataSize(length), length ];
+  return createDataOperationObject(data(content), dataSize(length), length);
 }
 
-function createMessagePackDataOperation(content: any): [ ContentProducerSlice, ContentProducerSlice, number ] {
+function createMessagePackDataOperation(content: any): DataOperation {
   return createRawDataOperation(msgpack.encode(content));
 }
 
-const noFilesOperation: [ ContentProducerSlice, ContentProducerSlice, number, number ] = [ none, filesListHeader.empty, 0, 0 ];
-function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, ContentProducerSlice, number, number ] {
+interface FilesOperation {
+  filesSlice: ContentProducerSlice;
+  filesHeaderSlice: ContentProducerSlice;
+  filesCount: number;
+  totalFilesSize: number;
+}
+
+function createFilesOperationObject(filesSlice: ContentProducerSlice, filesHeaderSlice: ContentProducerSlice, filesCount: number, totalFilesSize: number): FilesOperation {
+  return { filesSlice, filesHeaderSlice, filesCount, totalFilesSize };
+}
+
+const noFilesOperation = createFilesOperationObject(none, filesListHeader.empty, 0, 0);
+function createFilesOperation(files: FileTransfer[]): FilesOperation {
   // Count files
   const filesCount = files?.length || 0;
 
@@ -74,7 +95,7 @@ function createFilesOperation(files: FileTransfer[]): [ ContentProducerSlice, Co
   const filesSpecSlice = filesListHeader(filesCount, totalFilesSize);
   const filesHeaderSlice = filesList(files);
 
-  return [ filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize ];
+  return createFilesOperationObject(filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize);
 }
 
 // TODO: Clean up code
@@ -88,9 +109,9 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
   readonly #action: ContentProducerSlice;
   readonly #actionLength: number;
   // TODO: Think if such tuple is fine
-  #files: (files: FileTransfer[]) => [ ContentProducerSlice, ContentProducerSlice, number, number ] = () => [ none, none, 0, 0 ];
+  #files: (files: FileTransfer[]) => FilesOperation = () => noFilesOperation;
   // TODO: Think if such tuple is fine
-  #data: (data: Buffer) => [ ContentProducerSlice, ContentProducerSlice, number ] = () => [ none, none, 0 ];
+  #data: (data: Buffer) => DataOperation = () => noDataOperation;
 
   // Keep cached optimized draft
   #cached?: ProducerFactory<T>;
@@ -189,9 +210,9 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
       }
 
       // Prepare slices
-      const [ dataSlice, dataSizeSlice, dataSize ] = createDataSlices(inputData);
-      const [ filesSlice, filesHeaderSlice, filesCount, totalFilesSize ] = createFilesSlices(inputFiles);
-      const createMessageStartSlice = createMessageStartSliceFactory(dataSize, filesCount, totalFilesSize);
+      const { dataSlice, dataSizeSlice, dataLength } = createDataSlices(inputData);
+      const { filesSlice, filesHeaderSlice, filesCount, totalFilesSize } = createFilesSlices(inputFiles);
+      const createMessageStartSlice = createMessageStartSliceFactory(dataLength, filesCount, totalFilesSize);
 
       return createContentProducer((writer, sent, registered, expectsResponse) => {
         const id = generateUuid();
