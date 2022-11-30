@@ -43,14 +43,6 @@ export class StreamWriterInstruction {
     this.#run = createRunner(run, sent);
   }
 
-  public include(run: ExecuteWrite, bytes: number, sent: SendCallback = noop): void {
-    const prev = this.#run;
-    this.#run = createRunner((buffer) => {
-      prev(buffer);
-      run(buffer);
-    }, sent);
-  }
-
   public callback(sent: SendCallback = noop): void {
     this.#run = createRunner(this.#run, sent);
   }
