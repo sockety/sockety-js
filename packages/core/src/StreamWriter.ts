@@ -88,7 +88,8 @@ export class StreamWriter {
   readonly #reservedChannels: Record<number, boolean> = {};
   readonly #waitingForIdle: ((channel: number, release: () => void) => void)[] = [];
 
-  #currentPacket: number | null = null;
+  #currentPacket: number | undefined = undefined;
+  #currentPacketType: PacketTypeBits = 0;
   #currentPacketBytes = 0;
   #currentChannel = 0;
 
@@ -153,14 +154,10 @@ export class StreamWriter {
     this.#buffer.send();
   };
 
-  #isPacket(type: number): boolean {
-    return (this.#currentPacket! & 0xf0) === type;
-  }
-
   #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
     this.#instructionsCount++;
     this.#instructionsMaxBytes += maxByteLength;
-    if (this.#currentPacket !== null) {
+    if (this.#currentPacket !== undefined) {
       this.#currentPacketBytes += maxByteLength;
     }
 
@@ -172,7 +169,7 @@ export class StreamWriter {
     }
 
     // TODO: Add configuration
-    if (this.#currentPacket === null && this.#instructionsMaxBytes > 65_000) {
+    if (this.#currentPacket === undefined && this.#instructionsMaxBytes > 65_000) {
       this.#commit();
     } else {
       this.#schedule();
@@ -200,6 +197,7 @@ export class StreamWriter {
   // It assumes that the previous packet is flushed
   #startPacket(packet: number): void {
     this.#currentPacket = packet;
+    this.#currentPacketType = packet & 0xf0;
     this.#currentPacketBytes = 0;
     const item = this.#instructionsPacketPlaceholder = new StreamWriterInstruction(noop, 5);
     if (this.#lastInstruction) {
@@ -213,14 +211,14 @@ export class StreamWriter {
   // TODO: Consider auto-flush on #startPacket
   #endPacket(): void {
     const packet = this.#currentPacket;
-    if (packet == null) {
+    if (packet == undefined) {
       return;
     }
     const packetBytes = this.#currentPacketBytes;
 
     // Ignore empty packets
     if (packetBytes === 0) {
-      if (this.#isPacket(PacketTypeBits.File)) {
+      if (this.#currentPacketType === PacketTypeBits.File) {
         // FIXME: Hacky way to remove file index
         if ((this.#currentPacket! & 0b11) !== 0) {
           this.#instructionsPacketPlaceholder!.next!.disable();
@@ -228,7 +226,8 @@ export class StreamWriter {
         }
       }
 
-      this.#currentPacket = null;
+      this.#currentPacket = undefined;
+      this.#currentPacketType = 0;
       this.#instructionsMaxBytes -= this.#instructionsPacketPlaceholder!.bytes;
       return;
     }
@@ -241,7 +240,8 @@ export class StreamWriter {
       $.writeUint8(packet | flags);
       $.writeUint(packetBytes, bytes);
     });
-    this.#currentPacket = null;
+    this.#currentPacket = undefined;
+    this.#currentPacketType = 0;
 
     // TODO: Add configuration option
     if (this.#instructionsMaxBytes > 65_000) {
@@ -308,7 +308,7 @@ export class StreamWriter {
 
   public continueMessage(): void {
     // TODO: Consider caching information if that's a message
-    if (this.#isPacket(PacketTypeBits.Message) || this.#isPacket(PacketTypeBits.Continue) || this.#isPacket(PacketTypeBits.Response)) {
+    if (this.#currentPacketType === PacketTypeBits.Message || this.#currentPacketType === PacketTypeBits.Continue || this.#currentPacketType === PacketTypeBits.Response) {
       return;
     }
     this.#endPacket();
@@ -325,7 +325,7 @@ export class StreamWriter {
   }
 
   public stream(): void {
-    if (this.#isPacket(PacketTypeBits.Stream)) {
+    if (this.#currentPacketType === PacketTypeBits.Stream) {
       return;
     }
     this.#endPacket();
@@ -339,7 +339,7 @@ export class StreamWriter {
   }
 
   public data(): void {
-    if (this.#isPacket(PacketTypeBits.Data)) {
+    if (this.#currentPacketType === PacketTypeBits.Data) {
       return;
     }
     this.#endPacket();
@@ -347,7 +347,7 @@ export class StreamWriter {
   }
 
   public file(index: number): void {
-    if (this.#isPacket(PacketTypeBits.File) && this.#packetFileIndex === index) {
+    if (this.#currentPacketType === PacketTypeBits.File && this.#packetFileIndex === index) {
       return;
     }
     this.#endPacket();
@@ -454,7 +454,7 @@ export class StreamWriter {
 
   public destroy(): void {
     this.#buffer.destroy();
-    this.#currentPacket = null;
+    this.#currentPacket = undefined;
     this.#firstInstruction = undefined;
     this.#lastInstruction = undefined;
     this.#instructionsPacketPlaceholder = undefined;
