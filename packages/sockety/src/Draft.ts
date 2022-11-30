@@ -107,9 +107,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
   // Keep pre-prepared operations
   readonly #action: ContentProducerSlice;
   readonly #actionLength: number;
-  // TODO: Think if such tuple is fine
   #files: (files: FileTransfer[]) => FilesOperation = () => noFilesOperation;
-  // TODO: Think if such tuple is fine
   #data: (data: Buffer) => DataOperation = () => noDataOperation;
 
   // Keep cached optimized draft
