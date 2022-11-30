@@ -154,7 +154,7 @@ export class StreamWriter {
   };
 
   #isPacket(type: number): boolean {
-    return (this.#currentPacket! & type) === type;
+    return (this.#currentPacket! & 0xf0) === type;
   }
 
   #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
