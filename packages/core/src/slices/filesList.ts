@@ -25,7 +25,7 @@ function getFileHeaderSize(file: FileTransfer): number {
   const nameLength = Buffer.byteLength(file.name);
   const nameSize = getFileHeaderNameBytes(nameLength);
   // @ts-ignore: ignore types for optimization
-  const size = file.size ?? file.buffer.length;
+  const size = file.size;
   const sizeSize = getFileHeaderSizeBytes(size);
   return 1 + sizeSize + nameSize + nameLength;
 }
@@ -36,7 +36,7 @@ function writeFileHeader(buffer: Buffer, offset: number, file: FileTransfer): nu
   const nameSize = getFileHeaderNameBytes(nameLength);
   const nameBits = getFileHeaderNameFlag(nameLength);
   // @ts-ignore: ignore types for optimization
-  const size = file.size ?? file.buffer.length;
+  const size = file.size;
   const sizeSize = getFileHeaderSizeBytes(size);
   const sizeBits = getFileHeaderSizeFlag(size);
 

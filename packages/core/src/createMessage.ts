@@ -41,7 +41,7 @@ export function createMessage<T extends boolean>({
   // Compute files details
   const filesCount = files?.length || 0;
   // @ts-ignore: avoid checks for better performance
-  const totalFilesSize = files?.reduce((acc, file) => acc + (file.size ?? file.buffer.length), 0) || 0;
+  const totalFilesSize = files?.reduce((acc, file) => acc + file.size, 0) || 0;
 
   const filesSpecSlice = filesListHeader(filesCount, totalFilesSize);
   const filesListSlice = filesList(files);

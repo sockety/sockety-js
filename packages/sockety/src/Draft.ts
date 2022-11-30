@@ -89,7 +89,7 @@ function createFilesOperation(files: FileTransfer[]): FilesOperation {
 
   // Compute size
   // @ts-ignore: avoid checks for better performance
-  const totalFilesSize = files?.reduce((acc, file) => acc + (file.size ?? file.buffer.length), 0) || 0;
+  const totalFilesSize = files?.reduce((acc, file) => acc + file.size, 0) || 0;
 
   // Build header
   const filesSpecSlice = filesListHeader(filesCount, totalFilesSize);
