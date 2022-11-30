@@ -20,7 +20,9 @@ function setUpServerPrimary(config) {
     JSON.stringify({ type: 'server', config }),
   ]);
 
+  process.on('exit', kill);
   function kill() {
+    process.off('exit', kill);
     return worker.kill();
   }
 
@@ -71,8 +73,10 @@ function setUpServerPrimary(config) {
 function setUpServerWorker(config, serverIndex) {
   const worker = cluster.fork({ SERVER_WORKER_CONFIG: JSON.stringify({ ...config, serverIndex }) });
 
+  process.on('exit', kill);
   function kill() {
-    return worker.terminate();
+    process.off('exit', kill);
+    return worker.kill();
   }
 
   function prepare(suiteName) {
@@ -122,7 +126,9 @@ function setUpServerWorker(config, serverIndex) {
 function setUpClientWorker(config) {
   const worker = new Worker(join(__dirname, '..', 'index.js'), { workerData: { type: 'client', config } });
 
+  process.on('exit', kill);
   function kill() {
+    process.off('exit', kill);
     return worker.terminate();
   }
 

@@ -129,7 +129,6 @@ async function runServerOnly(name) {
 
   printToast(name, 'Starting server workers...');
   const server = await setUpServerPrimary(config);
-  process.once('exit', () => server.kill());
   printToast(name, 'Preparing server workers...');
   await server.prepare(suite.name);
 
@@ -146,7 +145,6 @@ async function runSuite(name) {
     if (!config.remoteHost) {
       printToast(benchmark.name, 'Starting server workers...');
       server = await setUpServerPrimary(config);
-      process.once('exit', () => server.kill());
       printToast(benchmark.name, 'Preparing server workers...');
       await server.prepare(suite.name);
     }
