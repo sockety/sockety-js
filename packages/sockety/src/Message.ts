@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
 import { UUID } from '@sockety/uuid';
-import { RawMessage, FastReply, FileTransfer } from '@sockety/core';
+import { RawMessage, FastReply, FileTransfer, ContentProducer, RequestBase } from '@sockety/core';
 import { createResponse, fastReply } from '@sockety/core/producers';
 import { Request } from './Request';
 import { Connection } from './Connection';
@@ -79,10 +79,9 @@ export class Message extends RawMessage {
     return this.#msgpack;
   }
 
-  // TODO: Support msgpack responses
-  public respond<T extends true | false | undefined>(options: RespondOptions, hasStream?: T): T extends undefined ? Promise<Request<false>> : Promise<Request<T>> {
+  public respond<T extends boolean>(responseProducer: (parentId: UUID) => ContentProducer<RequestBase<T>>): Request<T> {
     this.#respond = true;
-    return this.#connection.send(createResponse(options, Boolean(hasStream))(this.id)) as any;
+    return this.#connection.send(responseProducer(this.id));
   }
 
   public fastReply(code: FastReply | number): Promise<void> {

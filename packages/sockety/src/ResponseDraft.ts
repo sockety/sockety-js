@@ -1,8 +1,19 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
-import { generateUuid } from '@sockety/uuid';
+import { generateUuid, UUID } from '@sockety/uuid';
 import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, RequestBase as RawRequest } from '@sockety/core';
-import { action, none, data, messageStart, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList } from '@sockety/core/slices';
+import {
+  none,
+  data,
+  pipe,
+  dataSize,
+  endStream,
+  parallel,
+  attachStream,
+  filesListHeader,
+  filesList,
+  responseStart,
+} from '@sockety/core/slices';
 import { CreateProducerSlice, RequestDone } from '@sockety/core/src/symbols';
 import { FunctionMimic } from './FunctionMimic';
 
@@ -12,33 +23,33 @@ enum DraftDataType {
   msgpack = 2,
 }
 
-export interface DraftConfig {
+export interface ResponseDraftConfig {
   stream: boolean;
   files: boolean;
   data: DraftDataType;
   dataType: any;
 }
 
-export interface DraftConfigDefaults {
+export interface ResponseDraftConfigDefaults {
   stream: false;
   files: false;
   data: DraftDataType.none;
   dataType: any;
 }
 
-type UseStream<T extends DraftConfig, U extends boolean> = Omit<T, 'stream'> & { stream: U };
-type UseData<T extends DraftConfig, U extends DraftDataType, V = any> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
-type UseFiles<T extends DraftConfig, U extends boolean> = Omit<T, 'files'> & { files: U };
+type UseStream<T extends ResponseDraftConfig, U extends boolean> = Omit<T, 'stream'> & { stream: U };
+type UseData<T extends ResponseDraftConfig, U extends DraftDataType, V = any> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
+type UseFiles<T extends ResponseDraftConfig, U extends boolean> = Omit<T, 'files'> & { files: U };
 
-type Input<T extends DraftConfig> =
+type Input<T extends ResponseDraftConfig> =
   (T['data'] extends DraftDataType.msgpack
     ? { data: T['dataType'] }
     : T['data'] extends DraftDataType.raw ? { data: Buffer } : {}) &
   (T['files'] extends true ? { files: FileTransfer[] } : {});
 
-type ProducerFactory<T extends DraftConfig> = [keyof Input<T>] extends [never]
-  ? (input?: Input<T>) => ContentProducer<RawRequest<T['stream']>>
-  : (input: Input<T>) => ContentProducer<RawRequest<T['stream']>>;
+type ResponseProducerFactory<T extends ResponseDraftConfig> = [keyof Input<T>] extends [never]
+  ? (input?: Input<T>) => (parentId: UUID) => ContentProducer<RawRequest<T['stream']>>
+  : (input: Input<T>) => (parentId: UUID) => ContentProducer<RawRequest<T['stream']>>;
 
 interface DataOperation {
   dataSlice: ContentProducerSlice;
@@ -97,40 +108,32 @@ function createFilesOperation(files: FileTransfer[]): FilesOperation {
   return createFilesOperationObject(filesSlice, pipe([ filesSpecSlice, filesHeaderSlice ]), filesCount, totalFilesSize);
 }
 
-// TODO: Clean up code
-export class Draft<T extends DraftConfig = DraftConfigDefaults> extends FunctionMimic<ProducerFactory<T>> {
+// TODO: Clean up code / unify with Draft
+export class ResponseDraft<T extends ResponseDraftConfig = ResponseDraftConfigDefaults> extends FunctionMimic<ResponseProducerFactory<T>> {
   #stream: boolean = false;
   #allowFiles: boolean = false;
   #allowData: DraftDataType = DraftDataType.none;
 
   // Keep pre-prepared operations
-  readonly #action: ContentProducerSlice;
-  readonly #actionLength: number;
   #files: (files: FileTransfer[]) => FilesOperation = () => noFilesOperation;
   #data: (data: Buffer) => DataOperation = () => noDataOperation;
 
   // Keep cached optimized draft
-  #cached?: ProducerFactory<T>;
-
-  public constructor(name: string) {
-    super();
-    this.#action = action(name);
-    this.#actionLength = Buffer.byteLength(name);
-  }
+  #cached?: ResponseProducerFactory<T>;
 
   #revokeCache(): void {
     this.#cached = undefined;
   }
 
-  public stream(): Draft<UseStream<T, true>> {
+  public stream(): ResponseDraft<UseStream<T, true>> {
     this.#revokeCache();
     this.#stream = true;
     return this as any;
   }
 
-  public files(): Draft<UseFiles<T, true>>;
-  public files(files: FileTransfer[]): Draft<UseFiles<T, false>>;
-  public files(files?: FileTransfer[]): Draft<UseFiles<T, boolean>> {
+  public files(): ResponseDraft<UseFiles<T, true>>;
+  public files(files: FileTransfer[]): ResponseDraft<UseFiles<T, false>>;
+  public files(files?: FileTransfer[]): ResponseDraft<UseFiles<T, boolean>> {
     this.#revokeCache();
     if (files === undefined) {
       this.#allowFiles = true;
@@ -143,9 +146,9 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     return this as any;
   }
 
-  public data(): Draft<UseData<T, DraftDataType.raw>>;
-  public data(content: Buffer | string): Draft<UseData<T, DraftDataType.none>>;
-  public data(content?: Buffer | string): Draft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
+  public data(): ResponseDraft<UseData<T, DraftDataType.raw>>;
+  public data(content: Buffer | string): ResponseDraft<UseData<T, DraftDataType.none>>;
+  public data(content?: Buffer | string): ResponseDraft<UseData<T, DraftDataType.raw | DraftDataType.none>> {
     this.#revokeCache();
     if (content === undefined) {
       this.#allowData = DraftDataType.raw;
@@ -158,9 +161,9 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     return this as any;
   }
 
-  public msgpack<U>(): Draft<UseData<T, DraftDataType.msgpack, U>>;
-  public msgpack<U>(content: U): Draft<UseData<T, DraftDataType.none>>;
-  public msgpack<U>(content?: U): Draft<UseData<T, DraftDataType.msgpack | DraftDataType.none, U>> {
+  public msgpack<U>(): ResponseDraft<UseData<T, DraftDataType.msgpack, U>>;
+  public msgpack<U>(content: U): ResponseDraft<UseData<T, DraftDataType.none>>;
+  public msgpack<U>(content?: U): ResponseDraft<UseData<T, DraftDataType.msgpack | DraftDataType.none, U>> {
     this.#revokeCache();
     if (content === undefined) {
       this.#allowData = DraftDataType.msgpack;
@@ -173,23 +176,21 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     return this as any;
   }
 
-  #optimize(): ProducerFactory<T> {
+  #optimize(): ResponseProducerFactory<T> {
     // Extract already known information
     const hasStream = this.#stream;
-    const actionSlice = this.#action;
-    const actionLength = this.#actionLength;
 
     // Extract builders for other operations
     const createDataSlices = this.#data;
     const createFilesSlices = this.#files;
-    const createMessageStartSliceFactory = messageStart(hasStream, actionLength);
+    const createResponseStartSliceFactory = responseStart(hasStream);
 
-    return ((input?: Input<T>, argThatIsNotExpected?: number) => {
+    return ((input?: Input<T>) => {
       // Handle common developer's mistake,
       // that Draft was passed for sending without building draft.
       // `send(Draft.for('ping'))` instead of `send(Draft.for('ping')())`
-      if (argThatIsNotExpected !== undefined) {
-        throw new Error('Raw Draft\'s factory should be called to build the producer.');
+      if (input && (input instanceof UUID)) {
+        throw new Error('Raw ResponseDraft\'s factory should be called to build the producer.');
       }
 
       // Extract input
@@ -208,9 +209,9 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
       // Prepare slices
       const { dataSlice, dataSizeSlice, dataLength } = createDataSlices(inputData);
       const { filesSlice, filesHeaderSlice, filesCount, totalFilesSize } = createFilesSlices(inputFiles);
-      const createMessageStartSlice = createMessageStartSliceFactory(dataLength, filesCount, totalFilesSize);
+      const createResponseStartSlice = createResponseStartSliceFactory(dataLength, filesCount, totalFilesSize);
 
-      return createContentProducer((writer, sent, registered, expectsResponse) => {
+      return (parentId: UUID) => createContentProducer((writer, sent, registered, expectsResponse) => {
         const id = generateUuid();
         const stream = hasStream && expectsResponse ? new RequestStream(writer) : null;
         const request = new RawRequest(id, stream);
@@ -227,8 +228,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
           };
 
           pipe([
-            createMessageStartSlice(id, expectsResponse),
-            actionSlice,
+            createResponseStartSlice(parentId)(id, expectsResponse),
             dataSizeSlice,
             filesHeaderSlice,
             hasStream && !stream ? endStream : none,
@@ -245,18 +245,14 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     }) as any;
   }
 
-  public optimize(): ProducerFactory<T> {
+  public optimize(): ResponseProducerFactory<T> {
     if (!this.#cached) {
       this.#cached = this.#optimize();
     }
     return this.#cached;
   }
 
-  public __call__(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ProducerFactory<T>> {
+  public __call__(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ResponseProducerFactory<T>> {
     return (this.optimize() as any)(input, argThatIsNotExpected);
-  }
-
-  public static for(name: string): Draft {
-    return new Draft(name);
   }
 }

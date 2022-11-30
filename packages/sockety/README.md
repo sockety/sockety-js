@@ -39,10 +39,13 @@ The Sockety library is pretty simple to use. Both server and client have mostly 
 To run the server, you should simply start it, and watch for messages/errors for every connection.
 
 ```ts
-import { createServer, FastReply } from 'sockety';
+import { createServer, FastReply, ResponseDraft } from 'sockety';
 
 // Instantiate server
 const server = createServer();
+
+// Prepare responses schema
+const pong = new ResponseDraft().msgpack<string>();
 
 // Handle connections
 server.on('connection', connection => {
@@ -53,7 +56,7 @@ server.on('connection', connection => {
           console.log(`[Log Request] ${await message.msgpack()}`);
           await message.fastReply(FastReply.Accept);
       } else if (message.action === 'ping') {
-          const request = message.respond({ data: 'pong' });
+          const request = message.respond(pong({ data: 'pong' }));
           await request.sent();
       } else {
           await message.fastReply(FastReply.NotImplemented);
@@ -76,10 +79,13 @@ Alternatively, you may use `MessageHandler` for building `message` event handler
 It is working for client too.
 
 ```ts
-import { createServer, MessageHandler, FastReply } from 'sockety';
+import { createServer, MessageHandler, FastReply, ResponseDraft } from 'sockety';
 
 // Instantiate server
 const server = createServer();
+
+// Prepare responses schema
+const pong = new ResponseDraft().msgpack<string>();
 
 // Prepare message handler
 const handle = new MessageHandler()
@@ -91,7 +97,7 @@ const handle = new MessageHandler()
         return FastReply.Accept;
     })
     .action('ping', async message => {
-        const request = message.respond({ data: 'pong' });
+        const request = message.respond(pong({ data: 'pong' }));
         await request.sent();
     })
     .error(() => FastReply.InternalError)

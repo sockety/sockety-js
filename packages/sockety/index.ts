@@ -4,6 +4,7 @@ export * from './src/createServer';
 export * from './src/createSecureServer';
 export * from './src/MessageHandler';
 export * from './src/Draft';
+export * from './src/ResponseDraft';
 export type { Request } from './src/Request';
 export type { Connection } from './src/Connection';
 export type { Message } from './src/Message';

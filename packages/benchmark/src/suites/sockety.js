@@ -1,4 +1,4 @@
-const { MessageHandler, Draft, createServer, createSecureServer, connect, secureConnect, FastReply } = require('../../../sockety');
+const { MessageHandler, Draft, createServer, createSecureServer, connect, secureConnect, FastReply, ResponseDraft } = require('../../../sockety');
 const { heartbeat } = require('../../../core/src/producers/heartbeat');
 const { FileTransfer } = require('../../../core/src/FileTransfer');
 const { certificate, privateKey } = require('../../tls');
@@ -50,9 +50,10 @@ function common() {
   }
 }
 
+const echoResponse = new ResponseDraft().optimize()();
 const messageListener = new MessageHandler()
   .action('ping', () => undefined)
-  .action('echo', (message) => message.respond({}).sent())
+  .action('echo', (message) => message.respond(echoResponse).sent())
   .action('fast', () => FastReply.Accept)
   .optimize();
 
