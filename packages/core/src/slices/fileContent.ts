@@ -21,7 +21,7 @@ export const fileContent = (index: number) => {
       return pipe(slices);
     }
 
-    return createContentProducerSlice((writer, channel, sent, registered) => {
+    return createContentProducerSlice((writer, sent, registered, channel) => {
       writer.channel(channel);
       writer.file(index);
       writer.writeBuffer(content, sent);

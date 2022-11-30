@@ -61,7 +61,7 @@ export function createMessage<T extends boolean>({
     const request = new RequestBase(id, stream);
 
     // TODO: Think about "Abort" on "Revoke"
-    writer.reserveChannel((channelId, release) => {
+    writer.reserveChannel((channel, release) => {
       const finalSent = (error: Error | null | undefined) => {
         sent(error);
         request[RequestDone](error);
@@ -84,7 +84,7 @@ export function createMessage<T extends boolean>({
           attachStream(stream),
           ...filesSlices,
         ]),
-      ])(writer, channelId, finalSent, finalRegistered);
+      ])(writer, finalSent, finalRegistered, channel);
     });
 
     return request;

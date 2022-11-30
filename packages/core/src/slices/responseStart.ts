@@ -32,7 +32,7 @@ export const responseStart = (hasStream: boolean) => {
     const flags = filesCountBits | filesSizeBits | dataSizeBits;
 
     return (parentId: UUID) => (id: UUID, expectsResponse: boolean) => {
-      return createContentProducerSlice((writer, channel, sent, registered) => {
+      return createContentProducerSlice((writer, sent, registered, channel) => {
         writer.channel(channel);
         writer.startResponse(expectsResponse, hasStream);
         writer.unsafeInstruction((buffer) => {

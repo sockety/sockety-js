@@ -44,7 +44,7 @@ export const messageStart = (hasStream: boolean, actionLength: number) => {
     const flags = filesCountBits | filesSizeBits | dataSizeBits | actionSizeBits;
 
     return (id: UUID, expectsResponse: boolean) => {
-      return createContentProducerSlice((writer, channel, sent, registered) => {
+      return createContentProducerSlice((writer, sent, registered, channel) => {
         writer.channel(channel);
         writer.startMessage(expectsResponse, hasStream);
         writer.writeUint8(flags);

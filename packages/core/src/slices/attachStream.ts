@@ -8,7 +8,7 @@ export const attachStream = (stream?: RequestStream | null) => {
   if (stream == null) {
     return none;
   }
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     stream[AttachStream](channel, sent, registered);
   });
 }

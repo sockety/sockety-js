@@ -12,7 +12,7 @@ function buildFilesListHeader(filesCount: number, totalFilesSize: number) {
     return none;
   }
   const totalFilesSizeBytes = getTotalFilesSizeBytes(totalFilesSize);
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeUint(filesCount, filesCountBytes);

@@ -220,7 +220,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
               attachStream(stream),
               filesSlice,
             ]),
-          ])(writer, channel, finalSent, finalRegistered);
+          ])(writer, finalSent, finalRegistered, channel);
         });
 
         return request;

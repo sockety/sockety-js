@@ -7,7 +7,7 @@ export const action = (name: string) => {
   const action = Buffer.from(name);
   const length = action.length;
   const bytes = getActionNameBytes(length);
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeUint(length, bytes);

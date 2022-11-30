@@ -70,7 +70,7 @@ export const filesList = (files?: FileTransfer[] | null) => {
   for (const file of files || []) {
     offset = writeFileHeader(filesHeaderBuffer, offset, file);
   }
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeBuffer(filesHeaderBuffer, sent);

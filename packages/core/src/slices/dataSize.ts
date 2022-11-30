@@ -11,7 +11,7 @@ function buildDataSize(dataLength: number) {
     return none;
   }
 
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     writer.channel(channel);
     writer.continueMessage();
     writer.writeUint(dataLength, dataSizeBytes, sent);

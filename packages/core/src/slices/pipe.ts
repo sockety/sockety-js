@@ -10,7 +10,7 @@ export const pipe = (slices: ContentProducerSlice[]) => {
   if (end === -1) {
     return none;
   }
-  return createContentProducerSlice((writer, channel, sent, registered) => {
+  return createContentProducerSlice((writer, sent, registered, channel) => {
     let index = 0;
     const next = () => {
       let slice = slices[index];
@@ -18,10 +18,10 @@ export const pipe = (slices: ContentProducerSlice[]) => {
         slice = slices[++index];
       }
       if (index === end) {
-        slice(writer, channel, sent, registered);
+        slice(writer, sent, registered, channel);
       } else {
         index++;
-        slice(writer, channel, noop, next);
+        slice(writer, noop, next, channel);
       }
     };
     next();
