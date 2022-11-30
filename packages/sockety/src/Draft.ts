@@ -77,7 +77,7 @@ function createFilesOperationObject(filesSlice: ContentProducerSlice, filesHeade
 const noFilesOperation = createFilesOperationObject(none, filesListHeader.empty, 0, 0);
 function createFilesOperation(files: FileTransfer[]): FilesOperation {
   // Count files
-  const filesCount = files?.length || 0;
+  const filesCount = files.length;
 
   // Fast-track when there are no files
   if (filesCount === 0) {
@@ -88,8 +88,7 @@ function createFilesOperation(files: FileTransfer[]): FilesOperation {
   const filesSlice = parallel(files.map((file, index) => file[CreateProducerSlice](index)));
 
   // Compute size
-  // @ts-ignore: avoid checks for better performance
-  const totalFilesSize = files?.reduce((acc, file) => acc + file.size, 0) || 0;
+  const totalFilesSize = files.reduce((acc, file) => acc + file.size, 0) || 0;
 
   // Build header
   const filesSpecSlice = filesListHeader(filesCount, totalFilesSize);
