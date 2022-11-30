@@ -35,11 +35,9 @@ export const responseStart = (hasStream: boolean) => {
       return createContentProducerSlice((writer, sent, registered, channel) => {
         writer.channel(channel);
         writer.startResponse(expectsResponse, hasStream);
-        writer.unsafeInstruction((buffer) => {
-          buffer.writeUint8(flags);
-          buffer.writeUuid(parentId);
-          buffer.writeUuid(id);
-        }, 33, sent);
+        writer.writeUint8(flags);
+        writer.writeUuid(parentId);
+        writer.writeUuid(id, sent);
         registered();
       });
     };

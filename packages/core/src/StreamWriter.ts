@@ -179,11 +179,6 @@ export class StreamWriter {
     }
   }
 
-  // TODO: Think how to use it
-  public unsafeInstruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
-    return this.#instruction(instruction, maxByteLength, sent);
-  }
-
   #callback(sent?: SendCallback): void {
     if (sent) {
       if (this.#lastInstruction) {
