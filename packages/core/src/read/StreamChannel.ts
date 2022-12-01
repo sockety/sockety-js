@@ -60,7 +60,7 @@ const createMessageConsumer = new BufferReader()
     .mask<'_nameSize', FileNameSizeBits>('_nameSize', 'header', 0b00000010).setInternal('_nameSize')
     .when('_nameSize', FileNameSizeBits.Uint8, $ => $.uint8('nameSize').setInternal('nameSize'))
     .when('_nameSize', FileNameSizeBits.Uint16, $ => $.uint16le('nameSize').setInternal('nameSize'))
-    .utf8Dynamic('name', 'nameSize') // TODO: Validate file name?
+    .utf8Dynamic('name', 'nameSize')
   , true)
 
   .end();
@@ -104,7 +104,7 @@ const createResponseConsumer = new BufferReader()
     .mask<'_nameSize', FileNameSizeBits>('_nameSize', 'header', 0b00000010).setInternal('_nameSize')
     .when('_nameSize', FileNameSizeBits.Uint8, $ => $.uint8('nameSize').setInternal('nameSize'))
     .when('_nameSize', FileNameSizeBits.Uint16, $ => $.uint16le('nameSize').setInternal('nameSize'))
-    .utf8Dynamic('name', 'nameSize') // TODO: Validate file name?
+    .utf8Dynamic('name', 'nameSize')
   , true)
 
   .end();
