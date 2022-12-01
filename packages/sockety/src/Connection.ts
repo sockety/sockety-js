@@ -42,6 +42,9 @@ export class Connection extends EventEmitter {
   readonly #hooks = new UUIDHooks<Response | FastReply | number>();
   readonly #parser: StreamParser;
   readonly #maxWritableChannels: number;
+  readonly #immediateFlushBytes: number;
+  readonly #maxInlineUtf8Bytes: number;
+  readonly #maxInlineBufferBytes: number;
   readonly #readControlByte = createControlByteReader({
     control: (byte) => this.#verifyControlByte(byte),
     channels: (channels) => this.#setupWriter(channels),
@@ -56,6 +59,9 @@ export class Connection extends EventEmitter {
     super();
     this.#socket = socket;
     this.#socket.setKeepAlive(true);
+    this.#immediateFlushBytes = options.immediateFlushBytes ?? 65_000;
+    this.#maxInlineUtf8Bytes = options.maxInlineUtf8Bytes ?? 60_000;
+    this.#maxInlineBufferBytes = options.maxInlineBufferBytes ?? 30_000;
     this.#maxWritableChannels = options.maxWritableChannels ?? 4096;
     const maxReceivedChannels = options.maxReceivedChannels ?? 4096;
 
@@ -132,6 +138,9 @@ export class Connection extends EventEmitter {
     }
     this.#writer = new StreamWriter(this.#socket, {
       maxChannels: Math.min(this.#maxWritableChannels, maxChannels),
+      immediateFlushBytes: this.#immediateFlushBytes,
+      maxInlineUtf8Bytes: this.#maxInlineUtf8Bytes,
+      maxInlineBufferBytes: this.#maxInlineBufferBytes,
     });
     this.#headersSent = true;
   }

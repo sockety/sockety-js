@@ -7,7 +7,10 @@ export interface RawConnectOptions {
   maxWritableChannels?: number; // default: 4096
   connectTimeout?: number; // default: none
   timeout?: number; // default: none
-  allowFilesSizeMismatch?: number; // default: false
+  allowFilesSizeMismatch?: number; // default: false // TODO
+  immediateFlushBytes?: number; // default: 65_000
+  maxInlineUtf8Bytes?: number; // default: 60_000
+  maxInlineBufferBytes?: number; // default: 30_000
 }
 
 export type ConnectOptions = RawConnectOptions & net.NetConnectOpts;
@@ -17,7 +20,10 @@ export interface RawServerOptions {
   maxReceivedChannels?: number; // default: 4096
   maxWritableChannels?: number; // default: 4096
   timeout?: number; // default: 60000
-  allowFilesSizeMismatch?: number; // default: false
+  allowFilesSizeMismatch?: number; // default: false // TODO
+  immediateFlushBytes?: number; // default: 65_000
+  maxInlineUtf8Bytes?: number; // default: 60_000
+  maxInlineBufferBytes?: number; // default: 30_000
 }
 
 export interface ServerOptions extends RawServerOptions, net.ServerOpts {}
