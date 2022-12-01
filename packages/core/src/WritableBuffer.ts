@@ -66,7 +66,12 @@ export class WritableBuffer {
       return;
     }
 
-    this.#write(pool.subarray(start, end));
+    // Fast-track when full buffer is used
+    if (start === 0 && end === this.#poolCurrentSize) {
+      this.#write(pool);
+    } else {
+      this.#write(pool.subarray(start, end));
+    }
     this.#poolStart = this.#poolOffset;
   }
 
