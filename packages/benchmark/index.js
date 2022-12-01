@@ -243,7 +243,7 @@ async function handleController() {
   }
   if (options.warming) {
     config.warmingDuration = parseDuration(options.warming);
-    if (!config.warmingDuration) {
+    if (isNaN(config.warmingDuration)) {
       throw new Error('Invalid --warming passed');
     }
   }
