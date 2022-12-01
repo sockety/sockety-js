@@ -2,6 +2,9 @@
   "scripts": {
     "server": "ts-node server",
     "client": "ts-node client",
-    "build-sockety": "npm --prefix .. run build-sockety"
+    "build-sockety": "npm --prefix .. run build-sockety",
+    "clean": "",
+    "build": "",
+    "lint": ""
   }
 }
