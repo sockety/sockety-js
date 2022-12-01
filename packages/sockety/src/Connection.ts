@@ -150,12 +150,12 @@ export class Connection extends EventEmitter {
   }
 
   #handleResponse(response: Response): void {
-    // TODO: Consider emitting event too
+    this.emit('response', response);
     this.#hooks.run(response.parentId, response);
   }
 
   #handleFastReply(uuid: UUID, code: FastReply | number): void {
-    // TODO: Consider emitting event too
+    this.emit('fastReply', uuid, code);
     this.#hooks.run(uuid, code);
   }
 
@@ -268,6 +268,22 @@ export interface Connection {
   prependOnceListener(event: 'message', listener: (message: Message) => void): this;
   removeListener(event: 'message', listener: (message: Message) => void): this;
   emit(event: 'message', message: Message): boolean;
+
+  addListener(event: 'response', listener: (response: Response) => void): this;
+  on(event: 'response', listener: (response: Response) => void): this;
+  once(event: 'response', listener: (response: Response) => void): this;
+  prependListener(event: 'response', listener: (response: Response) => void): this;
+  prependOnceListener(event: 'response', listener: (response: Response) => void): this;
+  removeListener(event: 'response', listener: (response: Response) => void): this;
+  emit(event: 'response', response: Response): boolean;
+
+  addListener(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  on(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  once(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  prependListener(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  prependOnceListener(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  removeListener(event: 'fastReply', listener: (uuid: UUID, code: number) => void): this;
+  emit(event: 'fastReply', uuid: UUID, code: number): boolean;
 
   addListener(event: 'connect', listener: () => void): this;
   on(event: 'connect', listener: () => void): this;
