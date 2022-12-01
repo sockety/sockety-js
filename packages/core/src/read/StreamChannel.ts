@@ -268,7 +268,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (!this.#consumingMessage) {
       throw new Error('There is no message in process.');
     }
-    const hadMessage = Boolean(this.#message);
+    const hadMessage = this.#message;
     if (this.#consumeMessage(buffer, offset, end) !== end) {
       throw new Error('The message packet size was malformed.');
     }
@@ -281,7 +281,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (!this.#consumingResponse) {
       throw new Error('There is no response in process.');
     }
-    const hadMessage = Boolean(this.#message);
+    const hadMessage = this.#message;
     if (this.#consumeResponse(buffer, offset, end) !== end) {
       throw new Error('The response packet size was malformed.');
     }

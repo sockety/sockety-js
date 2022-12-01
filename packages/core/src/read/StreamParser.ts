@@ -219,6 +219,24 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
     this.#currentChannel = this.#getChannel(0);
   }
 
+  #emitMessage(message: M | null): void {
+    if (message === null) {
+      return;
+    }
+    // TODO: Think if next tick should be there
+    // TODO: Do it only when the message is not aborted
+    process.nextTick(() => this.emit('message', message));
+  }
+
+  #emitResponse(message: R | null): void {
+    if (message === null) {
+      return;
+    }
+    // TODO: Think if next tick should be there
+    // TODO: Do it only when the message is not aborted
+    process.nextTick(() => this.emit('response', message));
+  }
+
   #switchChannel = (channelId: number) => {
     this.#currentChannel = this.#getChannel(channelId);
   };
@@ -235,48 +253,20 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
   #messageHasStream = (hasStream: boolean) => this.#currentChannel.startMessage(hasStream);
   #messageExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
   #messageContent = (buffer: Buffer, offset: number, end: number) => {
-    const message = this.#currentChannel.consumeMessage(buffer, offset, end);
-    if (message) {
-      // TODO: Think if next tick should be there
-      process.nextTick(() => {
-        // TODO: Do it only when the message is not aborted
-        this.emit('message', message);
-      });
-    }
+    this.#emitMessage(this.#currentChannel.consumeMessage(buffer, offset, end));
   };
 
   #responseHasStream = (hasStream: boolean) => this.#currentChannel.startResponse(hasStream);
   #responseExpectsResponse = (expectsResponse: boolean) => this.#currentChannel.setExpectsResponse(expectsResponse);
   #responseContent = (buffer: Buffer, offset: number, end: number) => {
-    const response = this.#currentChannel.consumeResponse(buffer, offset, end);
-    if (response) {
-      // TODO: Think if next tick should be there
-      process.nextTick(() => {
-        // TODO: Do it only when the response is not aborted
-        this.emit('response', response);
-      });
-    }
+    this.#emitResponse(this.#currentChannel.consumeResponse(buffer, offset, end));
   };
 
   #continueContent = (buffer: Buffer, offset: number, end: number) => {
     if (this.#currentChannel.isMessage()) {
-      const message = this.#currentChannel.consumeMessage(buffer, offset, end);
-      if (message) {
-        // TODO: Think if next tick should be there
-        process.nextTick(() => {
-          // TODO: Do it only when the message is not aborted
-          this.emit('message', message);
-        });
-      }
+      this.#emitMessage(this.#currentChannel.consumeMessage(buffer, offset, end));
     } else {
-      const response = this.#currentChannel.consumeResponse(buffer, offset, end);
-      if (response) {
-        // TODO: Think if next tick should be there
-        process.nextTick(() => {
-          // TODO: Do it only when the response is not aborted
-          this.emit('response', response);
-        });
-      }
+      this.#emitResponse(this.#currentChannel.consumeResponse(buffer, offset, end));
     }
   }
 
