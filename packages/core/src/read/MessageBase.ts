@@ -80,8 +80,6 @@ export class MessageBase {
     return true;
   }
 
-  // TODO: Consider if files should have unique names
-  // TODO: Paths in file names are required, for tasks like copying folder
   public [ConsumeFilesHeader](name: string, size: number): void {
     this.#files.push(new MessageFileStream(name, size));
   }
