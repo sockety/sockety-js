@@ -6,6 +6,9 @@
   "publishConfig": {
     "private": true
   },
+  "workspaces": [
+    "*"
+  ],
   "author": {
     "name": "Dawid Rusnak",
     "email": "dawid@drcode.pl",

@@ -68,7 +68,8 @@
     ]
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/examples/*"
   ],
   "devDependencies": {
     "@types/jest": "^28.1.4",
