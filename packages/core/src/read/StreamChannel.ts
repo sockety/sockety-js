@@ -210,7 +210,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     filesSize: this.#setFilesSize,
     filesHeader: this.#addFileHeader,
     _end: this.#endMessageHeader,
-  });
+  }).readOne;
 
   #consumeResponse = createResponseConsumer({
     parentId: this.#setParentId,
@@ -220,7 +220,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     filesSize: this.#setFilesSize,
     filesHeader: this.#addFileHeader,
     _end: this.#endMessageHeader,
-  });
+  }).readOne;
 
   #isConsuming(): boolean {
     return (
@@ -269,7 +269,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
       throw new Error('There is no message in process.');
     }
     const hadMessage = Boolean(this.#message);
-    if (this.#consumeMessage.readOne(buffer, offset, end) !== end) {
+    if (this.#consumeMessage(buffer, offset, end) !== end) {
       throw new Error('The message packet size was malformed.');
     }
     const result = !hadMessage && this.#message || null;
@@ -282,7 +282,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
       throw new Error('There is no response in process.');
     }
     const hadMessage = Boolean(this.#message);
-    if (this.#consumeResponse.readOne(buffer, offset, end) !== end) {
+    if (this.#consumeResponse(buffer, offset, end) !== end) {
       throw new Error('The response packet size was malformed.');
     }
     const result = !hadMessage && this.#message || null;
@@ -290,7 +290,6 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     return result as any;
   }
 
-  // TODO: Think if it shouldn't be in Message implementation
   public consumeData(buffer: Buffer): void {
     if (!this.#consumingData) {
       throw new Error('There is no data expected.');
