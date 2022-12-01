@@ -347,8 +347,6 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
       throw new Error('There is no message processed.');
     }
 
-    // TODO: Mark file as ended
-
     if (!this.#message.files[index].loaded) {
       this.#filesToProcess--;
       if (this.#filesToProcess === 0) {
