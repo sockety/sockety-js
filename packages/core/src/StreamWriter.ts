@@ -2,10 +2,12 @@ import { Buffer } from 'node:buffer';
 import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
 import { WritableBuffer } from './WritableBuffer';
-import { FileIndexBits, PacketResponseBits, PacketSizeBits, PacketStreamBits, PacketTypeBits } from './constants';
+import { FileIndexBits, PacketResponseBits, PacketStreamBits, PacketTypeBits } from './constants';
 import { createNumberBytesGetter } from './createNumberBytesGetter';
 import { createNumberBytesMapper } from './createNumberBytesMapper';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
+import { StreamWriterPacket } from './StreamWriterPacket';
+import { StreamWriterStandalonePacket } from './StreamWriterStandalonePacket';
 import { noop } from './noop';
 
 type SendCallback = (error: Error | null | undefined) => void;
@@ -17,16 +19,11 @@ const getFileIndexFlag = createNumberBytesMapper('file index', {
   3: FileIndexBits.Uint24,
 });
 
-const getPacketSizeBytes = createNumberBytesGetter('packet size', [ 1, 2, 3, 4 ]);
-const getPacketSizeFlag = createNumberBytesMapper('packet size', {
-  1: PacketSizeBits.Uint8,
-  2: PacketSizeBits.Uint16,
-  3: PacketSizeBits.Uint24,
-  4: PacketSizeBits.Uint32,
-});
-
 export interface StreamWriterOptions {
   maxChannels?: number; // default: 4_096
+  immediateFlushBytes?: number; // default: 65_000
+  maxInlineUtf8Bytes?: number; // default: 60_000
+  maxInlineBufferBytes?: number; // default: 30_000
 }
 
 const fileEndInstruction = (flags: number, index: number, indexByteLength: number) => ($: WritableBuffer) => {
@@ -83,25 +80,24 @@ const bufferWriteInstruction = (buffer: Buffer) => ($: WritableBuffer) => $.writ
 export class StreamWriter {
   readonly #buffer: WritableBuffer;
   readonly #maxChannels: number;
+  readonly #immediateFlushBytes: number;
+  readonly #maxInlineUtf8Bytes: number;
+  readonly #maxInlineBufferBytes: number;
 
   readonly #streamingChannels: Record<number, boolean> = {};
   readonly #reservedChannels: Record<number, boolean> = {};
   readonly #waitingForIdle: ((channel: number, release: () => void) => void)[] = [];
 
-  #currentPacket: number | undefined = undefined;
-  #currentPacketType: PacketTypeBits = 0;
-  #currentPacketBytes = 0;
-  #currentChannel = 0;
-
-  #packetFileIndex = 0;
-
-  #firstInstruction: StreamWriterInstruction | undefined = undefined;
-  #lastInstruction: StreamWriterInstruction | undefined = undefined;
-  #instructionsPacketPlaceholder: StreamWriterInstruction | undefined = undefined;
-  #instructionsMaxBytes = 0;
-  #instructionsCount = 0;
-
   #scheduled = false;
+  #queuedBytes = 0;
+
+  #firstPacket: StreamWriterInstruction | StreamWriterStandalonePacket | undefined;
+  #lastPacket: StreamWriterInstruction | StreamWriterStandalonePacket | undefined;
+  #currentPacket: StreamWriterPacket | undefined = undefined;
+  #currentPacketType: PacketTypeBits = 0;
+  #currentPacketFileIndex = 0;
+
+  #currentChannel = 0;
 
   public constructor(writable: Writable, options: StreamWriterOptions = {}) {
     // Save information about maximum number of channels
@@ -109,6 +105,11 @@ export class StreamWriter {
     if (this.#maxChannels < 1 || this.#maxChannels > 4096) {
       throw new Error('Number of max concurrent channels must be between 1 and 4096');
     }
+
+    // Save other options
+    this.#immediateFlushBytes = options?.immediateFlushBytes ?? 65_000;
+    this.#maxInlineUtf8Bytes = options?.maxInlineUtf8Bytes ?? 60_000;
+    this.#maxInlineBufferBytes = options?.maxInlineBufferBytes ?? 30_000;
 
     // Prepare bucket for information about streaming/reserved channels
     this.#streamingChannels = {};
@@ -130,173 +131,130 @@ export class StreamWriter {
     this.#scheduled = false;
     this.#endPacket();
 
-    this.#buffer.arrangeSize(this.#instructionsMaxBytes);
+    this.#buffer.arrangeSize(this.#queuedBytes);
 
-    let instruction = this.#firstInstruction;
-
-    // TODO: Handle errors?
-    while (instruction) {
+    while (this.#firstPacket) {
       if (this.#buffer.needsDrain) {
-        this.#firstInstruction = instruction;
         this.#buffer.drained(this.#commit);
         this.#buffer.send();
         return;
       }
-      instruction.run(this.#buffer);
-      this.#instructionsMaxBytes -= instruction.bytes;
-      this.#instructionsCount--;
-      instruction = instruction.next;
+      this.#firstPacket.run(this.#buffer);
+      this.#queuedBytes -= this.#firstPacket.bufferedBytes;
+      this.#firstPacket = this.#firstPacket.next;
     }
-    this.#instructionsCount = 0;
-    this.#instructionsMaxBytes = 0;
-    this.#firstInstruction = undefined;
-    this.#lastInstruction = undefined;
+    this.#lastPacket = undefined;
     this.#buffer.send();
   };
 
-  #instruction(instruction: (buffer: WritableBuffer) => void, maxByteLength: number, sent?: SendCallback): void {
-    this.#instructionsCount++;
-    this.#instructionsMaxBytes += maxByteLength;
-    if (this.#currentPacket !== undefined) {
-      this.#currentPacketBytes += maxByteLength;
-    }
+  #instruction(instruction: (buffer: WritableBuffer) => void, packetBytes: number, bufferedBytes: number, sent?: SendCallback): void {
+    this.#currentPacket!.add(instruction, packetBytes, bufferedBytes);
+    this.#currentPacket!.callback(sent);
+  }
 
-    const item = new StreamWriterInstruction(instruction, maxByteLength, sent);
-    if (this.#lastInstruction) {
-      this.#lastInstruction = this.#lastInstruction.next = item;
+  #appendPacket(packet: StreamWriterPacket | StreamWriterStandalonePacket): void {
+    if (this.#lastPacket) {
+      this.#lastPacket.pass(packet);
+      this.#lastPacket = packet;
     } else {
-      this.#firstInstruction = this.#lastInstruction = item;
+      this.#firstPacket = this.#lastPacket = packet;
     }
+    this.#queuedBytes += packet.bufferedBytes;
+  }
 
-    // TODO: Add configuration
-    if (this.#currentPacket === undefined && this.#instructionsMaxBytes > 65_000) {
+  #standaloneInstruction(instruction: (buffer: WritableBuffer) => void, bytes: number, sent?: SendCallback): void {
+    this.#endPacket();
+    const packet = new StreamWriterStandalonePacket(instruction, bytes, sent);
+    this.#appendPacket(packet);
+    this.#afterAdd();
+  }
+
+  public addCallback(sent: SendCallback = noop): void {
+    if (sent === noop) {
+      return;
+    }
+    if (this.#currentPacket?.bytes) {
+      this.#currentPacket.callback(sent);
+    } else if (this.#lastPacket) {
+      this.#lastPacket.callback(sent);
+    } else {
+      this.#buffer.addCallback(sent);
+    }
+  }
+
+  // It assumes that the previous packet is flushed
+  #startPacket(packet: number): void {
+    this.#currentPacket = new StreamWriterPacket(packet);
+    this.#currentPacketType = packet & 0xf0;
+    this.#schedule(); // Auto-flush
+  }
+
+  #afterAdd(): void {
+    if (this.#queuedBytes > this.#immediateFlushBytes) {
       this.#commit();
     } else {
       this.#schedule();
     }
   }
 
-  #callback(sent?: SendCallback): void {
-    if (sent) {
-      if (this.#lastInstruction) {
-        this.#lastInstruction.callback(sent);
-      } else if (this.#instructionsCount === 0) {
-        if (sent) {
-          this.#buffer.addCallback(sent);
-        }
-      } else {
-        this.#instruction(noop, 0, sent);
-      }
-    }
-  }
-
-  addCallback(sent?: SendCallback): void {
-    this.#callback(sent);
-  }
-
-  // It assumes that the previous packet is flushed
-  #startPacket(packet: number): void {
-    this.#currentPacket = packet;
-    this.#currentPacketType = packet & 0xf0;
-    this.#currentPacketBytes = 0;
-    const item = this.#instructionsPacketPlaceholder = new StreamWriterInstruction(noop, 5);
-    if (this.#lastInstruction) {
-      this.#lastInstruction = this.#lastInstruction.next = item;
-    } else {
-      this.#firstInstruction = this.#lastInstruction = item;
-    }
-    this.#instructionsMaxBytes += 5;
-  }
-
-  // TODO: Consider auto-flush on #startPacket
   #endPacket(): void {
     const packet = this.#currentPacket;
-    if (packet == undefined) {
-      return;
-    }
-    const packetBytes = this.#currentPacketBytes;
-
-    // Ignore empty packets
-    if (packetBytes === 0) {
-      if (this.#currentPacketType === PacketTypeBits.File) {
-        // FIXME: Hacky way to remove file index
-        if ((this.#currentPacket! & 0b11) !== 0) {
-          this.#instructionsPacketPlaceholder!.next!.disable();
-          // TODO: It's not removing max bytes for index
-        }
-      }
-
-      this.#currentPacket = undefined;
-      this.#currentPacketType = 0;
-      this.#instructionsMaxBytes -= this.#instructionsPacketPlaceholder!.bytes;
+    if (packet === undefined) {
       return;
     }
 
-    const flags = getPacketSizeFlag(packetBytes);
-    const bytes = getPacketSizeBytes(packetBytes);
-    this.#instructionsMaxBytes -= 4 - bytes;
-    this.#instructionsPacketPlaceholder!.decrementBytes(4 - bytes);
-    this.#instructionsPacketPlaceholder!.replace(($) => {
-      $.writeUint8(packet | flags);
-      $.writeUint(packetBytes, bytes);
-    });
     this.#currentPacket = undefined;
     this.#currentPacketType = 0;
 
-    // TODO: Add configuration option
-    if (this.#instructionsMaxBytes > 65_000) {
-      this.#commit();
+    // Ignore empty packets
+    if (packet.bytes !== 0) {
+      this.#appendPacket(packet);
+      this.#afterAdd();
     }
   }
 
   // Packets
 
   public heartbeat(sent?: SendCallback): void {
-    this.#endPacket();
-    this.#instruction(heartbeatInstruction, 1, sent);
+    this.#standaloneInstruction(heartbeatInstruction, 1, sent);
   }
 
   public goAway(sent?: SendCallback): void {
-    this.#endPacket();
-    this.#instruction(goAwayInstruction, 1, sent);
+    this.#standaloneInstruction(goAwayInstruction, 1, sent);
   }
 
   public abort(sent?: SendCallback): void {
-    this.#endPacket();
-    this.#instruction(abortInstruction, 1, sent);
+    this.#standaloneInstruction(abortInstruction, 1, sent);
   }
 
   public channel(channel: number): void {
     if (this.#currentChannel === channel) {
       return;
     }
-    this.#endPacket();
     this.#currentChannel = channel;
     if (channel < 0) {
       throw new Error(`Minimum channel ID is 0.`);
     } else if (channel <= 0x0f) {
-      this.#instruction(switchChannelLowInstruction(channel), 1);
+      this.#standaloneInstruction(switchChannelLowInstruction(channel), 1);
     } else if (channel <= 0x0fff) {
-      this.#instruction(switchChannelHighInstruction(channel), 2);
+      this.#standaloneInstruction(switchChannelHighInstruction(channel), 2);
     } else {
       throw new Error(`Maximum channel ID is 4095.`);
     }
   }
 
   public fastReply(id: UUID, code: number, sent?: SendCallback): void {
-    this.#endPacket();
     if (code < 0) {
       throw new Error('Invalid short response code.');
     } else if (code <= 0x0f) {
-      this.#instruction(fastReplyLowInstruction(id, code), 17, sent);
+      this.#standaloneInstruction(fastReplyLowInstruction(id, code), 17, sent);
     } else if (code <= 0x0fff) {
-      this.#instruction(fastReplyHighInstruction(id, code), 18, sent);
+      this.#standaloneInstruction(fastReplyHighInstruction(id, code), 18, sent);
     } else {
       throw new Error('Invalid short response code.');
     }
   }
 
-  // TODO: Consider disallowing when the previous message is not finished yet (?)
   public startMessage(expectsResponse: boolean, hasStream: boolean): void {
     const type = PacketTypeBits.Message | (
       (hasStream ? PacketStreamBits.Yes : PacketStreamBits.No) |
@@ -307,7 +265,6 @@ export class StreamWriter {
   }
 
   public continueMessage(): void {
-    // TODO: Consider caching information if that's a message
     if (this.#currentPacketType === PacketTypeBits.Message || this.#currentPacketType === PacketTypeBits.Continue || this.#currentPacketType === PacketTypeBits.Response) {
       return;
     }
@@ -334,8 +291,7 @@ export class StreamWriter {
 
   public endStream(sent?: SendCallback): void {
     this.#streamingChannels[this.#currentChannel] = false;
-    this.#endPacket();
-    this.#instruction(streamEndInstruction, 1, sent);
+    this.#standaloneInstruction(streamEndInstruction, 1, sent);
   }
 
   public data(): void {
@@ -347,78 +303,72 @@ export class StreamWriter {
   }
 
   public file(index: number): void {
-    if (this.#currentPacketType === PacketTypeBits.File && this.#packetFileIndex === index) {
+    if (this.#currentPacketType === PacketTypeBits.File && this.#currentPacketFileIndex === index) {
       return;
     }
     this.#endPacket();
-    this.#packetFileIndex = index;
+    this.#currentPacketFileIndex = index;
 
     const flags = index === 0 ? FileIndexBits.First : getFileIndexFlag(index);
     const bytes = index === 0 ? 0 : getFileIndexBytes(index);
     this.#startPacket(PacketTypeBits.File | flags);
-    // TODO: Include that in start packet instruction somehow
     if (index !== 0) {
-      this.#instruction(uintInstruction(index, bytes), bytes);
-      this.#currentPacketBytes -= bytes; // FIXME: Hacky way
+      this.#instruction(uintInstruction(index, bytes), 0, bytes);
     }
   }
 
   public endFile(index: number, sent?: SendCallback): void {
-    this.#endPacket();
-
     const flags = index === 0 ? FileIndexBits.First : getFileIndexFlag(index);
     const bytes = index === 0 ? 0 : getFileIndexBytes(index);
-    this.#instruction(fileEndInstruction(flags, index, bytes), bytes + 1, sent);
+    this.#standaloneInstruction(fileEndInstruction(flags, index, bytes), bytes + 1, sent);
   }
 
   // Instructions
 
   public writeUuid(uuid: UUID, sent?: SendCallback): void {
-    this.#instruction(uuidInstruction(uuid), 16, sent);
+    this.#instruction(uuidInstruction(uuid), 16, 16, sent);
   }
 
   public writeUtf8(text: string, sent?: SendCallback): void {
-    const length = text.length;
-    if (length > 60_000) {
-      this.#instruction(utf8WriteInstruction(text), 0, sent);
-      this.#currentPacketBytes += length; // FIXME: Hacky way
+    const size = Buffer.byteLength(text);
+    if (size > this.#maxInlineUtf8Bytes) {
+      this.#instruction(utf8WriteInstruction(text), size, 0, sent);
     } else {
-      this.#instruction(utf8InlineInstruction(text), Buffer.byteLength(text), sent);
+      this.#instruction(utf8InlineInstruction(text), size, size, sent);
     }
   }
 
   public writeBuffer(buffer: Buffer, sent?: SendCallback): void {
-    const length = buffer.length;
-    if (length > 30_000) {
-      this.#instruction(bufferWriteInstruction(buffer), 0, sent);
-      this.#currentPacketBytes += length; // FIXME: Hacky way
+    const size = buffer.length;
+    if (size > this.#maxInlineBufferBytes) {
+      this.#instruction(bufferWriteInstruction(buffer), size, 0, sent);
     } else {
-      this.#instruction(bufferInlineInstruction(buffer), length, sent);
+      this.#instruction(bufferInlineInstruction(buffer), size, size, sent);
     }
   }
 
   public writeUint8(uint: number, sent?: SendCallback): void {
-    this.#instruction(uint8Instruction(uint), 1, sent);
+    this.#instruction(uint8Instruction(uint), 1, 1, sent);
   }
 
   public writeUint16(uint: number, sent?: SendCallback): void {
-    this.#instruction(uint16Instruction(uint), 2, sent);
+    this.#instruction(uint16Instruction(uint), 2, 2, sent);
   }
 
   public writeUint24(uint: number, sent?: SendCallback): void {
-    this.#instruction(uint24Instruction(uint), 3, sent);
+    this.#instruction(uint24Instruction(uint), 3, 3, sent);
   }
 
   public writeUint32(uint: number, sent?: SendCallback): void {
-    this.#instruction(uint32Instruction(uint), 4, sent);
+    this.#instruction(uint32Instruction(uint), 4, 4, sent);
   }
 
   public writeUint48(uint: number, sent?: SendCallback): void {
-    this.#instruction(uint48Instruction(uint), 6, sent);
+    this.#instruction(uint48Instruction(uint), 6, 6, sent);
   }
 
   public writeUint(uint: number, byteLength: number, sent?: SendCallback): void {
-    this.#instruction(uintInstruction(uint, byteLength), byteLength, sent);
+    this.#instruction(uintInstruction(uint, byteLength), byteLength, byteLength, sent);
   }
 
   // Reserving channels
@@ -455,8 +405,5 @@ export class StreamWriter {
   public destroy(): void {
     this.#buffer.destroy();
     this.#currentPacket = undefined;
-    this.#firstInstruction = undefined;
-    this.#lastInstruction = undefined;
-    this.#instructionsPacketPlaceholder = undefined;
   }
 }
