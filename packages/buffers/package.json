@@ -1,7 +1,10 @@
 {
   "name": "@sockety/buffers",
-  "description": "Create ultra fast functions (faster than native) for reading and writing continuous buffers",
-  "version": "0.0.0",
+  "description": "Create ultra fast functions (faster than native) for reading continuous buffers",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": {
     "name": "Dawid Rusnak",
@@ -17,7 +20,6 @@
     "array",
     "read",
     "reader",
-    "writer",
     "parser",
     "scanner",
     "builder",
@@ -72,7 +74,7 @@
     }
   },
   "dependencies": {
-    "@sockety/uuid": "*",
+    "@sockety/uuid": "^1.0.0",
     "type-fest": "^2.18.0"
   }
 }

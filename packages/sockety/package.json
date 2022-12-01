@@ -1,7 +1,10 @@
 {
   "name": "sockety",
   "description": "Sockety client and server",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": {
     "name": "Dawid Rusnak",
@@ -71,8 +74,8 @@
     }
   },
   "dependencies": {
-    "@sockety/core": "*",
-    "@sockety/uuid": "*",
+    "@sockety/core": "^0.0.1",
+    "@sockety/uuid": "^1.0.0",
     "msgpackr": "^1.7.2"
   }
 }

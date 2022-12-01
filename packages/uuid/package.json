@@ -1,7 +1,10 @@
 {
   "name": "@sockety/uuid",
   "description": "Fast UUID generator, with purpose of transferring through buffers and lazy access",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": {
     "name": "Dawid Rusnak",

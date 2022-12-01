@@ -1,7 +1,10 @@
 {
   "name": "@sockety/core",
   "description": "Sockety core",
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "author": {
     "name": "Dawid Rusnak",
@@ -69,5 +72,9 @@
     "transform": {
       "^.+\\.ts$": "ts-jest"
     }
+  },
+  "dependencies": {
+    "@sockety/buffers": "^1.0.0",
+    "@sockety/uuid": "^1.0.0"
   }
 }
