@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build-sockety": "npm --prefix ../buffers run build && npm --prefix ../uuid run build && npm --prefix ../core run build && npm --prefix ../sockety run build",
+    "clean": "",
     "build": "",
     "lint": ""
   },
