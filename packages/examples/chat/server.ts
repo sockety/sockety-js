@@ -118,7 +118,7 @@ server.on('connection', async (connection) => {
   names.set(connection, name);
   await Promise.all([
     connection.pass(series(login(name), userList(getNames()))),
-    server.broadcast(system(`${name}: connected`), except(connection)),
+    server.broadcast(series(system(`${name}: connected`), userList(getNames())), except(connection)),
   ]);
 });
 
