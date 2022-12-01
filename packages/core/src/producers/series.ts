@@ -8,7 +8,7 @@ export function series(...producers: ContentProducer[]): ContentProducer<void> {
     return none;
   }
 
-  return createContentProducer<void>((writer, sent, registered, ) => {
+  return createContentProducer<void>((writer, sent, registered) => {
     let index = 0;
     let finished = false;
     let left = total;
