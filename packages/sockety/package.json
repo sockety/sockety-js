@@ -74,6 +74,7 @@
     }
   },
   "dependencies": {
+    "@sockety/buffers": "^1.0.0",
     "@sockety/core": "^0.0.1",
     "@sockety/uuid": "^1.0.0",
     "msgpackr": "^1.7.2"

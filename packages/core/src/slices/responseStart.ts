@@ -24,22 +24,21 @@ const getDataFlag = createNumberBytesMapper('data', {
   6: MessageDataSizeBits.Uint48,
 });
 
-export const responseStart = (hasStream: boolean) => {
+export function responseStart(hasStream: boolean) {
   return (dataLength: number, filesCount: number, totalFilesSize: number) => {
     const filesCountBits = getFilesCountFlag(filesCount);
     const filesSizeBits = getTotalFilesSizeFlag(totalFilesSize);
     const dataSizeBits = getDataFlag(dataLength);
     const flags = filesCountBits | filesSizeBits | dataSizeBits;
 
-    return (parentId: UUID) => (id: UUID, expectsResponse: boolean) => {
-      return createContentProducerSlice((writer, sent, registered, channel) => {
-        writer.channel(channel);
-        writer.startResponse(expectsResponse, hasStream);
-        writer.writeUint8(flags);
-        writer.writeUuid(parentId);
-        writer.writeUuid(id, sent);
-        registered();
-      });
-    };
-  }
+    // eslint-disable-next-line max-len
+    return (parentId: UUID) => (id: UUID, expectsResponse: boolean) => createContentProducerSlice((writer, sent, registered, channel) => {
+      writer.channel(channel);
+      writer.startResponse(expectsResponse, hasStream);
+      writer.writeUint8(flags);
+      writer.writeUuid(parentId);
+      writer.writeUuid(id, sent);
+      registered();
+    });
+  };
 }

@@ -1,3 +1,5 @@
+/* eslint-disable arrow-parens, function-paren-newline, @typescript-eslint/no-shadow, newline-per-chained-call, comma-style, function-call-argument-newline, max-len */
+
 import { Writable } from 'node:stream';
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
@@ -189,8 +191,7 @@ const createPacketConsumer = new BufferReader()
     .when('_fileIndex', FileIndexBits.Uint24, $ => $.uint24le('fileIndex'))
 
     .rawDynamic('fileContent', 'fileSize', true)
-    .earlyEnd()
-  )
+    .earlyEnd())
   .when('type', PacketTypeBits.FileEnd, $ => $
     .mask<'_fileIndex', FileIndexBits>('_fileIndex', 'header', 0b00000011).setInternal('_fileIndex')
     .when('_fileIndex', FileIndexBits.First, $ => $.constant('fileEnd', 0))
@@ -268,7 +269,7 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
     } else {
       this.#emitResponse(this.#currentChannel.consumeResponse(buffer, offset, end));
     }
-  }
+  };
 
   #appendData = (buffer: Buffer) => this.#currentChannel.consumeData(buffer);
 
@@ -310,6 +311,7 @@ export class StreamParser<M extends RawMessage = RawMessage, R extends RawRespon
     return this.#channels[id];
   }
 
+  // eslint-disable-next-line no-underscore-dangle
   public _write(buffer: Buffer, encoding: any, callback: (error?: Error | null) => void): void {
     try {
       this.#consume(buffer);

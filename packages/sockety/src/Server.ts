@@ -29,7 +29,7 @@ export class Server extends EventEmitter {
     const connection = new Connection(rawSocket, this.#options);
     connection.once('connect', () => {
       // Register connection
-      const clients = this.clients;
+      const { clients } = this;
       clients.push(connection);
       connection.once('close', () => clients.splice(clients.indexOf(connection), 1));
 
@@ -71,7 +71,7 @@ export class Server extends EventEmitter {
   }
 
   // TODO: Add concurrency option
-  public async broadcast(producer: ContentProducer, filter: (connection: Connection) => boolean = () => true): Promise<void> {
+  public async broadcast(producer: ContentProducer, filter: (c: Connection) => boolean = () => true): Promise<void> {
     const promises = [];
     for (const connection of this.clients) {
       if (filter(connection)) {
@@ -92,10 +92,11 @@ export class Server extends EventEmitter {
   public listen(handle: any): Promise<this>;
   public listen(...args: any): Promise<this> {
     return new Promise((resolve, reject) => {
+      /* eslint-disable no-use-before-define */
       const clearListeners = () => {
         this.#server.off('error', errorListener);
         this.#server.off('listening', startListener);
-      }
+      };
       const errorListener = (error: any) => {
         clearListeners();
         reject(error);
@@ -119,7 +120,7 @@ export class Server extends EventEmitter {
         } else {
           reject(error);
         }
-      })
+      });
     });
   }
 

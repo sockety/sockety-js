@@ -59,8 +59,10 @@ const uintInstruction = (value: number, byteLength: number) => {
 const uuidInstruction = (id: UUID) => ($: WritableBuffer) => $.writeUuid(id);
 const utf8InlineInstruction = (text: string) => ($: WritableBuffer) => $.writeUtf8Inline(text);
 const utf8WriteInstruction = (text: string) => ($: WritableBuffer) => $.writeUtf8(text);
-const switchChannelLowInstruction = (channel: number) => ($: WritableBuffer) =>  $.writeUint8(PacketTypeBits.ChannelSwitchLow | channel);
-const switchChannelHighInstruction = (channel: number) => ($: WritableBuffer) =>  {
+const switchChannelLowInstruction = (channel: number) => ($: WritableBuffer) => (
+  $.writeUint8(PacketTypeBits.ChannelSwitchLow | channel)
+);
+const switchChannelHighInstruction = (channel: number) => ($: WritableBuffer) => {
   $.writeUint8(PacketTypeBits.ChannelSwitch | (channel >> 8));
   $.writeUint8(channel & 0x00ff);
 };
@@ -147,7 +149,12 @@ export class StreamWriter {
     this.#buffer.send();
   };
 
-  #instruction(instruction: (buffer: WritableBuffer) => void, packetBytes: number, bufferedBytes: number, sent?: SendCallback): void {
+  #instruction(
+    instruction: (buffer: WritableBuffer) => void,
+    packetBytes: number,
+    bufferedBytes: number,
+    sent?: SendCallback,
+  ): void {
     this.#currentPacket!.add(instruction, packetBytes, bufferedBytes);
     this.#currentPacket!.callback(sent);
   }
@@ -157,7 +164,8 @@ export class StreamWriter {
       this.#lastPacket.pass(packet);
       this.#lastPacket = packet;
     } else {
-      this.#firstPacket = this.#lastPacket = packet;
+      this.#firstPacket = packet;
+      this.#lastPacket = packet;
     }
     this.#queuedBytes += packet.bufferedBytes;
   }
@@ -233,13 +241,13 @@ export class StreamWriter {
     }
     this.#currentChannel = channel;
     if (channel < 0) {
-      throw new Error(`Minimum channel ID is 0.`);
+      throw new Error('Minimum channel ID is 0.');
     } else if (channel <= 0x0f) {
       this.#standaloneInstruction(switchChannelLowInstruction(channel), 1);
     } else if (channel <= 0x0fff) {
       this.#standaloneInstruction(switchChannelHighInstruction(channel), 2);
     } else {
-      throw new Error(`Maximum channel ID is 4095.`);
+      throw new Error('Maximum channel ID is 4095.');
     }
   }
 
@@ -265,7 +273,11 @@ export class StreamWriter {
   }
 
   public continueMessage(): void {
-    if (this.#currentPacketType === PacketTypeBits.Message || this.#currentPacketType === PacketTypeBits.Continue || this.#currentPacketType === PacketTypeBits.Response) {
+    if (
+      this.#currentPacketType === PacketTypeBits.Message ||
+      this.#currentPacketType === PacketTypeBits.Continue ||
+      this.#currentPacketType === PacketTypeBits.Response
+    ) {
       return;
     }
     this.#endPacket();

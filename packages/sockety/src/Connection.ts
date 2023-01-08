@@ -99,7 +99,9 @@ export class Connection extends EventEmitter {
     this.#socket.on('data', this.#readHeader.bind(this));
   }
 
+  // eslint-disable-next-line max-len
   #createMessage = (id: UUID, action: string, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => new Message(this, id, action, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
+  // eslint-disable-next-line max-len
   #createResponse = (id: UUID, parentId: UUID, dataSize: number, filesCount: number, totalFilesSize: number, hasStream: boolean, expectsResponse: boolean) => new Response(this, id, parentId, dataSize, filesCount, totalFilesSize, hasStream, expectsResponse);
 
   #readHeader(data: Buffer): void {
@@ -116,6 +118,7 @@ export class Connection extends EventEmitter {
       this.emit('connect');
       this.#socket.removeAllListeners('data');
       if (data.length > bytesRead) {
+        // eslint-disable-next-line no-underscore-dangle
         this.#parser._write(data.subarray(bytesRead), 'buffer', noop);
       }
       this.#socket.pipe(this.#parser);
@@ -128,7 +131,6 @@ export class Connection extends EventEmitter {
       if (this.#closing) {
         this.close(true);
       }
-      return;
     }
   }
 
@@ -170,6 +172,7 @@ export class Connection extends EventEmitter {
       return Promise.reject(new Error('The connection is already closed'));
     } else if (socket.connecting) {
       return new Promise((resolve, reject) => {
+        /* eslint-disable no-use-before-define */
         const clearListeners = () => {
           this.off('error', errorListener);
           this.off('close', closeListener);
@@ -212,13 +215,15 @@ export class Connection extends EventEmitter {
     } else if (this.#closing) {
       throw new Error('The connection is closed.');
     }
-    return new Promise<void>((resolve, reject) => producer(this.#writer, (error) => {
-      if (error == null) {
-        resolve();
-      } else {
-        reject(error);
-      }
-    }, noop, false));
+    return new Promise<void>((resolve, reject) => {
+      producer(this.#writer, (error) => {
+        if (error == null) {
+          resolve();
+        } else {
+          reject(error);
+        }
+      }, noop, false);
+    });
   }
 
   public async close(force = false): Promise<void> {

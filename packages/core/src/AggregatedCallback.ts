@@ -6,7 +6,7 @@ export class AggregatedCallback {
 
   public add(callback?: Callback): void {
     if (!callback) {
-      return;
+      // Ignore
     } else if (this.#listeners) {
       this.#listeners.push(callback);
     } else {

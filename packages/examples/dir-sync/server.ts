@@ -125,7 +125,7 @@ server.on('connection', async (connection) => {
 // Start server
 
 server.listen(9000).then(
-  () => process.stdout.write('Server started at port 9000\n'),
+  () => process.stdout.write(`Server started at port 9000\n`),
   (error) => {
     process.stderr.write(`${error.message}\n`);
     process.exit(1);

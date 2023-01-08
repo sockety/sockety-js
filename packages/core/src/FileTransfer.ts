@@ -17,7 +17,7 @@ export class FileTransfer {
   public readonly name: string;
   #readable = true;
 
-  private constructor(slice: (index: number) => ContentProducerSlice, readOnlyOnce: boolean, size: number, name: string) {
+  private constructor(slice: (idx: number) => ContentProducerSlice, readOnlyOnce: boolean, size: number, name: string) {
     this.#slice = slice;
     this.#readOnlyOnce = readOnlyOnce;
     this.size = size;

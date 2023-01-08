@@ -1,12 +1,12 @@
 import { JsonValue } from 'type-fest';
 import { createDeclaration } from '../createDeclaration';
+import { convertValueToCode } from '../convertValueToCode';
 
 export const constantDeclaration = createDeclaration({
   read: (value: JsonValue | undefined) => (operation) => operation
-    .initialValue(value === undefined ? 'undefined' : value === Infinity ? 'Infinity' : JSON.stringify(value))
     .resetValue(false)
     .entry(($) => `
-      ${$.set(value === undefined ? 'undefined' : value === Infinity ? 'Infinity' : JSON.stringify(value))}
+      ${$.set(convertValueToCode(value))}
       ${$.continue()}
     `),
 });

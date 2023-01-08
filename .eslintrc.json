@@ -5,7 +5,7 @@
     "node": true
   },
   "extends": [
-    "airbnb"
+    "airbnb/base"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -26,9 +26,14 @@
   "rules": {
     "import/extensions": "off",
     "lines-between-class-members": "off",
-    "no-return-await": "off",
     "operator-linebreak": "off",
     "import/prefer-default-export": "off",
+    "object-curly-newline": ["error", {
+      "ObjectExpression": { "minProperties": 5, "multiline": true, "consistent": true },
+      "ObjectPattern": { "minProperties": 5, "multiline": true, "consistent": true },
+      "ImportDeclaration": "never",
+      "ExportDeclaration": "never"
+    }],
     "no-else-return": "off",
     "no-plusplus": "off",
     "no-bitwise": "off",
@@ -39,6 +44,18 @@
     "no-new-func": "off",
     "no-restricted-syntax": "off",
     "array-bracket-spacing": [ "error", "always" ],
-    "max-len": [ "warn", 120 ]
+    "max-len": [ "error", {
+      "code": 120,
+      "ignoreStrings": true,
+      "ignoreTemplateLiterals": true,
+      "ignoreRegExpLiterals": true
+    } ],
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": "error",
+    "no-return-await": "off",
+    "no-redeclare": "off",
+    "@typescript-eslint/no-redeclare": "error",
+    "no-dupe-class-members": "off",
+    "@typescript-eslint/no-dupe-class-members": "error"
   }
 }

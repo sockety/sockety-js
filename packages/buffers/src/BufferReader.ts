@@ -23,8 +23,8 @@ import { arrayDynamicContinuousDeclaration, arrayDynamicDeclaration } from './de
 import { passDynamicDeclaration } from './declarations/passDynamicDeclaration';
 
 // Special types
-declare const _BufferPointer: unique symbol;
-type BufferPointer = typeof _BufferPointer;
+declare const BufferPointerSymbol: unique symbol;
+type BufferPointer = typeof BufferPointerSymbol;
 
 /* eslint-disable quotes */
 
@@ -270,8 +270,8 @@ export class BufferReader<T extends Record<string, any> = {}> {
   /**
    * Add step to emit some constant known primitive value.
    */
-  public constant<K extends string, U extends JsonValue | undefined>(name: K, value: U): BufferReader<T & Record<K, U>> {
-    this.#registerOperation(name, constantDeclaration.read(value));
+  public constant<K extends string, U extends JsonValue | undefined>(key: K, value: U): BufferReader<T & Record<K, U>> {
+    this.#registerOperation(key, constantDeclaration.read(value));
     return this;
   }
 
@@ -322,7 +322,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
     fn: (factory: BufferReader<T>) => BufferReader<U>,
   ): BufferReader<U> {
     // Cache information about current number of operations
-    const length = this.#operations.length;
+    const { length } = this.#operations;
 
     // Add conditional steps
     fn(this);
@@ -397,7 +397,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
    */
   public compute<K extends string, U>(
     name: K,
-    fn: (scope: BufferSnippetScope, prefix: string) => string
+    fn: (scope: BufferSnippetScope, prefix: string) => string,
   ): BufferReader<T & Record<K, U>> {
     this.#registerOperation(name, (operation, prefix) => operation
       .initialValue('null')
@@ -536,10 +536,10 @@ export class BufferReader<T extends Record<string, any> = {}> {
         // Detect which variables could be removed
         const continueResetLocalCode = Object.entries(operation.variables)
           .filter(([ , { reset } ]) => reset)
-          .map(([ name, { code } ]) => `_context.$_${operation.name}_${name} = ${code}; `)
+          .map(([ varName, { code } ]) => `_context.$_${operation.name}_${varName} = ${code}; `)
           .join('');
         const continueResetGlobalCode = resettableGlobalVariables
-          .map((name) => `_context.${name} = ${operationsMap[name].initialValue}; `)
+          .map((varName) => `_context.${varName} = ${operationsMap[varName].initialValue}; `)
           .join('');
         const continueResetCode = continueResetLocalCode + continueResetGlobalCode;
 
@@ -552,7 +552,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
           .replace(/<<<GO:([^>]+)>>>/g, (_, fnName) => `return ${fnName}(_context, _buffer, _offset, _end);`)
           .replace(/<<<JUMP:([0-9]+)>>>/g, (_, id) => continueResetCode + `return ${prefix}step${id}(_context, _buffer, _offset, _end);`)
           .replace(/<<<ESCAPE>>>/g, `_context._go(${snippetIdsMap.get(snippet)}); return _offset;`)
-          .replace(/<<<ESCAPE:([^>]+)>>>/g, (_, name) => `_context._go(${snippetIdsMap.get(operation.snippets[name])}); return _offset;`);
+          .replace(/<<<ESCAPE:([^>]+)>>>/g, (_, snippetId) => `_context._go(${snippetIdsMap.get(operation.snippets[snippetId])}); return _offset;`);
 
         // Optimization: Get rid of unnecessary `set`
         if (!isUsedLater) {
@@ -626,7 +626,7 @@ export class BufferReader<T extends Record<string, any> = {}> {
   }> & { _end?: () => void }) => {
     readOne: (buffer: Uint8Array, offset?: number, end?: number) => number;
     readMany: (buffer: Uint8Array, offset?: number, end?: number) => void;
-  } {
+    } {
     return new Function('require', `${this.build()}; return createReader;`)(require);
   }
 }

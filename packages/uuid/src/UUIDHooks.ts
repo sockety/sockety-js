@@ -1,5 +1,7 @@
-import { UUID } from '@sockety/uuid';
-import { UuidValue } from '@sockety/uuid/src/internal/symbols';
+/* eslint-disable max-classes-per-file, no-use-before-define */
+
+import { UUID } from './UUID';
+import { UuidValue } from './internal/symbols';
 
 const noop = () => {};
 

@@ -6,7 +6,11 @@ export function connect(options: ConnectOptions): Connection;
 export function connect(port: number, options?: ConnectOptions): Connection;
 export function connect(port: number, host?: string, options?: ConnectOptions): Connection;
 export function connect(path: string, options?: ConnectOptions): Connection;
-export function connect(arg1: ConnectOptions | number | string, arg2?: ConnectOptions | string, arg3?: ConnectOptions): Connection {
+export function connect(
+  arg1: ConnectOptions | number | string,
+  arg2?: ConnectOptions | string,
+  arg3?: ConnectOptions,
+): Connection {
   if (
     (typeof arg1 === 'number' || typeof arg1 === 'string') &&
     (typeof arg2 === 'string')

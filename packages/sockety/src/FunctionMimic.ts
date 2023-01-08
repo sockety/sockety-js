@@ -1,15 +1,16 @@
 // @see: {@link https://stackoverflow.com/a/40878674/2922986}
 export abstract class FunctionMimic<T extends (...args: any) => any> extends Function {
-  private readonly __self__: this;
+  private readonly selfMimic: this;
 
   protected constructor() {
-    super('...args', 'return this.__self__.__call__(...args)');
-    this.__self__ = this.bind(this);
+    super('...args', 'return this.selfMimic.mimic(...args)');
+    this.selfMimic = this.bind(this);
 
-    return this.__self__;
+    // eslint-disable-next-line no-constructor-return
+    return this.selfMimic;
   }
 
-  protected abstract __call__(...args: Parameters<T>): ReturnType<T>;
+  protected abstract mimic(...args: Parameters<T>): ReturnType<T>;
 }
 
 export interface FunctionMimic<T extends (...args: any) => any> {

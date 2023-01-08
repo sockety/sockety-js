@@ -1,8 +1,6 @@
 import { WritableBuffer } from './WritableBuffer';
 import { SendCallback } from './ContentProducer';
 
-type Instruction = ($: WritableBuffer) => void;
-
 export interface StreamWriterInstruction {
   bufferedBytes: number;
   bytes: number;

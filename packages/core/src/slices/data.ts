@@ -5,7 +5,7 @@ import { pipe } from './pipe';
 // TODO: Extract
 const MAX_DATA_PACKET_SIZE = 4 * 1024 * 1024;
 
-export const data = (content: Buffer | string | undefined): ContentProducerSlice => {
+export function data(content: Buffer | string | undefined): ContentProducerSlice {
   if (content == null) {
     return none;
   }

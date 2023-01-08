@@ -38,7 +38,8 @@ export class RequestStream extends Writable {
     this.#written?.();
   }
 
-  public _write(chunk: any, encoding: BufferEncoding, sent: SendCallback): void {
+  // eslint-disable-next-line no-underscore-dangle
+  public _write(chunk: any, encoding: any, sent: SendCallback): void {
     if (this.#attached) {
       this.#write(chunk, sent);
     } else {
@@ -46,6 +47,7 @@ export class RequestStream extends Writable {
     }
   }
 
+  // eslint-disable-next-line no-underscore-dangle
   public _final(sent: SendCallback): void {
     if (this.#attached) {
       this.#end(sent);
@@ -54,7 +56,7 @@ export class RequestStream extends Writable {
     }
   }
 
-  public [AttachStream](channel: number, sent: SendCallback = noop, written?: WriteCallback): void {
+  public [AttachStream](channel: number, sent: SendCallback = noop, written: WriteCallback = noop): void {
     this.#written = written;
     this.#sent = sent;
     this.#attached = true;

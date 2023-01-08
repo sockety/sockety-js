@@ -5,7 +5,7 @@ import { pipe } from './pipe';
 // TODO: Extract
 const MAX_FILE_PACKET_SIZE = 4 * 1024 * 1024;
 
-export const fileContent = (index: number) => {
+export function fileContent(index: number) {
   const fileContentForIndex = (content: Buffer | undefined): ContentProducerSlice => {
     if (content == null) {
       return none;

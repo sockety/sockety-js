@@ -1,5 +1,7 @@
 import { StreamWriter } from './StreamWriter';
 
+/* eslint-disable max-len */
+
 // TODO: Try to unify ContentProducer and ContentProducerSlice
 
 export type RegisterCallback = () => void;

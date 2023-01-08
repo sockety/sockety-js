@@ -1,10 +1,15 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
 import { generateUuid } from '@sockety/uuid';
+// eslint-disable-next-line max-len
 import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, RequestBase as RawRequest } from '@sockety/core';
+// eslint-disable-next-line max-len
 import { action, none, data, messageStart, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList } from '@sockety/core/slices';
 import { CreateProducerSlice, RequestDone } from '@sockety/core/src/symbols';
 import { FunctionMimic } from './FunctionMimic';
+
+// TODO: Looks like ESLint bug. Investigate.
+/* eslint-disable @typescript-eslint/no-shadow */
 
 enum DraftDataType {
   none = 0,
@@ -27,7 +32,11 @@ export interface DraftConfigDefaults {
 }
 
 type UseStream<T extends DraftConfig, U extends boolean> = Omit<T, 'stream'> & { stream: U };
-type UseData<T extends DraftConfig, U extends DraftDataType, V = any> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
+type UseData<
+  T extends DraftConfig,
+  U extends DraftDataType,
+  V = any
+> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
 type UseFiles<T extends DraftConfig, U extends boolean> = Omit<T, 'files'> & { files: U };
 
 type Input<T extends DraftConfig> =
@@ -46,7 +55,11 @@ interface DataOperation {
   dataLength: number;
 }
 
-function createDataOperationObject(dataSlice: ContentProducerSlice, dataSizeSlice: ContentProducerSlice, dataLength: number): DataOperation {
+function createDataOperationObject(
+  dataSlice: ContentProducerSlice,
+  dataSizeSlice: ContentProducerSlice,
+  dataLength: number,
+): DataOperation {
   return { dataSlice, dataSizeSlice, dataLength };
 }
 
@@ -70,7 +83,12 @@ interface FilesOperation {
   totalFilesSize: number;
 }
 
-function createFilesOperationObject(filesSlice: ContentProducerSlice, filesHeaderSlice: ContentProducerSlice, filesCount: number, totalFilesSize: number): FilesOperation {
+function createFilesOperationObject(
+  filesSlice: ContentProducerSlice,
+  filesHeaderSlice: ContentProducerSlice,
+  filesCount: number,
+  totalFilesSize: number,
+): FilesOperation {
   return { filesSlice, filesHeaderSlice, filesCount, totalFilesSize };
 }
 
@@ -252,7 +270,7 @@ export class Draft<T extends DraftConfig = DraftConfigDefaults> extends Function
     return this.#cached;
   }
 
-  public __call__(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ProducerFactory<T>> {
+  public mimic(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ProducerFactory<T>> {
     return (this.optimize() as any)(input, argThatIsNotExpected);
   }
 

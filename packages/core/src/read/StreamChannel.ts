@@ -1,14 +1,9 @@
+/* eslint-disable arrow-parens, function-paren-newline, @typescript-eslint/no-shadow, newline-per-chained-call, comma-style, function-call-argument-newline, max-len */
+
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
-import {
-  FileNameSizeBits,
-  FileSizeBits,
-  MessageActionSizeBits,
-  MessageDataSizeBits,
-  MessageFilesCountBits,
-  MessageFilesSizeBits,
-} from '../constants';
+import { FileNameSizeBits, FileSizeBits, MessageActionSizeBits, MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../constants';
 import { ConsumeData, ConsumeFile, ConsumeFilesHeader, ConsumeStream, EndStream } from '../symbols';
 import { RawMessage } from './RawMessage';
 import { RawResponse } from './RawResponse';
@@ -272,7 +267,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (this.#consumeMessage(buffer, offset, end) !== end) {
       throw new Error('The message packet size was malformed.');
     }
-    const result = !hadMessage && this.#message || null;
+    const result = (!hadMessage && this.#message) || null;
     this.#endMessageIfReady();
     return result as any;
   }
@@ -285,7 +280,7 @@ export class StreamChannel<M extends RawMessage = RawMessage, R extends RawRespo
     if (this.#consumeResponse(buffer, offset, end) !== end) {
       throw new Error('The response packet size was malformed.');
     }
-    const result = !hadMessage && this.#message || null;
+    const result = (!hadMessage && this.#message) || null;
     this.#endMessageIfReady();
     return result as any;
   }

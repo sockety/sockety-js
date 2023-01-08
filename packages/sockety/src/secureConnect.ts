@@ -6,7 +6,11 @@ export function secureConnect(options: SecureConnectOptions): Connection;
 export function secureConnect(port: number, options?: SecureConnectOptions): Connection;
 export function secureConnect(port: number, host?: string, options?: SecureConnectOptions): Connection;
 export function secureConnect(path: string, options?: SecureConnectOptions): Connection;
-export function secureConnect(arg1: SecureConnectOptions | number | string, arg2?: SecureConnectOptions | string, arg3?: SecureConnectOptions): Connection {
+export function secureConnect(
+  arg1: SecureConnectOptions | number | string,
+  arg2?: SecureConnectOptions | string,
+  arg3?: SecureConnectOptions,
+): Connection {
   if (
     (typeof arg1 === 'number' || typeof arg1 === 'string') &&
     (typeof arg2 === 'string')

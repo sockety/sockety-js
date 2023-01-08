@@ -29,5 +29,5 @@ export class DrainListener {
     do {
       this.#listeners.shift()!();
     } while (this.#listeners.length > 0 && this.#isWritable);
-  }
+  };
 }

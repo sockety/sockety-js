@@ -1,7 +1,7 @@
+import { FastReply } from '@sockety/core';
 import { FunctionMimic } from './FunctionMimic';
 import { Message } from './Message';
-import { FastReply } from '@sockety/core';
-import { ActionHandler, ActionName } from './symbols';
+import { ActionHandler as ActionHandlerSymbol, ActionName as ActionNameSymbol } from './symbols';
 
 type RawHandlerResult = void | FastReply | number;
 type HandlerResult = RawHandlerResult | Promise<RawHandlerResult>;
@@ -11,28 +11,25 @@ type ActionHandler = (message: Message) => HandlerResult;
 type Handler = (message: Message, error: Error | null) => HandlerResult;
 type ErrorHandler = (message: Message, error: Error) => HandlerResult;
 
-type RawActionHandler = Handler & { [ActionName]: string, [ActionHandler]: ActionHandler };
+type RawActionHandler = Handler & { [ActionNameSymbol]: string, [ActionHandlerSymbol]: ActionHandler };
 
+// eslint-disable-next-line max-len, consistent-return
 const createActionHandler = (name: string, handler: ActionHandler): RawActionHandler => Object.assign((message: Message, error: Error | null) => {
-  if (message.action == name && error === null) {
+  if (message.action === name && error === null) {
     return handler(message);
   }
 }, {
-  [ActionName]: name,
-  [ActionHandler]: handler,
+  [ActionNameSymbol]: name,
+  [ActionHandlerSymbol]: handler,
 });
 
 function isRawActionHandler(handler: unknown): handler is RawActionHandler {
-  return typeof handler === 'function' && ActionName in handler;
+  return typeof handler === 'function' && ActionNameSymbol in handler;
 }
 
 export class MessageHandler extends FunctionMimic<InputHandler> {
   #handlers: (Handler | RawActionHandler)[] = [];
   #cached?: InputHandler;
-
-  public constructor() {
-    super();
-  }
 
   #revokeCache(): void {
     this.#cached = undefined;
@@ -51,7 +48,7 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
 
       // Combine multiple consecutive action handlers to switch instruction
       const actions = {
-        [handler[ActionName]]: handler[ActionHandler],
+        [handler[ActionNameSymbol]]: handler[ActionHandlerSymbol],
       };
 
       // Search until there is common handler, or there is already such action
@@ -59,25 +56,26 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
       for (; j < handlers.length; j++) {
         const handler2 = handlers[j];
 
-        if (!isRawActionHandler(handler2) || actions[handler2[ActionName]]) {
+        if (!isRawActionHandler(handler2) || actions[handler2[ActionNameSymbol]]) {
           break;
         }
 
-        actions[handler2[ActionName]] = handler2[ActionHandler];
+        actions[handler2[ActionNameSymbol]] = handler2[ActionHandlerSymbol];
       }
 
       // There was single action, so ignore optimization
       if (j - i === 1) {
+        // eslint-disable-next-line no-continue
         continue;
       }
 
       // Combine multiple actions
       const names = Object.keys(actions);
-      const combined = new Function(...names.map((_, i) => `action_${i}`), `
+      const combined = new Function(...names.map((_, idx) => `action_${idx}`), `
         return (message, error) => {
           if (error === null) {
             switch (message.action) {
-              ${names.map((name, i) => `case ${JSON.stringify(name)}: return action_${i}(message);`).join('\n')}
+              ${names.map((name, idx) => `case ${JSON.stringify(name)}: return action_${idx}(message);`).join('\n')}
             }
           }
         }
@@ -95,8 +93,10 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
       for (let i = 0; i < count; i++) {
         try {
           const direct = handlers[i](message, error);
+          // eslint-disable-next-line no-await-in-loop
           const result = direct instanceof Promise ? await direct : direct;
           if (expects && typeof result === 'number' && !message.responded) {
+            // eslint-disable-next-line no-await-in-loop
             await message.fastReply(result);
           }
         } catch (e: any) {
@@ -120,6 +120,7 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
 
   public error(handler: ErrorHandler): this {
     this.#revokeCache();
+    // eslint-disable-next-line consistent-return
     this.#handlers.push((message, error) => {
       if (error != null) {
         return handler(message, error);
@@ -136,7 +137,7 @@ export class MessageHandler extends FunctionMimic<InputHandler> {
     return this.#cached;
   }
 
-  public __call__(message: Message): Promise<void> {
+  public mimic(message: Message): Promise<void> {
     return this.optimize()(message);
   }
 }

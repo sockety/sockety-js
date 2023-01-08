@@ -13,9 +13,10 @@ export class MessageStream extends Readable {
     super({ objectMode: true });
   }
 
+  // eslint-disable-next-line no-underscore-dangle
   public _read(size: number): void {
     if (size === 0) {
-      return;
+      // Ignore
     } else if (this.#buffer.length > 0) {
       this.push(this.#buffer.shift());
     } else if (this[Ended]) {

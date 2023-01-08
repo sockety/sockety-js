@@ -83,5 +83,5 @@ export function createResponse<T extends boolean>({
 
       return request;
     });
-  }
+  };
 }

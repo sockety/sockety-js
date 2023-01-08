@@ -30,7 +30,7 @@ function createCallback(left: number, callback: Callback): Callback {
 // TODO: Consider storing them as LinkedList
 // TODO: Consider draining each step
 // TODO: Think if shouldn't there be error handler on each step
-export const parallel = (slices: ContentProducerSlice[], concurrency = Infinity) => {
+export function parallel(slices: ContentProducerSlice[], concurrency = Infinity) {
   const total = slices.length;
   if (total === 0 || !slices.some((x) => x !== none)) {
     return none;

@@ -98,7 +98,7 @@ export class MessageBase {
     if (!file) {
       throw new Error(`There is no file ${index} available yet.`);
     } else if (file.loaded) {
-      throw new Error(`File has been already finished.`);
+      throw new Error('File has been already finished.');
     }
     // TODO: Verify size (disallow if it's less than expected, and it's not allowed)
     file[End]();

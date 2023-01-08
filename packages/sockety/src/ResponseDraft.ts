@@ -1,21 +1,15 @@
 import { Buffer } from 'node:buffer';
 import * as msgpack from 'msgpackr';
 import { generateUuid, UUID } from '@sockety/uuid';
+// eslint-disable-next-line max-len
 import { ContentProducer, ContentProducerSlice, createContentProducer, RequestStream, FileTransfer, RequestBase as RawRequest } from '@sockety/core';
-import {
-  none,
-  data,
-  pipe,
-  dataSize,
-  endStream,
-  parallel,
-  attachStream,
-  filesListHeader,
-  filesList,
-  responseStart,
-} from '@sockety/core/slices';
+// eslint-disable-next-line max-len
+import { none, data, pipe, dataSize, endStream, parallel, attachStream, filesListHeader, filesList, responseStart } from '@sockety/core/slices';
 import { CreateProducerSlice, RequestDone } from '@sockety/core/src/symbols';
 import { FunctionMimic } from './FunctionMimic';
+
+// TODO: Looks like ESLint bug. Investigate.
+/* eslint-disable @typescript-eslint/no-shadow */
 
 enum DraftDataType {
   none = 0,
@@ -38,7 +32,11 @@ export interface ResponseDraftConfigDefaults {
 }
 
 type UseStream<T extends ResponseDraftConfig, U extends boolean> = Omit<T, 'stream'> & { stream: U };
-type UseData<T extends ResponseDraftConfig, U extends DraftDataType, V = any> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
+type UseData<
+  T extends ResponseDraftConfig,
+  U extends DraftDataType,
+  V = any
+> = Omit<T, 'data' | 'dataType'> & { data: U, dataType: V };
 type UseFiles<T extends ResponseDraftConfig, U extends boolean> = Omit<T, 'files'> & { files: U };
 
 type Input<T extends ResponseDraftConfig> =
@@ -57,7 +55,11 @@ interface DataOperation {
   dataLength: number;
 }
 
-function createDataOperationObject(dataSlice: ContentProducerSlice, dataSizeSlice: ContentProducerSlice, dataLength: number): DataOperation {
+function createDataOperationObject(
+  dataSlice: ContentProducerSlice,
+  dataSizeSlice: ContentProducerSlice,
+  dataLength: number,
+): DataOperation {
   return { dataSlice, dataSizeSlice, dataLength };
 }
 
@@ -81,7 +83,12 @@ interface FilesOperation {
   totalFilesSize: number;
 }
 
-function createFilesOperationObject(filesSlice: ContentProducerSlice, filesHeaderSlice: ContentProducerSlice, filesCount: number, totalFilesSize: number): FilesOperation {
+function createFilesOperationObject(
+  filesSlice: ContentProducerSlice,
+  filesHeaderSlice: ContentProducerSlice,
+  filesCount: number,
+  totalFilesSize: number,
+): FilesOperation {
   return { filesSlice, filesHeaderSlice, filesCount, totalFilesSize };
 }
 
@@ -109,7 +116,8 @@ function createFilesOperation(files: FileTransfer[]): FilesOperation {
 }
 
 // TODO: Clean up code / unify with Draft
-export class ResponseDraft<T extends ResponseDraftConfig = ResponseDraftConfigDefaults> extends FunctionMimic<ResponseProducerFactory<T>> {
+export class ResponseDraft<T extends ResponseDraftConfig = ResponseDraftConfigDefaults>
+  extends FunctionMimic<ResponseProducerFactory<T>> {
   #stream: boolean = false;
   #allowFiles: boolean = false;
   #allowData: DraftDataType = DraftDataType.none;
@@ -252,7 +260,7 @@ export class ResponseDraft<T extends ResponseDraftConfig = ResponseDraftConfigDe
     return this.#cached;
   }
 
-  public __call__(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ResponseProducerFactory<T>> {
+  public mimic(input?: Input<T>, argThatIsNotExpected?: number): ReturnType<ResponseProducerFactory<T>> {
     return (this.optimize() as any)(input, argThatIsNotExpected);
   }
 }

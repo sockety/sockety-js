@@ -5,7 +5,7 @@ import { none } from './none';
 // TODO: Consider storing them as LinkedList
 // TODO: Consider draining each step
 // TODO: Think if shouldn't there be error handler on each step
-export const pipe = (slices: ContentProducerSlice[]) => {
+export function pipe(slices: ContentProducerSlice[]) {
   const end = slices.length - 1;
   if (end === -1) {
     return none;

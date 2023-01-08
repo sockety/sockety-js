@@ -24,19 +24,16 @@ const getFileHeaderSizeFlag = createNumberBytesMapper('file size', {
 function getFileHeaderSize(file: FileTransfer): number {
   const nameLength = Buffer.byteLength(file.name);
   const nameSize = getFileHeaderNameBytes(nameLength);
-  // @ts-ignore: ignore types for optimization
-  const size = file.size;
+  const { size } = file;
   const sizeSize = getFileHeaderSizeBytes(size);
   return 1 + sizeSize + nameSize + nameLength;
 }
 
 function writeFileHeader(buffer: Buffer, offset: number, file: FileTransfer): number {
-  const name = file.name;
+  const { name, size } = file;
   const nameLength = Buffer.byteLength(name);
   const nameSize = getFileHeaderNameBytes(nameLength);
   const nameBits = getFileHeaderNameFlag(nameLength);
-  // @ts-ignore: ignore types for optimization
-  const size = file.size;
   const sizeSize = getFileHeaderSizeBytes(size);
   const sizeBits = getFileHeaderSizeFlag(size);
 
@@ -58,12 +55,11 @@ function writeFileHeader(buffer: Buffer, offset: number, file: FileTransfer): nu
 }
 
 // TODO: Optimize
-export const filesList = (files?: FileTransfer[] | null) => {
+export function filesList(files?: FileTransfer[] | null) {
   if (!files || files.length === 0) {
     return none;
   }
   // TODO: Consider doing it lazily?
-  // @ts-ignore: avoid checks for better performance
   const filesHeaderSize = files?.reduce((acc, file) => acc + getFileHeaderSize(file), 0) || 0;
   const filesHeaderBuffer = Buffer.allocUnsafeSlow(filesHeaderSize);
   let offset = 0;

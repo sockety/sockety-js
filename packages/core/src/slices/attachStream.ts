@@ -4,7 +4,7 @@ import { none } from './none';
 import { AttachStream } from '../symbols';
 
 // TODO: Abort when it's aborted/closed
-export const attachStream = (stream?: RequestStream | null) => {
+export function attachStream(stream?: RequestStream | null) {
   if (stream == null) {
     return none;
   }

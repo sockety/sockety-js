@@ -41,9 +41,10 @@ export function isKnownFastReply(response: unknown): response is FastReply {
 }
 
 export function getResponseDescription(response: FastReply | number | any): string | null {
-  return isKnownFastReply(response)
-    ? FastReplyDescription[response]
-    : typeof response === 'number' ? `Custom #${response}` : null;
+  if (isKnownFastReply(response)) {
+    return FastReplyDescription[response];
+  }
+  return typeof response === 'number' ? `Custom #${response}` : null;
 }
 
 // Control byte - channel size:
