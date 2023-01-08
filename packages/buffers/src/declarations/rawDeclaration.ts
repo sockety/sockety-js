@@ -97,7 +97,7 @@ export const rawDeclarationContinuous = createDeclaration({
       ? ($) => `${$.set($.local('NONE'))} ${$.continue()}`
       : ($) => `
       if (${$.hasBytes(length)}) {
-        ${$.set(`${$.buffer}.subarray(${$.offset}, ${$.offset} + length)`)}
+        ${$.set(`${$.buffer}.subarray(${$.offset}, ${$.offset} + ${length})`)}
         ${$.moveOffset(length)}
         ${$.continue()}
       } else if (${$.hasBytes()}) {

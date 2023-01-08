@@ -11,9 +11,9 @@ export const uint32leDeclaration = createDeclaration({
         ${$.set(`(
           ${$.bufferAt(0)} |
           ${$.bufferAt(1, 8)} |
-          ${$.bufferAt(2, 16)} +
+          ${$.bufferAt(2, 16)}) +
           ${$.bufferAt(3, 24)}
-        )`)}
+        `)}
         ${$.moveOffset(4)}
         ${$.continue()}
       } else if (${$.hasBytes(3)}) {
@@ -37,9 +37,9 @@ export const uint32leDeclaration = createDeclaration({
         ${$.set(`(
           ${$.local('temp')} |
           ${$.bufferAt(0, 8)} |
-          ${$.bufferAt(1, 16)} +
+          ${$.bufferAt(1, 16)}) +
           ${$.bufferAt(2, 24)}
-        )`)}
+        `)}
         ${$.moveOffset(3)}
         ${$.continue()}
       } else if (${$.hasBytes(2)}) {
@@ -68,7 +68,7 @@ export const uint32leDeclaration = createDeclaration({
     `)
 
     .snippet('left_1', ($) => `
-      if (!${$.hasBytes()}) {
+      if (${$.hasBytes()}) {
         ${$.set(`${$.local('temp')} + (${$.bufferAt(0, 24)})`)}
         ${$.moveOffset(1)}
         ${$.continue()}
