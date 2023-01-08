@@ -1,7 +1,7 @@
 {
   "name": "sockety",
   "description": "Sockety client and server",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publishConfig": {
     "access": "public"
   },
@@ -74,8 +74,8 @@
     }
   },
   "dependencies": {
-    "@sockety/buffers": "^1.0.0",
-    "@sockety/core": "^0.0.1",
+    "@sockety/buffers": "^1.0.1",
+    "@sockety/core": "^0.0.2",
     "@sockety/uuid": "^1.0.0",
     "msgpackr": "^1.7.2"
   }

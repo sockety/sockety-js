@@ -1,7 +1,7 @@
 {
   "name": "@sockety/buffers",
   "description": "Create ultra fast functions (faster than native) for reading continuous buffers",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publishConfig": {
     "access": "public"
   },
