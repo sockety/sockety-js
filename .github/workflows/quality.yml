@@ -11,21 +11,16 @@ jobs:
   lint:
     name: Lint
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [18.x]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: NodeJS ${{ matrix.node-version }} on ${{ matrix.os }}
+      - name: NodeJS
         uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: ${{ matrix.node-version }}
+          node-version: 19.x
 
       - run: node -p process.versions
 
@@ -65,24 +60,19 @@ jobs:
   coverage:
     name: Report coverage
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [19.x]
-
     env:
       CC_TEST_REPORTER_ID: a2d82974a4532d427b8855175de07eabef6bba36a8025d3c346a3ead1be33141
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: NodeJS ${{ matrix.node-version }} on ${{ matrix.os }}
+      - name: NodeJS
         uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: ${{ matrix.node-version }}
+          node-version: 19.x
 
       - run: node -p process.versions
 
@@ -105,21 +95,16 @@ jobs:
   audit:
     name: Audit dependencies
 
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [18.x]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: NodeJS ${{ matrix.node-version }} on ${{ matrix.os }}
+      - name: NodeJS
         uses: actions/setup-node@v3
         with:
           cache: 'npm'
-          node-version: ${{ matrix.node-version }}
+          node-version: 19.x
 
       - run: node -p process.versions
 
