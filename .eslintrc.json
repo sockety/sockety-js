@@ -6,7 +6,8 @@
     "jest": true
   },
   "extends": [
-    "airbnb/base"
+    "airbnb/base",
+    "plugin:jest/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -17,7 +18,8 @@
     "sourceType": "module"
   },
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "jest"
   ],
   "settings": {
     "import/resolver": {
