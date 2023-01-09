@@ -55,7 +55,8 @@
   "jest": {
     "rootDir": "./packages",
     "collectCoverageFrom": [
-      "<rootDir>/packages/*/src/**/*(*.)ts",
+      "**/*(*.)ts",
+      "!**/node_modules/**",
       "!**/*(*.)d.ts",
       "!**/fixtures/**/*(*.)ts"
     ],

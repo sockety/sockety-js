@@ -62,6 +62,46 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  coverage:
+    name: Report coverage
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [19.x]
+
+    env:
+      CC_TEST_REPORTER_ID: a2d82974a4532d427b8855175de07eabef6bba36a8025d3c346a3ead1be33141
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: NodeJS ${{ matrix.node-version }} on ${{ matrix.os }}
+        uses: actions/setup-node@v3
+        with:
+          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
+
+      - run: node -p process.versions
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up CodeClimate reporter
+        run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+
+      - name: Run unit tests and report
+        run: |
+          ./cc-test-reporter before-build
+          npm test -- --coverage
+          EXIT_CODE=$?
+          mv ./packages/coverage/clover.xml ./clover.xml
+          ./cc-test-reporter after-build -t clover --exit-code $EXIT_CODE
+
   audit:
     name: Audit dependencies
 
