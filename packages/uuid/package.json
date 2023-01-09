@@ -50,9 +50,9 @@
   },
   "jest": {
     "collectCoverageFrom": [
-      "**/?(*.)ts",
-      "!**/?(*.)d.ts",
-      "!**/fixtures/**/?(*.)ts"
+      "**/*(*.)ts",
+      "!**/*(*.)d.ts",
+      "!**/fixtures/**/*(*.)ts"
     ],
     "collectCoverage": true,
     "coverageProvider": "v8",
@@ -60,7 +60,7 @@
     "moduleFileExtensions": [ "ts", "js", "mjs", "cjs", "json", "node" ],
     "testEnvironment": "node",
     "testMatch": [
-      "<rootDir>/test/**/?(*.)spec.ts"
+      "<rootDir>/test/**/*(*.)spec.ts"
     ],
     "transform": {
       "^.+\\.ts$": "ts-jest"

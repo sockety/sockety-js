@@ -55,9 +55,9 @@
   "jest": {
     "rootDir": "./packages",
     "collectCoverageFrom": [
-      "<rootDir>/packages/*/src/**/?(*.)ts",
-      "!**/?(*.)d.ts",
-      "!**/fixtures/**/?(*.)ts"
+      "<rootDir>/packages/*/src/**/*(*.)ts",
+      "!**/*(*.)d.ts",
+      "!**/fixtures/**/*(*.)ts"
     ],
     "testMatch": [],
     "testPathIgnorePatterns": [
