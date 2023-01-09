@@ -1,9 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { BufferReader } from '../../src/BufferReader';
 
-// TODO: Solve 'jest' usage differently
-/* eslint-disable no-undef */
-
 /* eslint-disable no-underscore-dangle */
 
 export interface TestReaderOptions<T> {

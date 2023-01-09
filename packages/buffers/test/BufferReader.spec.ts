@@ -3,9 +3,6 @@ import { generateUuid } from '@sockety/uuid';
 import { BufferReader } from '../src/BufferReader';
 import { testReader } from './utils/testReader';
 
-// TODO: Solve 'jest' usage differently
-/* eslint-disable no-undef */
-
 function sanitizeHex(hex: string): string {
   return hex.replace(/\s+/g, '');
 }
