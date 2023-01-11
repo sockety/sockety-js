@@ -1,5 +1,5 @@
 import { WritableBuffer } from './WritableBuffer';
-import { SendCallback } from './ContentProducer';
+import { SendCallback } from '../ContentProducer';
 
 export interface StreamWriterInstruction {
   bufferedBytes: number;

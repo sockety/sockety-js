@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
-import { DrainListener } from './DrainListener';
-import { AggregatedCallback } from './AggregatedCallback';
+import { AggregatedCallback } from '../utils/AggregatedCallback';
+import { DrainListener } from '../utils/DrainListener';
 
 type Callback = (error: Error | null | undefined) => void;
 

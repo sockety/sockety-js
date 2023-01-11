@@ -1,5 +1,5 @@
 import { createContentProducerSlice } from '../ContentProducer';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 
 const getActionNameBytes = createNumberBytesGetter('action name', [ 1, 2 ]);
 

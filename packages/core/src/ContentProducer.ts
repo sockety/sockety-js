@@ -1,4 +1,4 @@
-import { StreamWriter } from './StreamWriter';
+import { StreamWriter } from './write/StreamWriter';
 
 /* eslint-disable max-len */
 

@@ -1,10 +1,10 @@
-import { WritableBuffer } from './WritableBuffer';
-import { SendCallback } from './ContentProducer';
-import { createNumberBytesGetter } from './createNumberBytesGetter';
-import { createNumberBytesMapper } from './createNumberBytesMapper';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
+import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
+import { PacketSizeBits } from '../constants';
+import { noop } from '../noop';
+import { SendCallback } from '../ContentProducer';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
-import { PacketSizeBits } from './constants';
-import { noop } from './noop';
+import { WritableBuffer } from './WritableBuffer';
 
 type Instruction = ($: WritableBuffer) => void;
 

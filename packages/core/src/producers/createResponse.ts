@@ -1,20 +1,20 @@
 import { Buffer } from 'node:buffer';
 import { generateUuid, UUID } from '@sockety/uuid';
-import { createContentProducer, ContentProducer } from './ContentProducer';
-import { RequestBase } from './RequestBase';
-import { RequestStream } from './RequestStream';
-import { data } from './slices/data';
-import { dataSize } from './slices/dataSize';
-import { attachStream } from './slices/attachStream';
-import { filesListHeader } from './slices/filesListHeader';
-import { filesList } from './slices/filesList';
-import { pipe } from './slices/pipe';
-import { endStream } from './slices/endStream';
-import { parallel } from './slices/parallel';
-import { none } from './slices/none';
-import { responseStart } from './slices/responseStart';
-import { FileTransfer } from './FileTransfer';
-import { CreateProducerSlice, RequestDone } from './symbols';
+import { data } from '../slices/data';
+import { dataSize } from '../slices/dataSize';
+import { attachStream } from '../slices/attachStream';
+import { filesListHeader } from '../slices/filesListHeader';
+import { filesList } from '../slices/filesList';
+import { pipe } from '../slices/pipe';
+import { endStream } from '../slices/endStream';
+import { parallel } from '../slices/parallel';
+import { none } from '../slices/none';
+import { responseStart } from '../slices/responseStart';
+import { createContentProducer, ContentProducer } from '../ContentProducer';
+import { RequestBase } from '../RequestBase';
+import { RequestStream } from '../RequestStream';
+import { FileTransfer } from '../FileTransfer';
+import { CreateProducerSlice, RequestDone } from '../symbols';
 
 export interface CreateResponseOptions {
   data?: Buffer | string;

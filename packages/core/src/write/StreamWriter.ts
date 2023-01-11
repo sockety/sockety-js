@@ -1,14 +1,14 @@
 import { Buffer } from 'node:buffer';
 import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
-import { WritableBuffer } from './WritableBuffer';
-import { FileIndexBits, PacketResponseBits, PacketStreamBits, PacketTypeBits } from './constants';
-import { createNumberBytesGetter } from './createNumberBytesGetter';
-import { createNumberBytesMapper } from './createNumberBytesMapper';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
+import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
+import { FileIndexBits, PacketResponseBits, PacketStreamBits, PacketTypeBits } from '../constants';
+import { noop } from '../noop';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
 import { StreamWriterPacket } from './StreamWriterPacket';
 import { StreamWriterStandalonePacket } from './StreamWriterStandalonePacket';
-import { noop } from './noop';
+import { WritableBuffer } from './WritableBuffer';
 
 type SendCallback = (error: Error | null | undefined) => void;
 

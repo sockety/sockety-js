@@ -1,10 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { createContentProducerSlice } from '../ContentProducer';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
-import { none } from './none';
-import { createNumberBytesMapper } from '../createNumberBytesMapper';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
+import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
 import { FileNameSizeBits, FileSizeBits } from '../constants';
 import { FileTransfer } from '../FileTransfer';
+import { none } from './none';
 
 const getFileHeaderNameBytes = createNumberBytesGetter('file name', [ 1, 2 ]);
 const getFileHeaderNameFlag = createNumberBytesMapper('file name', {

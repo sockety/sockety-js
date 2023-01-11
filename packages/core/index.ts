@@ -4,8 +4,8 @@ export { ContentProducer, ContentProducerSlice, createContentProducer, createCon
 export * from './src/FileTransfer';
 export * from './src/RequestBase';
 export * from './src/RequestStream';
-export * from './src/StreamWriter';
-export * from './src/WritableBuffer';
+export * from './src/write/StreamWriter';
+export * from './src/write/WritableBuffer';
 
 export * from './src/read/MessageBase';
 export * from './src/read/MessageDataStream';

@@ -1,6 +1,6 @@
 import { createContentProducerSlice } from '../ContentProducer';
 import { none } from './none';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 
 const getDataBytes = createNumberBytesGetter('data', [ 0, 1, 2, 6 ]);
 

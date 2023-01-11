@@ -1,5 +1,5 @@
 import { Writable } from 'node:stream';
-import { StreamWriter } from './StreamWriter';
+import { StreamWriter } from './write/StreamWriter';
 import { AttachStream } from './symbols';
 import { noop } from './noop';
 

@@ -1,7 +1,7 @@
+import { SendCallback } from '../ContentProducer';
+import { noop } from '../noop';
 import { WritableBuffer } from './WritableBuffer';
-import { SendCallback } from './ContentProducer';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
-import { noop } from './noop';
 
 type Instruction = ($: WritableBuffer) => void;
 

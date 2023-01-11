@@ -1,5 +1,5 @@
 import { createContentProducerSlice } from '../ContentProducer';
-import { createNumberBytesGetter } from '../createNumberBytesGetter';
+import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 import { none } from './none';
 
 const getTotalFilesSizeBytes = createNumberBytesGetter('total files size', [ 2, 3, 4, 6 ]);
