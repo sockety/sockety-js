@@ -75,6 +75,7 @@
   },
   "dependencies": {
     "@sockety/buffers": "^1.0.1",
-    "@sockety/uuid": "^1.0.0"
+    "@sockety/uuid": "^1.0.0",
+    "type-fest": "^2.18.0"
   }
 }
