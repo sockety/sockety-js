@@ -61,9 +61,7 @@
       "!**/fixtures/**/*(*.)ts"
     ],
     "testMatch": [],
-    "testPathIgnorePatterns": [
-      "benchmark/**/*"
-    ],
+    "testPathIgnorePatterns": [],
     "projects": [
       "<rootDir>/*"
     ]
