@@ -72,6 +72,9 @@
     "packages/*",
     "packages/examples/*"
   ],
+  "overrides": {
+    "debug": "^4.3.4"
+  },
   "devDependencies": {
     "@types/jest": "^28.1.4",
     "@types/node": "^18.0.6",
