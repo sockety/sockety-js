@@ -15,9 +15,17 @@
     "strict": true,
     "declaration": true,
     "paths": {
-      "@sockety/!(sockety)": [
-        "../*",
-        "node_modules/@sockety/*"
+      "@sockety/buffers": [
+        "../buffers",
+        "node_modules/@sockety/buffers"
+      ],
+      "@sockety/core": [
+        "../core",
+        "node_modules/@sockety/core"
+      ],
+      "@sockety/uuid": [
+        "../uuid",
+        "node_modules/@sockety/uuid"
       ],
       "*": [
         "*",

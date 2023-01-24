@@ -15,10 +15,6 @@
     "strict": true,
     "declaration": true,
     "paths": {
-      "@sockety/!(uuid)": [
-        "../*",
-        "node_modules/@sockety/*"
-      ],
       "*": [
         "*",
         "node_modules/*"

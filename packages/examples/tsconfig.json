@@ -15,10 +15,6 @@
     "strict": true,
     "declaration": true,
     "paths": {
-      "@sockety/!(core)": [
-        "../*",
-        "node_modules/@sockety/*"
-      ],
       "sockety": [
         "../sockety",
         "node_modules/sockety"
