@@ -1,24 +1,13 @@
 import { Buffer } from 'node:buffer';
 import { EventEmitter } from 'node:events';
 import { UUID, UUIDHooks, UUIDHookPointer } from '@sockety/uuid';
-import { BufferReader } from '@sockety/buffers';
-import { RequestBase, ContentProducer, StreamParser, StreamWriter, FastReply, bits } from '@sockety/core';
-import { noop } from '@sockety/core/internal';
+import { RequestBase, ContentProducer, StreamParser, StreamWriter, FastReply } from '@sockety/core';
+import { noop, createControlByteReader } from '@sockety/core/internal';
 import { RawConnectOptions, TcpSocket } from './types';
 import { Message } from './Message';
 import { Response } from './Response';
 import { Request } from './Request';
 import { AddResponseHook, DeleteResponseHook } from './symbols';
-
-const createControlByteReader = new BufferReader()
-  .uint8('control')
-  .mask<'size', bits.ControlChannelBits>('size', 'control', 0b00000011)
-  .setInternal('size')
-  .when('size', bits.ControlChannelBits.Single, ($) => $.constant('channels', 1))
-  .when('size', bits.ControlChannelBits.Maximum, ($) => $.constant('channels', Infinity))
-  .when('size', bits.ControlChannelBits.Uint8, ($) => $.uint8('channels'))
-  .when('size', bits.ControlChannelBits.Uint16, ($) => $.uint16le('channels'))
-  .end();
 
 function createHeader(channels: number): Buffer {
   const CONTROL_BYTE = 0b11100000;
