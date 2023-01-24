@@ -1,7 +1,7 @@
 import { UUID } from '@sockety/uuid';
 import { createContentProducerSlice } from '../ContentProducer';
 import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
-import { MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../constants';
+import { MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../bits';
 
 const getTotalFilesSizeFlag = createNumberBytesMapper('total files size', {
   2: MessageFilesSizeBits.Uint16,

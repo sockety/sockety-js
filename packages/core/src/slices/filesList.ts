@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { createContentProducerSlice } from '../ContentProducer';
 import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
-import { FileNameSizeBits, FileSizeBits } from '../constants';
+import { FileNameSizeBits, FileSizeBits } from '../bits';
 import { FileTransfer } from '../FileTransfer';
 import { none } from './none';
 

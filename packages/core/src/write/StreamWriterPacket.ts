@@ -1,6 +1,6 @@
 import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
-import { PacketSizeBits } from '../constants';
+import { PacketSizeBits } from '../bits';
 import { noop } from '../noop';
 import { SendCallback } from '../ContentProducer';
 import { StreamWriterInstruction } from './StreamWriterInstruction';

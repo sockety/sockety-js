@@ -3,7 +3,7 @@ import { Writable } from 'node:stream';
 import { UUID } from '@sockety/uuid';
 import { createNumberBytesGetter } from '../utils/createNumberBytesGetter';
 import { createNumberBytesMapper } from '../utils/createNumberBytesMapper';
-import { FileIndexBits, PacketResponseBits, PacketStreamBits, PacketTypeBits } from '../constants';
+import { FileIndexBits, PacketResponseBits, PacketStreamBits, PacketTypeBits } from '../bits';
 import { noop } from '../noop';
 import { StreamWriterInstruction } from './StreamWriterInstruction';
 import { StreamWriterPacket } from './StreamWriterPacket';

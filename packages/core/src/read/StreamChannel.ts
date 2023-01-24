@@ -3,7 +3,7 @@
 import type { Buffer } from 'node:buffer';
 import { BufferReader } from '@sockety/buffers';
 import type { UUID } from '@sockety/uuid';
-import { FileNameSizeBits, FileSizeBits, MessageActionSizeBits, MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../constants';
+import { FileNameSizeBits, FileSizeBits, MessageActionSizeBits, MessageDataSizeBits, MessageFilesCountBits, MessageFilesSizeBits } from '../bits';
 import { ConsumeData, ConsumeFile, ConsumeFilesHeader, ConsumeStream, EndStream } from '../symbols';
 import { RawMessage } from './RawMessage';
 import { RawResponse } from './RawResponse';

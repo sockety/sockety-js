@@ -1,4 +1,5 @@
 export * from './src/constants';
+export * as bits from './src/bits';
 // eslint-disable-next-line max-len
 export { ContentProducer, ContentProducerSlice, createContentProducer, createContentProducerSlice } from './src/ContentProducer';
 export * from './src/FileTransfer';
