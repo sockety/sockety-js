@@ -1,7 +1,7 @@
 {
   "name": "@sockety/uuid",
   "description": "Fast UUID generator, with purpose of transferring through buffers and lazy access",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publishConfig": {
     "access": "public"
   },
