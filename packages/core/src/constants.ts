@@ -1,3 +1,20 @@
+function assertUniqueBitmaskEnum<T extends Record<any, number | string>>(mask: number, data: T): void {
+  const occurrences: Record<string | number, boolean> = {};
+  for (const [ key, value ] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+    if (occurrences[value]) {
+      throw new Error(`Value ${value} (${key}) is duplicated`);
+    }
+    occurrences[value] = true;
+    if ((value & mask) !== value) {
+      throw new Error(`Value ${value} (${key}) is not within bitmask 0b${mask.toString(2)}`);
+    }
+  }
+}
+
 // Packet type:
 // Takes first 4 bits of packet header - 0bXXXX0000
 export enum PacketTypeBits {
@@ -17,6 +34,7 @@ export enum PacketTypeBits {
   FileEnd = 13 << 4,
   Data = 14 << 4,
 }
+assertUniqueBitmaskEnum(0b11110000, PacketTypeBits);
 
 export enum FastReply {
   Accept = 0,
@@ -26,6 +44,7 @@ export enum FastReply {
   BadRequest = 4,
   InternalError = 5,
 }
+assertUniqueBitmaskEnum(0b111, FastReply);
 
 export const FastReplyDescription: Record<FastReply, string> = {
   [FastReply.Accept]: 'Accepted',
@@ -55,9 +74,10 @@ export enum ControlChannelBits {
   Uint16 = 2 << 0,
   Maximum = 3 << 0,
 }
+assertUniqueBitmaskEnum(0b00000011, ControlChannelBits);
 
 // File packet size bucket:
-// Takes next 2 bits of packet header - 0b000000XX
+// Takes last 2 bits of packet header - 0b000000XX
 // It's ignored for different packet types than File and FileEnd
 export enum FileIndexBits {
   First = 0 << 0,
@@ -65,23 +85,26 @@ export enum FileIndexBits {
   Uint16 = 2 << 0,
   Uint24 = 3 << 0,
 }
+assertUniqueBitmaskEnum(0b00000011, FileIndexBits);
 
 // File packet size bucket:
 // Takes last 2 bits of packet header - 0b0000XX00
 // It's ignored for different packet types than File and FileEnd
-// Used also for determining file size bucket in files header, as 0b000000XX.
+// Used also for determining file size bucket in files header, as 0b0000XX00.
 export enum FileSizeBits {
   Uint8 = 0 << 2,
   Uint16 = 1 << 2,
   Uint24 = 2 << 2,
   Uint48 = 3 << 2,
 }
+assertUniqueBitmaskEnum(0b00001100, FileSizeBits);
 
 // Used to determine file name bucket in files header, as 0b000000X0.
 export enum FileNameSizeBits {
   Uint8 = 0 << 1,
   Uint16 = 1 << 1,
 }
+assertUniqueBitmaskEnum(0b00000010, FileNameSizeBits);
 
 // Packet size bucket:
 // Takes next 2 bits of packet header - 0b0000XX00
@@ -92,6 +115,7 @@ export enum PacketSizeBits {
   Uint24 = 2 << 2,
   Uint32 = 3 << 2,
 }
+assertUniqueBitmaskEnum(0b00001100, PacketSizeBits);
 
 // Stream existence:
 // Takes next 1 bit of packet header - 0b000000X0
@@ -100,6 +124,7 @@ export enum PacketStreamBits {
   No = 0 << 1,
   Yes = 1 << 1,
 }
+assertUniqueBitmaskEnum(0b00000010, PacketStreamBits);
 
 // Response expectation:
 // Takes last 1 bit of packet header - 0b0000000X
@@ -108,6 +133,7 @@ export enum PacketResponseBits {
   No = 0 << 0,
   Yes = 1 << 0,
 }
+assertUniqueBitmaskEnum(0b00000001, PacketResponseBits);
 
 // Data size's size bucket:
 // Takes first 2 bits of message flags - 0bXX000000
@@ -117,6 +143,7 @@ export enum MessageDataSizeBits {
   Uint16 = 2 << 6,
   Uint48 = 3 << 6,
 }
+assertUniqueBitmaskEnum(0b11000000, MessageDataSizeBits);
 
 // Files count size bucket:
 // Takes next 2 bits of message flags - 0b00XX0000
@@ -126,6 +153,7 @@ export enum MessageFilesCountBits {
   Uint16 = 2 << 4,
   Uint24 = 3 << 4,
 }
+assertUniqueBitmaskEnum(0b00110000, MessageFilesCountBits);
 
 // Total files size's size bucket:
 // Takes next 2 bits of message flags - 0b0000XX00
@@ -135,6 +163,7 @@ export enum MessageFilesSizeBits {
   Uint32 = 2 << 2,
   Uint48 = 3 << 2,
 }
+assertUniqueBitmaskEnum(0b00001100, MessageFilesSizeBits);
 
 // Action length bucket:
 // Takes next 1 bit of message flags - 0b000000X0
@@ -142,3 +171,4 @@ export enum MessageActionSizeBits {
   Uint8 = 0 << 1,
   Uint16 = 1 << 1,
 }
+assertUniqueBitmaskEnum(0b00000010, MessageActionSizeBits);
