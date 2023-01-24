@@ -49,7 +49,9 @@
   },
   "scripts": {
     "clean": "rimraf {src,test}/**/*.{js,d.ts,map} index.{js,d.ts,js.map}",
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build:compile-buffer-readers": "ts-node scripts/compileBufferReaders.ts",
+    "build:code": "tsc -p tsconfig.json",
+    "build": "npm run clean && npm run build:code && npm run build:compile-buffer-readers",
     "ts-check": "tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build",
     "lint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache 'src/**/*!(.d).ts' --ignore-pattern 'src/**/*.d.ts'",
@@ -77,5 +79,9 @@
     "@sockety/buffers": "^1.0.1",
     "@sockety/uuid": "^1.0.0",
     "type-fest": "^2.18.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "terser": "^5.16.1"
   }
 }
