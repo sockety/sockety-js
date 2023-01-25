@@ -13,21 +13,7 @@
     "noEmitOnError": true,
     "sourceMap": true,
     "strict": true,
-    "declaration": true,
-    "paths": {
-      "@sockety/buffers": [
-        "../buffers",
-        "node_modules/@sockety/buffers"
-      ],
-      "@sockety/uuid": [
-        "../uuid",
-        "node_modules/@sockety/uuid"
-      ],
-      "*": [
-        "*",
-        "node_modules/*"
-      ]
-    }
+    "declaration": true
   },
   "include": [
     "./src/**/*.ts",

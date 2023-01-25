@@ -13,17 +13,7 @@
     "noEmitOnError": true,
     "sourceMap": true,
     "strict": true,
-    "declaration": true,
-    "paths": {
-      "sockety": [
-        "../sockety",
-        "node_modules/sockety"
-      ],
-      "*": [
-        "*",
-        "node_modules/*"
-      ]
-    }
+    "declaration": true
   },
   "include": [
     "./**/*.ts",

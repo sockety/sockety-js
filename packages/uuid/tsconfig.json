@@ -13,13 +13,7 @@
     "noEmitOnError": true,
     "sourceMap": true,
     "strict": true,
-    "declaration": true,
-    "paths": {
-      "*": [
-        "*",
-        "node_modules/*"
-      ]
-    }
+    "declaration": true
   },
   "include": [
     "./src/**/*.ts",
