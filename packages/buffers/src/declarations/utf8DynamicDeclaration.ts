@@ -36,7 +36,7 @@ export const utf8DynamicDeclaration = createDeclaration({
         ${$.moveOffset('length')}
         ${$.continue()}
       } else if (${$.hasBytes()}) {
-        part = ${$.buffer}.subarray(${$.offset}, ${$.end});
+        const part = ${$.buffer}.subarray(${$.offset}, ${$.end});
         const partLength = part.length;
         ${$.local('parts')} = [ part ];
         ${$.local('left')} = length - partLength;
