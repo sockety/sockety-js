@@ -29,7 +29,6 @@ function createCallback(left: number, callback: Callback): Callback {
 
 // TODO: Consider storing them as LinkedList
 // TODO: Consider draining each step
-// TODO: Think if shouldn't there be error handler on each step
 export function parallel(slices: ContentProducerSlice[], concurrency = Infinity) {
   const total = slices.length;
   if (total === 0 || !slices.some((x) => x !== none)) {
@@ -47,6 +46,30 @@ export function parallel(slices: ContentProducerSlice[], concurrency = Infinity)
       }
     });
   } else {
-    throw new Error('Not implemented yet');
+    return createContentProducerSlice((writer, sent, registered, channel) => {
+      const sentOne = createSentCallback(total, sent);
+      const registeredOne = createCallback(total, registered);
+
+      let i = 0;
+      let running = 0;
+
+      const next = () => {
+        // eslint-disable-next-line no-use-before-define
+        slices[i++](writer, sentOne, registeredNextOne, channel);
+      };
+
+      const registeredNextOne = () => {
+        registeredOne();
+        if (i < total) {
+          // This needs to be in next tick, to avoid call stack exceeded when it's immediately registered
+          process.nextTick(next);
+        }
+      };
+
+      while (i < total && running < concurrency) {
+        running++;
+        next();
+      }
+    });
   }
 }
