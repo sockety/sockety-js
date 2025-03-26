@@ -16,6 +16,10 @@ This mono-repository is prepared for its JS implementation  - [**sockety** packa
 * [`@sockety/core`](packages/core): internals for parsing and writing messages
 * [`examples`](packages/examples): place for Sockety usage examples
 
+## Installation and usage
+
+See installation and usage instructions in [**sockety package**](https://www.npmjs.com/package/sockety).
+
 ## Benchmark
 
 To run benchmark, simply run `npm run benchmark` command. In general, Sockety seems to work 3-15x faster than HTTP/2.
