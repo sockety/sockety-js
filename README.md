@@ -8,3 +8,9 @@ This mono-repository is prepared for its JS implementation  - [**sockety** packa
 * [`@sockety/benchmark`](packages/benchmark): benchmark to compare Sockety performance with other solutions
 * [`@sockety/core`](packages/core): internals for parsing and writing messages
 * [`examples`](packages/examples): place for Sockety usage examples
+
+## Benchmark
+
+To run benchmark, simply run `npm run benchmark` command.
+
+![Benchmark](./assets/benchmark.png)

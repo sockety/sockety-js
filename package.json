@@ -48,6 +48,7 @@
     "clean": "npm run clean --ws",
     "build": "npm run build --ws",
     "ts-check": "npm run ts-check --ws",
+    "benchmark": "npm run build-sockety && node index -cn 2 -t 1s -cc 250 -c 2",
     "lint": "npm run lint --ws",
     "prepublishOnly": "npm run build",
     "test": "jest"
