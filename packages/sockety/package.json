@@ -77,6 +77,6 @@
     "@sockety/buffers": "^1.0.4",
     "@sockety/core": "^0.0.4",
     "@sockety/uuid": "^1.0.2",
-    "msgpackr": "^1.7.2"
+    "msgpackr": "^1.11.2"
   }
 }
